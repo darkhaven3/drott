@@ -1510,19 +1510,10 @@ void SetUpControlPanel (void)
    int Xres = 320;
    int Yres = 200;
 
-   //dont work in 800x600 until we get a better screen schrinker
-  //  int Xres = iGLOBAL_SCREENWIDTH;//640;
- //  int Yres = iGLOBAL_SCREENHEIGHT;//400;
-
-  Xres = 320;
-   Yres = 200;
-
-
-
    // Save the current game screen
 
    //bna--savedscreen = SafeMalloc (16000);
-   savedscreen = SafeMalloc (16000*8);
+   savedscreen = SafeMalloc (32000*8);
 
    // Copy the current save game screen (\xBD size) to this buffer
 
@@ -1551,21 +1542,6 @@ void SetUpControlPanel (void)
 			  b=(byte *)bufferofs+i;
 			  for (j=0;j<Yres/(ScaleFactorY<<1);j++,s++,b+=(iGLOBAL_SCREENWIDTH<<1)*(ScaleFactorX)) *s=*b;
 		  }
-
-/*
-	  if (iGLOBAL_SCREENWIDTH >= 640) { 
-		  for (i=0;i<Xres;i+=4)	{		  
-			  b=(byte *)bufferofs+i;//schrink screen to 1/2 size
-			  for (j=0;j<(Yres/4);j++,s++,b+=(iGLOBAL_SCREENWIDTH<<1)*2)
-				 *s=*b;
-			  }
-      if (iGLOBAL_SCREENWIDTH == 800) { 	 
-		  for (i=0;i<Xres;i+=8)		{	  
-			  b=(byte *)bufferofs+i;//schrink screen to 1/3 size
-			  for (j=0;j<(Yres/8);j++,s++,b+=(iGLOBAL_SCREENWIDTH<<1)*3)
-				 *s=*b;
-		  }
-*/
 
    ScanForSavedGames ();
 
@@ -5040,7 +5016,7 @@ void DrawSTMenuBuf (int x, int y, int w, int h, boolean up)
 
 void DoMainMenu (void)
 {
-		EnableScreenStretch();//bna++ shut on streech mode
+	//EnableScreenStretch();//bna++ shut on streech mode
    SetAlternateMenuBuf();
    ClearMenuBuf();
    DrawMainMenu();

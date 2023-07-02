@@ -211,6 +211,7 @@ void GetCinematicTics ( void )
    cinematictics=profiletics;
 }
 
+void SetRottScreenRes(int Width, int Height);
 
 void PlayMovie ( char * name, boolean uselumpy )
 {

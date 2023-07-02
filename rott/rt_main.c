@@ -249,7 +249,7 @@ int main (int argc, char *argv[])
 
    // Start up Memory manager with a certain amount of reserved memory
 
-   Z_Init(100000,8000000);
+   Z_Init(50000,4000000);
 
    IN_Startup ();
 
@@ -325,32 +325,6 @@ int main (int argc, char *argv[])
             printf( "Sound FX disabled.\n" );
          }
 
-#ifdef DOS
-      if ( status1 || status2 || status3 )
-         {
-         printf( "\n\nROTT was unable to initialize your " );
-         if ( status1 )
-            {
-            printf( "music " );
-            MusicMode = 0;
-            }
-         if ( status2 || status3 )
-            {
-            if ( status1 )
-               {
-               printf( "or " );
-               }
-            printf( "sound fx " );
-
-            FXMode = 0;
-            }
-
-         printf( "hardware.\n"
-                 "Now entering sound setup.\n" );
-         SOUNDSETUP = true;
-         }
-#endif
-
       Init_Tables ();
       InitializeRNG ();
       InitializeMessages();
@@ -392,7 +366,7 @@ int main (int argc, char *argv[])
 //   VL_SetVGAPlaneMode();
 //   VL_SetPalette(origpal);
 //   SetBorderColor(155);
-   SetViewSize(8);
+//   SetViewSize(0);
 
 #ifdef DOS
    if ( SOUNDSETUP )
@@ -1178,6 +1152,7 @@ void GameLoop (void)
 		   {
          case ex_titles:
 		 
+            VW_UpdateScreen(); //dma - fixes shartitl/shartit2 not showing before the game is played for the first time
             BATTLE_Shutdown();
             MU_StartSong(song_title);
 			EnableScreenStretch();
@@ -1190,6 +1165,7 @@ void GameLoop (void)
                   dimpal[i] = origpal[i]>>2;
                CalcTics();
                CalcTics();
+
                IN_ClearKeysDown ();
                while (IN_GetMouseButtons()) {}
                while ((!LastScan) && (!IN_GetMouseButtons()))
