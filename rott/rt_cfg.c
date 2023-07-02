@@ -538,6 +538,9 @@ boolean ParseConfigFile (void)
       ReadInt("ScreenWidth", &iGLOBAL_SCREENWIDTH);
       ReadInt("ScreenHeight", &iGLOBAL_SCREENHEIGHT);
 
+      ReadInt("WindowWidth", &iGLOBAL_WINDOWWIDTH);
+      ReadInt("WindowHeight", &iGLOBAL_WINDOWHEIGHT);
+
       // Read in ViewSize
 
       ReadInt("ViewSize",&viewsize);
@@ -545,14 +548,17 @@ boolean ParseConfigFile (void)
       // Read in Weaponscale
 
       ReadInt("Weaponscale",&G_weaponscale);//bna added
-	   if ((G_weaponscale <150)||(G_weaponscale>600)){
+	   if ((G_weaponscale <150)||(G_weaponscale>1024)){
 		   if (iGLOBAL_SCREENWIDTH == 320){
 				G_weaponscale=168;
 		   }else if (iGLOBAL_SCREENWIDTH == 640){
 				G_weaponscale=299;		
 		   }else if (iGLOBAL_SCREENWIDTH == 800) {
 				G_weaponscale=376;
-		   }	   
+		   }
+           else {
+               G_weaponscale = (int) (376 + (iGLOBAL_SCREENWIDTH / 200) * 0.75);    //[*** FREERES SUPPORT ***]
+           }
 	   }
 
       // Read in MouseAdjustment
@@ -1797,6 +1803,8 @@ void WriteConfig (void)
    SafeWriteString(file,"; 320x200, 640x480 and 800x600\n");
    WriteParameter(file,"ScreenWidth      ",iGLOBAL_SCREENWIDTH);
    WriteParameter(file,"ScreenHeight     ",iGLOBAL_SCREENHEIGHT);
+   WriteParameter(file,"WindowWidth      ", iGLOBAL_WINDOWWIDTH);
+   WriteParameter(file,"WindowHeight     ", iGLOBAL_WINDOWHEIGHT);
 
    // Write out ViewSize
 
@@ -1817,9 +1825,13 @@ void WriteConfig (void)
 			G_weaponscale=168;
 	   }else if (iGLOBAL_SCREENWIDTH == 640){
 			G_weaponscale=299;		
-	   }else if (iGLOBAL_SCREENWIDTH == 800) {
-			G_weaponscale=376;
-	   }	   
+       }
+       else if (iGLOBAL_SCREENWIDTH == 800) {
+           G_weaponscale = 376;
+       }
+       else {
+           G_weaponscale = (int)(376 + (iGLOBAL_SCREENWIDTH / 200) * 0.75);    //[*** FREERES SUPPORT ***]
+       }
    }
    WriteParameter(file,"Weaponscale         ",G_weaponscale);
 

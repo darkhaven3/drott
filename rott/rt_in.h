@@ -178,6 +178,8 @@ extern const char ScanChars[128];
 
 void INL_GetMouseDelta(int *x,int *y);
 word IN_GetMouseButtons (void);
+boolean INL_LockMouse(void);            //[mouse]
+boolean INL_ToggleNoVert(void);         //[mouse]
 void IN_IgnoreMouseButtons( void );
 boolean INL_StartMouse (void);
 void INL_ShutMouse (void);

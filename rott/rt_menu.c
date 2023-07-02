@@ -643,21 +643,21 @@ CP_itemtype ControlSelectMenu[] =
 
 CP_MenuNames MouseBtnNames[] =
    {
-   "             B0  \x9             ",
-   "             B1  \x9             ",
-   "             B2  \x9             ",
-   "DOUBLE-CLICK B0  \x9             ",
-   "DOUBLE-CLICK B1  \x9             ",
-   "DOUBLE-CLICK B2  \x9             "
+   "           LEFT  \x9             ",
+   "          RIGHT  \x9             ",
+   "            MID  \x9             ",
+   " DBL-CLICK LEFT  \x9             ",
+   "DBL-CLICK RIGHT  \x9             ",
+   "  DBL-CLICK MID  \x9             ",
    };
 
 CP_iteminfo MouseBtnItems = { 19, 52, 6, 0, 11, MouseBtnNames, mn_8x8font };
 
 CP_itemtype MouseBtnMenu[] =
    {
-      { 2, "\0", 'B', (menuptr)DefineMouseBtn },
-      { 1, "\0", 'B', (menuptr)DefineMouseBtn },
-      { 1, "\0", 'B', (menuptr)DefineMouseBtn },
+      { 2, "\0", 'L', (menuptr)DefineMouseBtn },
+      { 1, "\0", 'R', (menuptr)DefineMouseBtn },
+      { 1, "\0", 'M', (menuptr)DefineMouseBtn },
       { 1, "\0", 'D', (menuptr)DefineMouseBtn },
       { 1, "\0", 'D', (menuptr)DefineMouseBtn },
       { 1, "\0", 'D', (menuptr)DefineMouseBtn }
@@ -750,9 +750,9 @@ CP_MenuNames OptionsNames[] =
 CP_MenuNames ExtOptionsNames[] =
    {
    "MOUSELOOK",
-   "INVERSE MOUSE",
-   "CROSS HAIR",
-   "JUMPING",
+   "CAPTURE MOUSE",
+   "INVERT MOUSE",
+   "CROSSHAIR",
    "FULLSCREEN"
    };
 CP_iteminfo ExtOptionsItems = { 20, MENU_Y, 5, 0, 43, ExtOptionsNames, mn_largefont };
@@ -760,9 +760,9 @@ CP_iteminfo ExtOptionsItems = { 20, MENU_Y, 5, 0, 43, ExtOptionsNames, mn_largef
 CP_itemtype ExtOptionsMenu[] =
 {
    {1, "", 'M', NULL},
+   {1, "", 'C', NULL},
    {1, "", 'I', NULL},
    {1, "", 'C', NULL},
-   {1, "", 'J', NULL},
    {1, "", 'F', NULL}
 };
    
@@ -1440,7 +1440,7 @@ int getASCII ( void )
 //
 //******************************************************************************
 
-void ScanForSavedGames ()
+void ScanForSavedGames (void)
 {
    struct find_t f;
    char filename[256];
@@ -1507,15 +1507,15 @@ void SetUpControlPanel (void)
 
 //   int Xres = 320;//org
 //   int Yres = 200;//org
-   int Xres = 640;
-   int Yres = 400;
+   int Xres = 320;
+   int Yres = 200;
 
    //dont work in 800x600 until we get a better screen schrinker
   //  int Xres = iGLOBAL_SCREENWIDTH;//640;
  //  int Yres = iGLOBAL_SCREENHEIGHT;//400;
 
-  Xres = 640;
-   Yres = 400;
+  Xres = 320;
+   Yres = 200;
 
 
 
@@ -1538,30 +1538,34 @@ void SetUpControlPanel (void)
 
    s=savedscreen;
 
+   int RoundedScreenWidth = iGLOBAL_SCREENWIDTH - (iGLOBAL_SCREENWIDTH % 320);
+   int RoundedScreenHeight = iGLOBAL_SCREENHEIGHT - (iGLOBAL_SCREENHEIGHT % 200);
+
+   int ScaleFactorX = (int) (RoundedScreenWidth  / 320);    //Essentially, these values factor into how many
+   int ScaleFactorY = (int) (RoundedScreenHeight / 200);   // pixels to skip when scaling down the screen
+
 
     
-	  if (iGLOBAL_SCREENWIDTH == 320) { 
-		  for (i=0;i<Xres;i+=2)	{	  
+
+		  for ( i = 0;  i < Xres;  i += ScaleFactorX )	{	  
 			  b=(byte *)bufferofs+i;
-			  for (j=0;j<100;j++,s++,b+=(iGLOBAL_SCREENWIDTH<<1))
-				 *s=*b;
+			  for (j=0;j<Yres/(ScaleFactorY<<1);j++,s++,b+=(iGLOBAL_SCREENWIDTH<<1)*(ScaleFactorX)) *s=*b;
 		  }
-	  }	  
+
+/*
 	  if (iGLOBAL_SCREENWIDTH >= 640) { 
 		  for (i=0;i<Xres;i+=4)	{		  
 			  b=(byte *)bufferofs+i;//schrink screen to 1/2 size
 			  for (j=0;j<(Yres/4);j++,s++,b+=(iGLOBAL_SCREENWIDTH<<1)*2)
 				 *s=*b;
 			  }
-	  }/*
       if (iGLOBAL_SCREENWIDTH == 800) { 	 
 		  for (i=0;i<Xres;i+=8)		{	  
 			  b=(byte *)bufferofs+i;//schrink screen to 1/3 size
 			  for (j=0;j<(Yres/8);j++,s++,b+=(iGLOBAL_SCREENWIDTH<<1)*3)
 				 *s=*b;
 		  }
-
-      }*/
+*/
 
    ScanForSavedGames ();
 
@@ -5377,17 +5381,18 @@ void CP_ExtOptionsMenu (void)
 
       switch (which)
       {
-         case 0: usemouselook  ^= 1; DrawExtOptionsButtons (); break;
-         case 1: if (inverse_mouse == 1){
+         case 0: INL_ToggleNoVert(); DrawExtOptionsButtons(); break;
+         case 1: INL_LockMouse();   DrawExtOptionsButtons(); break;
+         case 2: if (inverse_mouse == 1){
 					inverse_mouse = -1;
 				 }else{
 					inverse_mouse = 1;
 				 }
 				 DrawExtOptionsButtons (); 
 				 break;
-         case 2: iG_aimCross   ^= 1; DrawExtOptionsButtons (); break;
-         case 3: usejump       ^= 1; DrawExtOptionsButtons (); break;
-         case 4:
+         case 3: iG_aimCross   ^= 1; DrawExtOptionsButtons (); break;
+         case 4: usejump       ^= 1; DrawExtOptionsButtons (); break;
+         case 5:
             {
                ToggleFullScreen();
                DrawExtOptionsButtons ();
@@ -5399,6 +5404,10 @@ void CP_ExtOptionsMenu (void)
 
    DrawControlMenu();
 }
+
+extern boolean MouseLocked;
+extern boolean MouseNoVert;
+
 void DrawExtOptionsButtons (void)
 {
    int i,
@@ -5420,10 +5429,10 @@ void DrawExtOptionsButtons (void)
 
          switch (i)
          {
-            case 0: if (usemouselook  == 1) on = 1; break;
-            case 1: if (inverse_mouse == -1)on = 1; break;
-            case 2: if (iG_aimCross   == 1) on = 1; break;
-            case 3: if (usejump       == 1) on = 1; break;
+            case 0: if (MouseNoVert   == 1) on = 1; break;
+            case 1: if (MouseLocked   == 1) on = 1; break;
+            case 2: if (inverse_mouse ==-1) on = 1; break;
+            case 3: if (iG_aimCross   == 1) on = 1; break;
             case 4: if (sdl_fullscreen== 1) on = 1; break;
          }
 

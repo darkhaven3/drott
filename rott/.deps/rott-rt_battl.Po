@@ -1,0 +1,86 @@
+rott-rt_battl.o: rt_battl.c C:/msys64/mingw32/include/string.h \
+ C:/msys64/mingw32/include/crtdefs.h C:/msys64/mingw32/include/corecrt.h \
+ C:/msys64/mingw32/include/_mingw.h \
+ C:/msys64/mingw32/include/_mingw_mac.h \
+ C:/msys64/mingw32/include/_mingw_secapi.h \
+ C:/msys64/mingw32/include/vadefs.h \
+ C:/msys64/mingw32/include/sdks/_mingw_ddk.h \
+ C:/msys64/mingw32/include/sec_api/string_s.h rt_def.h \
+ C:/msys64/mingw32/include/stdio.h \
+ C:/msys64/mingw32/include/corecrt_stdio_config.h \
+ C:/msys64/mingw32/include/_mingw_off_t.h \
+ C:/msys64/mingw32/include/swprintf.inl \
+ C:/msys64/mingw32/include/sec_api/stdio_s.h \
+ C:/msys64/mingw32/include/stdlib.h \
+ C:/msys64/mingw32/include/corecrt_wstdlib.h \
+ C:/msys64/mingw32/include/limits.h \
+ C:/msys64/mingw32/include/sec_api/stdlib_s.h \
+ C:/msys64/mingw32/include/malloc.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h \
+ C:/msys64/mingw32/include/errno.h develop.h \
+ C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/io.h \
+ C:/msys64/mingw32/include/process.h \
+ C:/msys64/mingw32/include/corecrt_startup.h \
+ C:/msys64/mingw32/include/sys/types.h C:/msys64/mingw32/include/getopt.h \
+ C:/msys64/mingw32/include/pthread_unistd.h \
+ C:/msys64/mingw32/include/dirent.h C:/msys64/mingw32/include/ctype.h \
+ rottnet.h isr.h keyb.h rt_battl.h rt_actor.h states.h rt_rand.h \
+ rt_playr.h rt_stat.h rt_ted.h rt_game.h lumpy.h rt_cfg.h rt_sound.h \
+ music.h sndcards.h rt_com.h rt_msg.h rt_view.h modexlib.h WinRott.h \
+ rt_util.h rt_main.h memcheck.h
+C:/msys64/mingw32/include/string.h:
+C:/msys64/mingw32/include/crtdefs.h:
+C:/msys64/mingw32/include/corecrt.h:
+C:/msys64/mingw32/include/_mingw.h:
+C:/msys64/mingw32/include/_mingw_mac.h:
+C:/msys64/mingw32/include/_mingw_secapi.h:
+C:/msys64/mingw32/include/vadefs.h:
+C:/msys64/mingw32/include/sdks/_mingw_ddk.h:
+C:/msys64/mingw32/include/sec_api/string_s.h:
+rt_def.h:
+C:/msys64/mingw32/include/stdio.h:
+C:/msys64/mingw32/include/corecrt_stdio_config.h:
+C:/msys64/mingw32/include/_mingw_off_t.h:
+C:/msys64/mingw32/include/swprintf.inl:
+C:/msys64/mingw32/include/sec_api/stdio_s.h:
+C:/msys64/mingw32/include/stdlib.h:
+C:/msys64/mingw32/include/corecrt_wstdlib.h:
+C:/msys64/mingw32/include/limits.h:
+C:/msys64/mingw32/include/sec_api/stdlib_s.h:
+C:/msys64/mingw32/include/malloc.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h:
+C:/msys64/mingw32/include/errno.h:
+develop.h:
+C:/msys64/mingw32/include/unistd.h:
+C:/msys64/mingw32/include/io.h:
+C:/msys64/mingw32/include/process.h:
+C:/msys64/mingw32/include/corecrt_startup.h:
+C:/msys64/mingw32/include/sys/types.h:
+C:/msys64/mingw32/include/getopt.h:
+C:/msys64/mingw32/include/pthread_unistd.h:
+C:/msys64/mingw32/include/dirent.h:
+C:/msys64/mingw32/include/ctype.h:
+rottnet.h:
+isr.h:
+keyb.h:
+rt_battl.h:
+rt_actor.h:
+states.h:
+rt_rand.h:
+rt_playr.h:
+rt_stat.h:
+rt_ted.h:
+rt_game.h:
+lumpy.h:
+rt_cfg.h:
+rt_sound.h:
+music.h:
+sndcards.h:
+rt_com.h:
+rt_msg.h:
+rt_view.h:
+modexlib.h:
+WinRott.h:
+rt_util.h:
+rt_main.h:
+memcheck.h:

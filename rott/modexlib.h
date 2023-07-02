@@ -33,11 +33,11 @@ int iGLOBAL_SCREENWIDTH;//bna val 800
 int iGLOBAL_SCREENHEIGHT;//bna val 600
 
 
-#define MAXSCREENHEIGHT    600//     200*2
-#define MAXSCREENWIDTH     800//     320*2
-#define SCREENBWIDE        800*(96/320)//     96*2
-#define MAXVIEWWIDTH       800//     320*2
-#define SCREENWIDTH        800*(96/320)//     96*2              // default screen width in bytes
+#define MAXSCREENHEIGHT    1440//     200*2
+#define MAXSCREENWIDTH     3440//     320*2
+#define SCREENBWIDE        3440*(96/320)//     96*2
+#define MAXVIEWWIDTH       3440//     320*2
+#define SCREENWIDTH        3440*(96/320)//     96*2              // default screen width in bytes
 */
 //***************************************************************************
 //
@@ -111,7 +111,7 @@ int iGLOBAL_SCREENHEIGHT;//bna val 600
 extern  boolean StretchScreen;//bná++
 
 //extern  int      ylookup[MAXSCREENHEIGHT];      // Table of row offsets
-extern  int      ylookup[600];      // just set to max res
+extern  int      ylookup[1440];      // just set to max res
 extern  int      linewidth;
 extern  byte    *page1start;
 extern  byte    *page2start;

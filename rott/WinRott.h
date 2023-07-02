@@ -8,6 +8,9 @@
 extern int iGLOBAL_SCREENWIDTH;//bna val 800
 extern int iGLOBAL_SCREENHEIGHT;//bna val 600
 extern int iGLOBAL_SCREENBWIDE ;
+
+extern int iGLOBAL_WINDOWWIDTH;
+extern int iGLOBAL_WINDOWHEIGHT;
 extern int iG_SCREENWIDTH;// default screen width in bytes
 
 extern int iGLOBAL_HEALTH_X;

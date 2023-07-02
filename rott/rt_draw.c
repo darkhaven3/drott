@@ -136,7 +136,7 @@ int levelheight;
 int actortime=0;
 int drawtime=0;
 
-visobj_t vislist[MAXVISIBLE],*visptr,*visstep,*farthest;
+visobj_t vislist[MAXVISIBLE], * visptr, * visstep, * farthest;    //[visobj extension] related to sortedvislist[]?
 
 int firstcoloffset=0;
 
@@ -149,7 +149,7 @@ int firstcoloffset=0;
 */
 static int nonbobpheight;
 
-static visobj_t * sortedvislist[MAXVISIBLE];
+static visobj_t * sortedvislist[MAXVISIBLE];    //[visobj extension] related to vislist[]?
 
 static const fixed mindist = 0x1000;
 
@@ -164,7 +164,7 @@ static int      gmasklump;
 
 int      G_gmasklump;
 
-static const int weaponshape[NUMWEAPGRAPHICS] =
+static const int weaponshape[NUMWEAPGRAPHICS] =     //[SHAR] why even separate these sprite entries out? Just don't init the sprites when loading?
      {
 #if (SHAREWARE == 0)
 
@@ -193,7 +193,7 @@ static const int weaponshape[NUMWEAPGRAPHICS] =
 		};
 
 void SetColorLightLevel (int x, int y, visobj_t * sprite, int dir, int color, int fullbright);
-void DrawRotatedScreen(int cx, int cy, byte *destscreen, int angle, int scale, int masked);
+void DrawRotatedScreen(int cx, int cy, byte *destscreen, int angle, int scale, int masked);     // :thinking:
 void InterpolateMaskedWall (visobj_t * plane);
 void InterpolateDoor (visobj_t * plane);
 void InterpolateWall (visobj_t * plane);
@@ -959,7 +959,7 @@ void DrawScaleds (void)
 		  mapseen[tmwall->tilex][tmwall->tiley]=1;
 		  if (tmwall->vertical)
 			  {
-			  gx=(tmwall->tilex<<16)+0x8000;
+			  gx=(tmwall->tilex<<16)+SCALECONSTANT;    //:thinking:
 			  gy=(tmwall->tiley<<16);
 			  visptr->texturestart=0;
 			  visptr->textureend=0;
@@ -2734,6 +2734,8 @@ void      ThreeDRefresh (void)
 
    whereami=21;
    tempptr=player;
+
+//[netplay] some kind of network dev mode? might be useful later
 #if (DEVELOPMENT == 1)
    if (Keyboard[sc_9])
       {
@@ -3038,7 +3040,7 @@ void DoLoadGameSequence ( void )
    dy=(-y)/time;
    ds=-((s-0x1000000)/time);
 
-   destscreen=SafeMalloc(64000*8);//bna fixme
+   destscreen=SafeMalloc(65536*8);  //:grimace:
 
    SetupScreen(false);
    ThreeDRefresh();
@@ -3108,8 +3110,8 @@ void StartupRotateBuffer ( int masked)
 		RotatedImage=SafeMalloc(131072);
    }else if (iGLOBAL_SCREENWIDTH == 640) { 
 		RotatedImage=SafeMalloc(131072*4);
-   }else if (iGLOBAL_SCREENWIDTH == 800) { 
-		RotatedImage=SafeMalloc(131072*8);
+   }else if (iGLOBAL_SCREENWIDTH >= 800) { 
+		RotatedImage=SafeMalloc(131072*128);
    }
 //SetupScreen(false);//used these 2 to test screen size
 //VW_UpdateScreen ();
@@ -3118,7 +3120,7 @@ void StartupRotateBuffer ( int masked)
 		  memset(RotatedImage,0,131072);
 	   }else if (iGLOBAL_SCREENWIDTH == 640) { 
 		  memset(RotatedImage,0,131072*4);
-	   }else if (iGLOBAL_SCREENWIDTH == 800) { 
+	   }else if (iGLOBAL_SCREENWIDTH >= 800) { 
 		  //memset(RotatedImage,0,131072);//org
 		  memset(RotatedImage,0,131072*8);
 	   }
@@ -3127,14 +3129,14 @@ void StartupRotateBuffer ( int masked)
 		  memset(RotatedImage,0xff,131072);
 	   }else if (iGLOBAL_SCREENWIDTH == 640) { 
 		  memset(RotatedImage,0xff,131072*4);
-	   }else if (iGLOBAL_SCREENWIDTH == 800) { 
-		  memset(RotatedImage,0xff,131072*8);
+	   }else if (iGLOBAL_SCREENWIDTH >= 800) { 
+		  memset(RotatedImage,0xff,131072*128);
 	   }
    }
       //memset(RotatedImage,0xff,131072);//org
       //memset(RotatedImage,0xff,131072*8);
 
-      if ((masked == false)&&(iGLOBAL_SCREENWIDTH == 800)) {
+      if ((masked == false)&&(iGLOBAL_SCREENWIDTH >= 800)) {
 		DisableScreenStretch();
 		// SetTextMode (  );
 
@@ -3285,6 +3287,7 @@ void RotateBuffer (int startangle, int endangle, int startscale, int endscale, i
 //******************************************************************************
 //
 // DrawRotatedScreen
+// [*** FREERES SUPPORT ***]
 //
 //******************************************************************************
 
@@ -3316,7 +3319,7 @@ void DrawRotatedScreen(int cx, int cy, byte *destscreen, int angle, int scale, i
 	   xst = (((-cx)*s)+((268)<<16))-(cy*c);
 	   xct = (((-cx)*c)+((317)<<16)+(1<<18)-(1<<16))+(cy*s);
    }//y=268;x=317
-   else if ((iGLOBAL_SCREENWIDTH == 800 )&&(masked == false)) {
+   else if ((iGLOBAL_SCREENWIDTH >= 800 )&&(masked == false)) {
 	   xst = (((-cx)*s)+((328)<<16))-(cy*c);
 	   xct = (((-cx)*c)+((397)<<16)+(1<<18)-(1<<16))+(cy*s);
    }//328 397
@@ -3636,7 +3639,7 @@ void StartupScreenSaver ( void )
    }else if (iGLOBAL_SCREENWIDTH == 640){
 		ScreenSaver->pausex=240;
 		ScreenSaver->pausey=201;
-   }else if (iGLOBAL_SCREENWIDTH == 800){
+   }else if (iGLOBAL_SCREENWIDTH >= 800){
 		ScreenSaver->pausex=300;
 		ScreenSaver->pausey=252;
    }
@@ -3731,7 +3734,7 @@ void UpdateScreenSaver ( void )
       }else if (iGLOBAL_SCREENWIDTH == 640){
 		  ScreenSaver->pausex=RandomNumber ("pausex",0)%480;
 		  ScreenSaver->pausey=RandomNumber ("pausey",0)%403;
-	  }else if (iGLOBAL_SCREENWIDTH == 800){
+	  }else if (iGLOBAL_SCREENWIDTH >= 800){
 		  ScreenSaver->pausex=RandomNumber ("pausex",0)%600;
 		  ScreenSaver->pausey=RandomNumber ("pausey",0)%504;
 	  }
@@ -5938,7 +5941,7 @@ void DrawRotRow(int count, byte * dest, byte * src)
 			edx += mr_xstep;
 			ecx += mr_ystep;
 		}
-	}else if (iGLOBAL_SCREENWIDTH == 800) {
+	}else if (iGLOBAL_SCREENWIDTH >= 800) {
 
 
 
@@ -6010,7 +6013,7 @@ void DrawMaskedRotRow(int count, byte * dest, byte * src)
 
 void DrawSkyPost (byte * buf, byte * src, int height)
 {
-#if 0
+
 // bna fix for missing sky by high res eg 800x600
 // when sky is >400 (max skyheight) then reverse mouintain to missing spot
 // there should be 200 line of mouintain (400+200) = 600 height lines
@@ -6036,7 +6039,6 @@ void DrawSkyPost (byte * buf, byte * src, int height)
 	// bna section end
 	}
 	else
-#endif
 	{
 	int i = 0;
 	byte *const orig_src = src;

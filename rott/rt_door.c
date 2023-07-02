@@ -147,6 +147,7 @@ int SetNextAction(elevator_t*eptr,int action);
 ===============
 */
 
+//jesus christ what is this
 void MakeMaskedWallActive(maskedwallobj_t* tmwall)
  {if (!FIRSTMASKEDWALL)
 	 FIRSTMASKEDWALL	= tmwall;
@@ -164,7 +165,6 @@ void MakeMaskedWallActive(maskedwallobj_t* tmwall)
 =
 ===============
 */
-
 
 void MakeMaskedWallInactive(maskedwallobj_t* tmwall)
 {

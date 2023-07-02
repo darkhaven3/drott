@@ -53,351 +53,18 @@ char 	   *iG_buf_center;
   
 int    linewidth;
 //int    ylookup[MAXSCREENHEIGHT];
-int    ylookup[600];//just set to max res
+int    ylookup[1440];	//:grimace: [*** FREERES SUPPORT ***]
 byte  *page1start;
 byte  *page2start;
 byte  *page3start;
 int    screensize;
-byte  *bufferofs;
+byte  *bufferofs;		//:grimace:
 byte  *displayofs;
-boolean graphicsmode=false;
-char        *bufofsTopLimit;
+boolean graphicsmode=false;		//???
+char        *bufofsTopLimit;		//[*** FREERES SUPPORT? ***]
 char        *bufofsBottomLimit;
 
 void DrawCenterAim ();
-
-#ifdef DOS
-
-/*
-====================
-=
-= GraphicsMode
-=
-====================
-*/
-void GraphicsMode ( void )
-{
-union REGS regs;
-
-regs.w.ax = 0x13;
-int386(0x10,&regs,&regs);
-graphicsmode=true;
-}
-
-/*
-====================
-=
-= SetTextMode
-=
-====================
-*/
-void SetTextMode ( void )
-{
-
-union REGS regs;
-
-regs.w.ax = 0x03;
-int386(0x10,&regs,&regs);
-graphicsmode=false;
-
-}
-
-/*
-====================
-=
-= TurnOffTextCursor
-=
-====================
-*/
-void TurnOffTextCursor ( void )
-{
-
-union REGS regs;
-
-regs.w.ax = 0x0100;
-regs.w.cx = 0x2000;
-int386(0x10,&regs,&regs);
-
-}
-
-#if 0
-/*
-====================
-=
-= TurnOnTextCursor
-=
-====================
-*/
-void TurnOnTextCursor ( void )
-{
-
-union REGS regs;
-
-regs.w.ax = 0x03;
-int386(0x10,&regs,&regs);
-
-}
-#endif
-
-/*
-====================
-=
-= WaitVBL
-=
-====================
-*/
-void WaitVBL( void )
-{
-   unsigned char i;
-
-   i=inp(0x03da);
-   while ((i&8)==0)
-      i=inp(0x03da);
-   while ((i&8)==1)
-      i=inp(0x03da);
-}
-
-
-/*
-====================
-=
-= VL_SetLineWidth
-=
-= Line witdh is in WORDS, 40 words is normal width for vgaplanegr
-=
-====================
-*/
-
-void VL_SetLineWidth (unsigned width)
-{
-   int i,offset;
-
-//
-// set wide virtual screen
-//
-   outpw (CRTC_INDEX,CRTC_OFFSET+width*256);
-
-//
-// set up lookup tables
-//
-   linewidth = width*2;
-
-   offset = 0;
-
-   for (i=0;i<iGLOBAL_SCREENHEIGHT;i++)
-      {
-      ylookup[i]=offset;
-      offset += linewidth;
-      }
-}
-
-/*
-=======================
-=
-= VL_SetVGAPlaneMode
-=
-=======================
-*/
-
-void VL_SetVGAPlaneMode ( void )
-{
-    GraphicsMode();
-    VL_DePlaneVGA ();
-    VL_SetLineWidth (48);
-    screensize=208*iGLOBAL_SCREENBWIDE*2;//bna++ *2
-    page1start=0xa0200;
-    page2start=0xa0200+screensize;
-    page3start=0xa0200+(2u*screensize);
-    displayofs = page1start;
-    bufferofs = page2start;
-    XFlipPage ();
-}
-
-/*
-=======================
-=
-= VL_CopyPlanarPage
-=
-=======================
-*/
-void VL_CopyPlanarPage ( byte * src, byte * dest )
-{
-   int plane;
-
-   for (plane=0;plane<4;plane++)
-      {
-      VGAREADMAP(plane);
-      VGAWRITEMAP(plane);
-      memcpy(dest,src,screensize);
-      }
-}
-
-/*
-=======================
-=
-= VL_CopyPlanarPageToMemory
-=
-=======================
-*/
-void VL_CopyPlanarPageToMemory ( byte * src, byte * dest )
-{
-   byte * ptr;
-   int plane,a,b;
-
-   for (plane=0;plane<4;plane++)
-      {
-      ptr=dest+plane;
-      VGAREADMAP(plane);
-      for (a=0;a<200;a++)
-         for (b=0;b<80;b++,ptr+=4)
-            *(ptr)=*(src+(a*linewidth)+b);
-      }
-}
-
-/*
-=======================
-=
-= VL_CopyBufferToAll
-=
-=======================
-*/
-void VL_CopyBufferToAll ( byte *buffer )
-{
-   int plane;
-
-   for (plane=0;plane<4;plane++)
-      {
-      VGAREADMAP(plane);
-      VGAWRITEMAP(plane);
-      if (page1start!=buffer)
-         memcpy((byte *)page1start,(byte *)buffer,screensize);
-      if (page2start!=buffer)
-         memcpy((byte *)page2start,(byte *)buffer,screensize);
-      if (page3start!=buffer)
-         memcpy((byte *)page3start,(byte *)buffer,screensize);
-      }
-}
-
-/*
-=======================
-=
-= VL_CopyDisplayToHidden
-=
-=======================
-*/
-void VL_CopyDisplayToHidden ( void )
-{
-   VL_CopyBufferToAll ( displayofs );
-}
-
-/*
-=================
-=
-= VL_ClearBuffer
-=
-= Fill the entire video buffer with a given color
-=
-=================
-*/
-
-void VL_ClearBuffer (unsigned buf, byte color)
-{
-  VGAMAPMASK(15);
-  memset((byte *)buf,color,screensize);
-}
-
-/*
-=================
-=
-= VL_ClearVideo
-=
-= Fill the entire video buffer with a given color
-=
-=================
-*/
-
-void VL_ClearVideo (byte color)
-{
-  VGAMAPMASK(15);
-  memset((byte *)(0xa000<<4),color,0x10000);
-}
-
-/*
-=================
-=
-= VL_DePlaneVGA
-=
-=================
-*/
-
-void VL_DePlaneVGA (void)
-{
-
-//
-// change CPU addressing to non linear mode
-//
-
-//
-// turn off chain 4 and odd/even
-//
-        outp (SC_INDEX,SC_MEMMODE);
-        outp (SC_DATA,(inp(SC_DATA)&~8)|4);
-
-        outp (SC_INDEX,SC_MAPMASK);         // leave this set throughout
-
-//
-// turn off odd/even and set write mode 0
-//
-        outp (GC_INDEX,GC_MODE);
-        outp (GC_DATA,inp(GC_DATA)&~0x13);
-
-//
-// turn off chain
-//
-        outp (GC_INDEX,GC_MISCELLANEOUS);
-        outp (GC_DATA,inp(GC_DATA)&~2);
-
-//
-// clear the entire buffer space, because int 10h only did 16 k / plane
-//
-        VL_ClearVideo (0);
-
-//
-// change CRTC scanning from doubleword to byte mode, allowing >64k scans
-//
-        outp (CRTC_INDEX,CRTC_UNDERLINE);
-        outp (CRTC_DATA,inp(CRTC_DATA)&~0x40);
-
-        outp (CRTC_INDEX,CRTC_MODE);
-        outp (CRTC_DATA,inp(CRTC_DATA)|0x40);
-}
-
-
-/*
-=================
-=
-= XFlipPage
-=
-=================
-*/
-
-void XFlipPage ( void )
-{
-   displayofs=bufferofs;
-
-//   _disable();
-
-   outp(CRTC_INDEX,CRTC_STARTHIGH);
-   outp(CRTC_DATA,((displayofs&0x0000ffff)>>8));
-
-//   _enable();
-
-   bufferofs += screensize;
-   if (bufferofs > page3start)
-      bufferofs = page1start;
-}
-
-#else
 
 #include "SDL.h"
 
@@ -427,6 +94,7 @@ static SDL_Renderer *renderer;
 static SDL_Surface *argbbuffer;
 static SDL_Texture *texture;
 static SDL_Rect blit_rect = {0};
+static SDL_Rect scaled_rect = { 0 };
 
 SDL_Surface *VL_GetVideoSurface (void)
 {
@@ -459,7 +127,7 @@ void GraphicsMode ( void )
 
 	screen = SDL_CreateWindow(NULL,
 	                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-	                          iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT,
+	                          iGLOBAL_WINDOWWIDTH, iGLOBAL_WINDOWHEIGHT,
 	                          flags);
 	SDL_SetWindowMinimumSize(screen, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
 	SDL_SetWindowTitle(screen, PACKAGE_STRING);
@@ -490,6 +158,9 @@ void GraphicsMode ( void )
 
 	blit_rect.w = iGLOBAL_SCREENWIDTH;
 	blit_rect.h = iGLOBAL_SCREENHEIGHT;
+
+	scaled_rect.w = iGLOBAL_WINDOWWIDTH;
+	scaled_rect.h = iGLOBAL_WINDOWHEIGHT;
 
 	SetShowCursor(!sdl_fullscreen);
 }
@@ -631,26 +302,12 @@ void VL_CopyPlanarPage ( byte * src, byte * dest )
 =======================
 =
 = VL_CopyPlanarPageToMemory
+= + vacate dos support -- b1
 =
 =======================
 */
-void VL_CopyPlanarPageToMemory ( byte * src, byte * dest )
-{
-#ifdef DOS
-   byte * ptr;
-   int plane,a,b;
-
-   for (plane=0;plane<4;plane++)
-      {
-      ptr=dest+plane;
-      VGAREADMAP(plane);
-      for (a=0;a<200;a++)
-         for (b=0;b<80;b++,ptr+=4)
-            *(ptr)=*(src+(a*linewidth)+b);
-      }
-#else
+void VL_CopyPlanarPageToMemory ( byte * src, byte * dest ) {
       memcpy(dest,src,screensize);
-#endif
 }
 
 /*
@@ -754,7 +411,8 @@ void VH_UpdateScreen (void)
 	}else{
 		DrawCenterAim ();
 	}
-	SDL_LowerBlit(VL_GetVideoSurface(), &blit_rect, argbbuffer, &blit_rect);
+	SDL_BlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
+	//SDL_LowerBlit(VL_GetVideoSurface(), &blit_rect, argbbuffer, &blit_rect);
 	SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -791,6 +449,7 @@ void XFlipPage ( void )
 	}else{
 		DrawCenterAim ();
 	}
+   //SDL_BlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
    SDL_LowerBlit(sdl_surface, &blit_rect, argbbuffer, &blit_rect);
    SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
    SDL_RenderClear(renderer);
@@ -800,7 +459,6 @@ void XFlipPage ( void )
 #endif
 }
 
-#endif
 
 
 void EnableScreenStretch(void)

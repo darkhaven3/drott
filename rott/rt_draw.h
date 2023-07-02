@@ -27,11 +27,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //***************************************************************************
 
 
-#define MAXVISIBLE              256
+#define MAXVISIBLE              256		//max visible... what?
+#define SCALECONSTANT			0x8000	//:thinking:
+
+//hudflags
+#define HUDFL_TOP_BAR       0x8000
+#define HUDFL_BOT_BAR       0x4000
 
 extern int whereami;
 
-extern byte * shadingtable;            // Shading table for DrawPost
+extern byte *shadingtable;            // Shading table for DrawPost
+
+//hudflags_t
+// used to store flags about which bars/elements of the HUD to draw.
+typedef unsigned short hudflags_t;
+
+//viewdim_t
+// holds the X and Y dimensions of the size of the render viewport.
+// used to replace the original implementation of viewsizes[].
+typedef struct {
+    int size_x;
+    int size_y;
+} viewdim_t;
 
 typedef struct
 {
