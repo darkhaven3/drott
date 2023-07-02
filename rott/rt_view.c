@@ -222,16 +222,6 @@ void SetViewDelta ( void )
 //[*** FREERES SUPPORT ***]
 
     scale = (centerx * focalwidth) / 160;
-
-/*
-	if ( iGLOBAL_SCREENWIDTH == 320) {
-		scale = (centerx*focalwidth)/(160);
-	}else if ( iGLOBAL_SCREENWIDTH == 640) {
-		scale = (centerx*focalwidth)/(160);
-	}else if ( iGLOBAL_SCREENWIDTH == 800) {
-		scale = (centerx*focalwidth)/(160);
-	}
-*/
 //
 // divide heightnumerator by a posts distance to get the posts height for
 // the heightbuffer.  The pixel height is height>>HEIGHTFRACTION
@@ -529,7 +519,7 @@ void SetupScreen ( boolean flip )
 
    SetViewSize(viewsize);
 
-   if ( viewsize < 7 )
+   if ( viewsize < 8 )
       {
       shape =  ( pic_t * )W_CacheLumpName( "backtile", PU_CACHE, Cvt_pic_t, 1 );
       //DrawTiledRegion( 0, 16, 320, 200 - 32, 0, 16, shape );
