@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "SDL.h"
+
 #include "rt_def.h"
 #include "watcom.h"
 #include "rt_sound.h"
@@ -325,7 +327,7 @@ int MaxHitpointsForCharacter(playertype*pstate)
 void InitializeWeapons(playertype*pstate)
 {
 
-
+//[SHAR]
 #if (SHAREWARE == 0)
  if (gamestate.SpawnEluder)
 	{pstate->new_weapon = pstate->weapon = pstate->missileweapon = wp_dog;
@@ -884,7 +886,7 @@ void MissileAutoTarget(objtype *ob,missile_stats *mdata)
        xydist,dz,yzangle,oldyzangle,saveyzangle;
    objtype *target,*temp;
 
-   mindist = 0x7fffffff;
+   mindist = 0x7fffffff;    //??
    target = NULL;
    for(temp = firstactive;temp;temp=temp->nextactive)
       {
@@ -2195,7 +2197,9 @@ int sensitivity_scalar[15] =
 
 
 extern int inverse_mouse;
- double Y_MouseSpeed=70;
+double Y_MouseSpeed=70;
+
+extern boolean MouseLocked; //[mouse]
 
 void PollMouseMove (void)
 {
@@ -2976,7 +2980,10 @@ void PollControls (void)
       weaponscale -=  1000;
 	  	//  testval--;
    }
-//bna section end 
+   //bna section end
+
+   //[mouse] : warp the mouse back into the view window if lock is on
+   //if (MouseLocked) SDL_WarpMouseInWindow(NULL, iGLOBAL_SCREENWIDTH / 2, iGLOBAL_SCREENHEIGHT / 2);   //[mouse] maybe unnecessary
 
 
 

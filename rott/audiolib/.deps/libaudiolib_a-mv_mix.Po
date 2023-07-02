@@ -1,0 +1,3 @@
+libaudiolib_a-mv_mix.o: mv_mix.c multivoc.h platform.h
+multivoc.h:
+platform.h:

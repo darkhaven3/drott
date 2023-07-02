@@ -21,15 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 #include <string.h>
 
-#if PLATFORM_DOS
-#include <conio.h>
-#include <dos.h>
-#include <i86.h>
-#endif
-
-#if USE_SDL
 #include "SDL.h"
-#endif
+
 #include "modexlib.h"
 #include "rt_scancodes.h"
 
@@ -76,6 +69,9 @@ boolean  AssassinPresent;
 boolean  MousePresent;
 boolean  JoysPresent[MaxJoys];
 boolean  JoyPadPresent     = 0;
+
+boolean  MouseLocked = false;   //[mouse]
+boolean  MouseNoVert = true;
 
 //    Global variables
 //
@@ -176,7 +172,6 @@ int (far *function_ptr)();
 static char *ParmStrings[] = {"nojoys","nomouse","spaceball","cyberman","assassin",NULL};
 
 
-#if USE_SDL
 #define sdldebug printf
 
 static int sdl_mouse_button_filter(SDL_Event const *event)
@@ -215,12 +210,15 @@ static int sdl_mouse_motion_filter(SDL_Event const *event)
     } /* if */
     else
     {
-        if (sdl_mouse_grabbed || sdl_fullscreen)
+        if (MouseLocked || sdl_fullscreen)
         {
           	mouse_relative_x = event->motion.xrel;
-       	    mouse_relative_y = event->motion.yrel;
            	mouse_x += mouse_relative_x;
-           	mouse_y += mouse_relative_y;
+
+            if (!MouseNoVert) {
+                mouse_relative_y = event->motion.yrel;
+                mouse_y += mouse_relative_y;
+            }
         } /* if */
         else
         {
@@ -400,28 +398,52 @@ static void sdl_handle_events(void)
     while (SDL_PollEvent(&event))
         root_sdl_event_filter(&event);
 } /* sdl_handle_events */
-#endif
+
 
 
 //******************************************************************************
 //
 // IN_PumpEvents () - Let platform process an event queue.
+// vacated dos support.
 //
 //******************************************************************************
 void IN_PumpEvents(void)
 {
-#if USE_SDL
    sdl_handle_events();
-
-#elif PLATFORM_DOS
-   /* no-op. */
-
-#else
-#error please define for your platform.
-#endif
 }
 
+//******************************************************************************
+//
+// INL_LockMouse () - Makes sure the mouse can't leave the window. Toggleable.
+// dma [mouse] : returns the value that the mouse state has been toggled to.
+//
+//******************************************************************************
 
+boolean INL_LockMouse(void) {
+    MouseLocked ^= 1;
+
+    if (MouseLocked) {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    }
+
+    else {
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    }
+
+    return MouseLocked;
+}
+
+//******************************************************************************
+//
+// INL_ToggleNoVert () - Toggle vertical mouse movement. Requires mouse lock.
+// dma [mouse] : returns the value that the mouse state has been toggled to.
+//
+//******************************************************************************
+
+boolean INL_ToggleNoVert(void) {
+    MouseNoVert ^= 1;
+    return MouseNoVert;
+}
 
 //******************************************************************************
 //
@@ -434,29 +456,12 @@ void INL_GetMouseDelta(int *x,int *y)
 {
    IN_PumpEvents();
 
-#ifdef PLATFORM_DOS
-   union REGS inregs;
-   union REGS outregs;
-
-   if (!MousePresent)
-      *x = *y = 0;
-   else
-   {
-     inregs.w.ax = MDelta;
-     int386 (MouseInt, &inregs, &outregs);
-     *x = outregs.w.cx;
-     *y = outregs.w.dx;
-   }
-
-#elif USE_SDL
+    //unwrap from platform-dependent ifdefs and vacate dos support.
    *x = sdl_mouse_delta_x;
    *y = sdl_mouse_delta_y;
 
    sdl_mouse_delta_x = sdl_mouse_delta_y = 0;
-
-#else
-   #error please define for your platform.
-#endif
+   //if (MouseLocked) SDL_WarpMouseInWindow(NULL, iGLOBAL_SCREENWIDTH/2, iGLOBAL_SCREENHEIGHT/2);
 }
 
 
@@ -468,34 +473,12 @@ void INL_GetMouseDelta(int *x,int *y)
 //
 //******************************************************************************
 
-word IN_GetMouseButtons
-   (
-   void
-   )
-
-   {
+word IN_GetMouseButtons (void) {
    word buttons = 0;
-
    IN_PumpEvents();
 
-#if USE_SDL
    buttons = sdl_mouse_button_mask;
 
-#elif PLATFORM_DOS
-   union REGS inregs;
-   union REGS outregs;
-
-   if (!MousePresent || !mouseenabled)
-      return (0);
-
-   inregs.w.ax = MButtons;
-   int386 (MouseInt, &inregs, &outregs);
-
-   buttons = outregs.w.bx;
-
-#else
-#  error please define for your platform.
-#endif
 
 // Used by menu routines that need to wait for a button release.
 // Sometimes the mouse driver misses an interrupt, so you can't wait for
@@ -516,19 +499,15 @@ word IN_GetMouseButtons
 //
 //******************************************************************************
 
-void IN_IgnoreMouseButtons
-   (
-   void
-   )
-
-   {
+void IN_IgnoreMouseButtons (void) {
    IgnoreMouse |= IN_GetMouseButtons();
-   }
+}
 
 
 //******************************************************************************
 //
 // IN_GetJoyAbs () - Reads the absolute position of the specified joystick
+// vacated dos support.
 //
 //******************************************************************************
 
@@ -540,9 +519,6 @@ void IN_GetJoyAbs (word joy, word *xp, word *yp)
    Joy_ys = joy? 3 : 1;       // Do the same for y axis
    Joy_yb = 1 << Joy_ys;
 
-#ifdef DOS
-   JoyStick_Vals ();
-#else
    if (joy < sdl_total_sticks)
    {
 	   Joy_x = SDL_JoystickGetAxis (sdl_joysticks[joy], 0);
@@ -551,7 +527,6 @@ void IN_GetJoyAbs (word joy, word *xp, word *yp)
 	   Joy_x = 0;
 	   Joy_y = 0;
    }
-#endif
 
    *xp = Joy_x;
    *yp = Joy_y;
@@ -634,6 +609,7 @@ void INL_GetJoyDelta (word joy, int *dx, int *dy)
 //
 // INL_GetJoyButtons () - Returns the button status of the specified
 //                        joystick
+// vacated dos support.
 //
 //******************************************************************************
 
@@ -641,19 +617,8 @@ word INL_GetJoyButtons (word joy)
 {
    word  result = 0;
 
-#if USE_SDL
    if (joy < sdl_total_sticks)
        result = sdl_stick_button_state[joy];
-
-#elif PLATFORM_DOS
-   result = inp (0x201);   // Get all the joystick buttons
-   result >>= joy? 6 : 4;  // Shift into bits 0-1
-   result &= 3;            // Mask off the useless bits
-   result ^= 3;
-
-#else
-#error please define for your platform.
-#endif
 
    return result;
 }
@@ -687,32 +652,14 @@ word IN_GetJoyButtonsDB (word joy)
 //******************************************************************************
 //
 // INL_StartMouse () - Detects and sets up the mouse
+// vacated dos support.
+// because of the above, just remove this whole function tbh.
 //
 //******************************************************************************
 
 boolean INL_StartMouse (void)
 {
-
-   boolean retval = false;
-
-#if USE_SDL
-   /* no-op. */
-   retval = true;
-
-#elif PLATFORM_DOS
-   union REGS inregs;
-   union REGS outregs;
-
-   inregs.w.ax = 0;
-   int386 (MouseInt, &inregs, &outregs);
-
-   retval = ((outregs.w.ax == 0xffff) ? true : false);
-
-#else
-#error please define your platform.
-#endif
-
-   return (retval);
+    return true;
 }
 
 
@@ -780,7 +727,6 @@ boolean INL_StartJoy (word joy)
 {
    word x,y;
 
-#if USE_SDL
    if (!SDL_WasInit(SDL_INIT_JOYSTICK))
    {
        SDL_Init(SDL_INIT_JOYSTICK);
@@ -800,7 +746,6 @@ boolean INL_StartJoy (word joy)
 
    if (joy >= sdl_total_sticks) return (false);
    sdl_joysticks[joy] = SDL_JoystickOpen (joy);
-#endif
 
    IN_GetJoyAbs (joy, &x, &y);
 
@@ -828,9 +773,7 @@ boolean INL_StartJoy (word joy)
 void INL_ShutJoy (word joy)
 {
    JoysPresent[joy] = false;
-#ifndef DOS
    if (joy < sdl_total_sticks) SDL_JoystickClose (sdl_joysticks[joy]);
-#endif
 }
 
 
@@ -856,14 +799,12 @@ void IN_Startup (void)
    if (IN_Started==true)
       return;
 
-#if USE_SDL
 
 #if PLATFORM_WIN32
-// fixme: remove this.
+// [mouse] fix this shit
 sdl_mouse_grabbed = 1;
 #endif
     InitScancodes();
-#endif
 
    checkjoys        = true;
    checkmouse       = true;
@@ -902,15 +843,7 @@ sdl_mouse_grabbed = 1;
       }
    }
 
-   MousePresent = checkmouse ? INL_StartMouse() : false;
-
-   if (!MousePresent)
-      mouseenabled = false;
-   else
-      {
-      if (!quiet)
-         printf("IN_Startup: Mouse Present\n");
-      }
+   MousePresent = true;
 
    for (i = 0;i < MaxJoys;i++)
       {

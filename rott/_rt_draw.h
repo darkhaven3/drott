@@ -25,26 +25,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MINZ                            0x2700
 #define MAXBOB                          0x9000
 
-#define GOLOWER  0x38000
+#define GOLOWER  0x38000		//dma -- uhh??
 #define GOHIGHER 0x20000
 
 #define MAXVISIBLEDOORS 30
-
-#define DHEIGHTFRACTION 8
-
-#define MINZ                            0x2700
 #define MAXDRAWNTICS                    40
 
 #define W_CHANGE  (WEAPONUPTICS || WEAPONDOWNTICS)
 
+//[SHAR]
 #if (SHAREWARE == 0)
  #define NUMWEAPGRAPHICS 16
 #else
  #define NUMWEAPGRAPHICS 9
 #endif
 
+//???
+#define DHEIGHTFRACTION 8
 #define HFRACTION (6+HEIGHTFRACTION)
 
+//transparency?
 #define FIXEDTRANSLEVEL (30)
 
 typedef struct

@@ -115,10 +115,7 @@ boolean IS8250                  = false;
 boolean dopefish;
 
 boolean newlevel = false;
-boolean infopause;
-#ifdef DOS
-boolean SOUNDSETUP=false;
-#endif
+boolean infopause;		//dma - dos support vacated here
 boolean quiet = false;
 
 #if (DEVELOPMENT == 1)
@@ -131,6 +128,7 @@ boolean DebugOk = false;
 int programlocation=-1;
 #endif
 
+//screenshot support should be rolled into main, yea?
 #if SAVE_SCREEN
 static char savename[13] = "ROTT0000.LBM";
 static int totalbytes;
@@ -180,10 +178,8 @@ int main (int argc, char *argv[])
 {
     char *macwd;
     extern char *BATTMAPS;
-#ifndef DOS
 	_argc = argc;
 	_argv = argv;
-#endif
 
 #if defined(PLATFORM_MACOSX)
     {
@@ -205,15 +201,13 @@ int main (int argc, char *argv[])
     }
 #endif
 
-#ifndef DOS
    signal (11, crash_print);
-
    if (setup_homedir() == -1) return 1;
-#endif
 
    // Set which release version we're on
    gamestate.Version = ROTTVERSION;
 
+//[SHAR]
 #if ( SHAREWARE == 1 )
    BATTMAPS = strdup(STANDARDBATTLELEVELS);
    FixFilePath(BATTMAPS);
@@ -255,7 +249,7 @@ int main (int argc, char *argv[])
 
    // Start up Memory manager with a certain amount of reserved memory
 
-   Z_Init(50000,1000000);
+   Z_Init(100000,8000000);
 
    IN_Startup ();
 
@@ -1354,9 +1348,11 @@ void GameLoop (void)
             if (loadedgame == false)
                {
                if ( !BATTLEMODE )
+                   
                   {
-                  PlayCinematic();
+                  //PlayCinematic();
                   }
+                  
 
                SetupGameLevel();
                }
@@ -2323,34 +2319,7 @@ void CheckRemoteRidicule ( int scancode )
 
 void DoBossKey ( void )
 {
-#ifdef DOS
-   union REGS regs;
-   ShutdownClientControls();
-
-   SetTextMode();
-
-   // move cursor to the row 0 column 4
-   regs.w.ax = 0x0200;
-   regs.w.bx = 0;
-   regs.w.dx = 0x0004;
-   int386(0x10,&regs,&regs);
-   px=0;
-   py=0;
-   UL_printf("C:\\>\n");
-
-   LastScan = 0;
-   IN_WaitForKey ();
-   VL_SetVGAPlaneMode();
-   VL_SetPalette(origpal);
-   SetBorderColor(0);
-   TurnShakeOff();
-   SetupScreen(true);
-   ThreeDRefresh();
-
-   StartupClientControls();
-#else
 	STUB_FUNCTION;
-#endif
 }
 
 
@@ -2563,14 +2532,23 @@ void PollKeyboard
             }
          }
 
-//#if 0
-      if ( ( Keyboard[ sc_F12 ] ) && ( !BATTLEMODE ) )
-         {
-         Keyboard[ sc_F12 ] = false;
-         LastScan = 0;
-         DoBossKey();
-         }
-//#endif
+      if (Keyboard[sc_F12])
+      {
+          Keyboard[sc_F12] = false;
+          if (!Keyboard[sc_RShift]) {
+                  LastScan = 0;
+                  if (INL_LockMouse()) AddMessage("Mouse locked", MSG_SYSTEM);
+                  else AddMessage("Mouse unlocked", MSG_SYSTEM);
+          }
+
+          else {
+                  if (INL_ToggleNoVert()) AddMessage("Novert enabled", MSG_SYSTEM);
+                  else AddMessage("Novert disabled", MSG_SYSTEM);
+              }
+
+      }
+
+
 
       // Gamma correction
       if ( Keyboard[ sc_F11 ] )
@@ -2593,6 +2571,7 @@ void PollKeyboard
             IN_UpdateKeyboard();
             }
          }
+
     #if 0
       if ( Keyboard[ sc_M ] )
          {

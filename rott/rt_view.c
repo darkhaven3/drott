@@ -135,7 +135,22 @@ byte    mapmasks3[4][9] = {
 =============================================================================
 */
 
-static char *YourComputerSucksString = "Buy a 486! :)";
+//[*** FREERES SUPPORT ***]
+static char *YourComputerSucksString = "Buy an i3! :)";
+
+viewdim_t ViewportResolutions[MAXVIEWSIZES] = {
+    {80,48},
+    {128,72},
+    {160,88},
+    {192,104},
+    {224,120},
+    {256,136},
+    {288,152},
+    {320,168},
+    {320,184},
+    {320,200},
+    {320,200}
+};
 
 static int viewsizes[MAXVIEWSIZES*2]={ 80,48,
                            128,72,
@@ -204,6 +219,11 @@ void SetViewDelta ( void )
 // calculate scale value for vertical height calculations
 // and sprite x calculations
 //
+//[*** FREERES SUPPORT ***]
+
+    scale = (centerx * focalwidth) / 160;
+
+/*
 	if ( iGLOBAL_SCREENWIDTH == 320) {
 		scale = (centerx*focalwidth)/(160);
 	}else if ( iGLOBAL_SCREENWIDTH == 640) {
@@ -211,6 +231,7 @@ void SetViewDelta ( void )
 	}else if ( iGLOBAL_SCREENWIDTH == 800) {
 		scale = (centerx*focalwidth)/(160);
 	}
+*/
 //
 // divide heightnumerator by a posts distance to get the posts height for
 // the heightbuffer.  The pixel height is height>>HEIGHTFRACTION
@@ -275,21 +296,47 @@ void CalcProjection ( void )
    SafeFree(pangle);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//R_CalcViewportDimensions() : calculates viewport surface dimensions based on hud scale,
+//                             game render resolution, and the viewsize number requested.
+//////////////////////////////////////////////////////////////////////////////////////////
+//  viewsize=0 is the smallest possible resolution.
+//  viewzise=MAXVIEWSIZES-1 is the most fullscreen possible viewport with no hud.
+//////////////////////////////////////////////////////////////////////////////////////////
+
+#define R_VIEW_BLOCKSIZE    16
+
+viewdim_t R_CalcViewportDimensions(int viewsize_num, float ui_scale)
+{
+    viewdim_t result;                                               //function returns this once calculations are done.
+    unsigned    ui_Yscale;                                          //the (rounded) calculated Y size of the BOTTOM HUD bar, in pixels.
+    float       height_factor = (iGLOBAL_SCREENHEIGHT / 320);       //the factor (over 200) to scale the screen by
+
+    //determine the number of pixels taken up by the hud bars, and find the viewport dimensions
+    if (viewsize_num < MAXVIEWSIZES - 1) {
+        ui_Yscale = (int)R_VIEW_BLOCKSIZE * ui_scale;
+        result.size_x = (int)(iGLOBAL_SCREENWIDTH + (R_VIEW_BLOCKSIZE * (viewsize_num * -1) * height_factor));
+        result.size_y = (int)(iGLOBAL_SCREENHEIGHT + (R_VIEW_BLOCKSIZE * (viewsize_num * -1) * height_factor));
+    }
+
+    if (viewsize_num == MAXVIEWSIZES - 3) result.size_y -= (int)(R_VIEW_BLOCKSIZE * ui_Yscale) * 2;
+    else if (viewsize_num == MAXVIEWSIZES - 2) result.size_y -= (int)(R_VIEW_BLOCKSIZE * ui_Yscale);
+    else if (viewsize_num == MAXVIEWSIZES - 1) result.size_y = iGLOBAL_SCREENHEIGHT;
+
+    return result;
+
+}
 
 /*
 ==========================
 =
 = SetViewSize
+= [*** FREERES SUPPORT ***]
 =
 ==========================
 */
 
-void SetViewSize
-   (
-   int size
-   )
-
-   {
+void SetViewSize (int size) {
    int height;
    int maxheight;
    int screenx;
@@ -303,20 +350,31 @@ void SetViewSize
 	   return;
    }
 */
+        viewdim_t calcview;
 
-	if ( iGLOBAL_SCREENWIDTH == 640) {
-		height = 0;//we use height as dummy cnt
-		viewsizes[height++]= 380; viewsizes[height++]= 336;
-        viewsizes[height++]= 428; viewsizes[height++]= 352;
-        viewsizes[height++]= 460; viewsizes[height++]= 368;
-        viewsizes[height++]= 492; viewsizes[height++]= 384;
-        viewsizes[height++]= 524; viewsizes[height++]= 400;
-        viewsizes[height++]= 556; viewsizes[height++]= 416;
-        viewsizes[height++]= 588; viewsizes[height++]= 432;
-        viewsizes[height++]= 640; viewsizes[height++]= 448;
-        viewsizes[height++]= 640; viewsizes[height++]= 464;
-        viewsizes[height++]= 640; viewsizes[height++]= 480;
-        viewsizes[height++]= 640; viewsizes[height++]= 480;
+        for (int viewblock = 0;     viewblock < MAXVIEWSIZES - 1;   viewblock += 2) {
+            calcview = R_CalcViewportDimensions((int)viewblock / 2, 1.0);
+            viewsizes[viewblock]     = calcview.size_x;
+            viewsizes[viewblock + 1] = calcview.size_y;
+        }
+
+        /*** original hacky shit here ***/
+
+        /*
+    if ( iGLOBAL_SCREENWIDTH == 640) {
+		    height = 0;//we use height as dummy cnt
+		    viewsizes[height++]= 380; viewsizes[height++]= 336;
+            viewsizes[height++]= 428; viewsizes[height++]= 352;
+            viewsizes[height++]= 460; viewsizes[height++]= 368;
+            viewsizes[height++]= 492; viewsizes[height++]= 384;
+            viewsizes[height++]= 524; viewsizes[height++]= 400;
+            viewsizes[height++]= 556; viewsizes[height++]= 416;
+            viewsizes[height++]= 588; viewsizes[height++]= 432;
+            viewsizes[height++]= 640; viewsizes[height++]= 448;
+            viewsizes[height++]= 640; viewsizes[height++]= 464;
+            viewsizes[height++]= 640; viewsizes[height++]= 480;
+            viewsizes[height++]= 640; viewsizes[height++]= 480;
+
 	}else if ( iGLOBAL_SCREENWIDTH == 800) {
 		height = 0;
 		viewsizes[height++]= 556; viewsizes[height++]= 488;
@@ -330,7 +388,9 @@ void SetViewSize
         viewsizes[height++]= 800; viewsizes[height++]= 600;
         viewsizes[height++]= 800; viewsizes[height++]= 600;
         viewsizes[height++]= 800; viewsizes[height++]= 600;
-	}
+	} */
+
+    /*** original hacky shit ends ***/
 
 
 	if ((size<0) || (size>=MAXVIEWSIZES)){//bna added
@@ -440,24 +500,19 @@ void SetViewSize
 //******************************************************************************
 //
 // DrawCPUJape ()
+//    [*** FREERES SUPPORT? ***]
 //
 //******************************************************************************
 
-void DrawCPUJape
-   (
-   void
-   )
-
-   {
+void DrawCPUJape(void) {
    int width;
    int height;
 
    CurrentFont = tinyfont;
    VW_MeasurePropString( YourComputerSucksString, &width, &height );
 
-   DrawGameString( 160 - width / 2, 100 + 48 / 2 + 2,
-      YourComputerSucksString, true );
-   }
+   DrawGameString( 160 - width / 2, 100 + 48 / 2 + 2, YourComputerSucksString, true );
+ }
 
 
 /*
