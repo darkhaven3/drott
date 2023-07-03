@@ -73,33 +73,30 @@ static int      oldsky=-1;
 //bna fixit skyerror by 800x600 clouds not big enough
 
 void DrawSky(void) {
+    byte* src;
+    int dest;
+    int height;
+    int ang;
+    int angle;
+    int ofs;
 
-   byte * src;
-   int dest;
-   int height;
-   int ang;
-   int angle;
-   int ofs;
+    angle = viewangle;
 
-   angle=viewangle;
+    if (!fog && lightning) shadingtable = colormap + ((basemaxshade - 6 - lightninglevel) << 8);
+    else shadingtable = colormap + (1 << 12);
 
-   if (!fog && lightning) shadingtable=colormap+((basemaxshade-6-lightninglevel)<<8);
-   else shadingtable=colormap+(1<<12);
+    ofs = (((maxheight)-(player->z)) >> 3) + (centery * 200 / iGLOBAL_SCREENHEIGHT - ((viewheight * 200 / iGLOBAL_SCREENHEIGHT) >> 1));
 
-   ofs=(((maxheight)-(player->z))>>3)+(centery*200/iGLOBAL_SCREENHEIGHT-((viewheight*200/iGLOBAL_SCREENHEIGHT)>>1));
+    if (ofs > centerskypost) ofs = centerskypost;
+    else if (((centerskypost - ofs) + viewheight * 200 / iGLOBAL_SCREENHEIGHT) > 1799) ofs = -(1799 - (centerskypost + viewheight * 200 / iGLOBAL_SCREENHEIGHT));
 
-   if (ofs>centerskypost) ofs=centerskypost;
+    for (dest = 0; dest < viewwidth; dest++) {
+        if ((height = posts[dest].ceilingclip) <= 0) continue;
 
-   else if (((centerskypost-ofs)+viewheight*200/iGLOBAL_SCREENHEIGHT)>1799)
-      ofs=-(1799-(centerskypost+viewheight*200/iGLOBAL_SCREENHEIGHT));
-
-              for (dest = 0; dest < viewwidth; dest++) {
-                  if ((height = posts[dest].ceilingclip) <= 0) continue;
-
-                  ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
-                  src = skysegs[ang] - ofs;
-                  DrawSkyPost((byte*)bufferofs + dest, src, height);
-              }
+        ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
+        src = skysegs[ang] - ofs;
+        DrawSkyPost((byte*)bufferofs + dest, src, height);
+    }
 }
 
 /*
@@ -111,31 +108,31 @@ void DrawSky(void) {
 */
 void DrawFullSky(void) {
 
-   byte * src;
-   int dest;
-   int plane;
-   int ang;
-   int angle;
-   int ofs;
+    byte* src;
+    int dest;
+    int plane;
+    int ang;
+    int angle;
+    int ofs;
 
-   angle=viewangle;
+    angle = viewangle;
 
-   if (!fog && lightning) shadingtable=colormap+((basemaxshade-5-lightninglevel)<<8);
-   else shadingtable=colormap+(1<<12);
+    if (!fog && lightning) shadingtable = colormap + ((basemaxshade - 5 - lightninglevel) << 8);
+    else shadingtable = colormap + (1 << 12);
 
-   ofs=(((maxheight)-(player->z))>>3)+(centery-(viewheight>>1));
-   if (ofs>centerskypost) ofs=centerskypost;
-   else if (((centerskypost-ofs)+viewheight)>599) ofs=-(599-(centerskypost+viewheight));
+    ofs = (((maxheight)-(player->z)) >> 3) + (centery - (viewheight >> 1));
 
-   bufferofs+=screenofs;
+    if (ofs > centerskypost) ofs = centerskypost;
+    else if (((centerskypost - ofs) + viewheight) > 599) ofs = -(599 - (centerskypost + viewheight));
 
-   for (dest = 0; dest < viewwidth; dest++) {
-       ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
-       src = skysegs[ang] - ofs;
-       DrawSkyPost((byte*)bufferofs + dest, src, viewheight);
-   }
+    bufferofs += screenofs;
 
-   bufferofs-=screenofs;
+    for (dest = 0; dest < viewwidth; dest++) {
+        ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
+        src = skysegs[ang] - ofs;
+        DrawSkyPost((byte*)bufferofs + dest, src, viewheight);
+    }
+    bufferofs -= screenofs;
 }
 
 /*
@@ -145,19 +142,18 @@ void DrawFullSky(void) {
 =
 ===================
 */
-void MakeSkyTile (byte * tile) {
-   int srcstep=200<<10;
-   int src;
+void MakeSkyTile(byte* tile) {
+    int srcstep = 200 << 10;
+    int src;
 
-   for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < 64; i++) {
 
-       src = 0;
-       for (int j = 0; j < 64; j++) {
-           *(tile + (i << 6) + j) = *(skysegs[(i << 2)] + (src >> 16));
-           src += srcstep;
-       }
-
-   }
+        src = 0;
+        for (int j = 0; j < 64; j++) {
+            *(tile + (i << 6) + j) = *(skysegs[(i << 2)] + (src >> 16));
+            src += srcstep;
+        }
+    }
 }
 
 /*
@@ -411,32 +407,28 @@ void SetPlaneViewSize (void)
 =
 ==========================
 */
-void SetFCLightLevel (int height)
+void SetFCLightLevel(int height)
 {
-   int i;
+    int i;
 
-	if (MISCVARS->GASON==1)
-      {
-		shadingtable=greenmap+(MISCVARS->gasindex<<8);
-      return;
-      }
-   if (fulllight)
-      {
-      shadingtable=colormap+(1<<12);
-      return;
-      }
-   if (fog)
-      {
-      i=((height*200/iGLOBAL_SCREENHEIGHT)>>normalshade)+minshade;
-      if (i>maxshade) i=maxshade;
-      shadingtable=colormap+(i<<8);
-      }
-   else
-      {
-      i=maxshade-(height>>normalshade);
-      if (i<minshade) i=minshade;
-      shadingtable=colormap+(i<<8);
-      }
+    if (MISCVARS->GASON == 1) {
+        shadingtable = greenmap + (MISCVARS->gasindex << 8);
+        return;
+    }
+    if (fulllight) {
+        shadingtable = colormap + (1 << 12);
+        return;
+    }
+    if (fog) {
+        i = ((height * 200 / iGLOBAL_SCREENHEIGHT) >> normalshade) + minshade;
+        if (i > maxshade) i = maxshade;
+        shadingtable = colormap + (i << 8);
+    }
+    else {
+        i = maxshade - (height >> normalshade);
+        if (i < minshade) i = minshade;
+        shadingtable = colormap + (i << 8);
+    }
 }
 
 
@@ -500,72 +492,61 @@ void DrawHLine (int xleft, int xright, int yp)
 }
 
 void DrawPlanes(void) {
-   int x,y;
-   int twall;
-   int bwall;
+    int x, y;
+    int twall;
+    int bwall;
 
-   if (sky)
-      DrawSky();
-   else
-      {
-      y=0;
-      for (x=0;x<viewwidth;x++)
-         {
-         twall=posts[x].ceilingclip;
-         while (y<twall)
-            {
-            xstarts[y]=x;
-            y++;
+    if (sky)
+        DrawSky();
+    else {
+        y = 0;
+        for (x = 0; x < viewwidth; x++) {
+            twall = posts[x].ceilingclip;
+            while (y < twall) {
+                xstarts[y] = x;
+                y++;
             }
-         while (y>twall)
-            {
+            while (y > twall) {
+                y--;
+                DrawHLine(xstarts[y], x - 1, y);
+            }
+        }
+        while (y > 0) {
             y--;
-            DrawHLine(xstarts[y],x-1,y);
-            }
-         }
-      while (y>0)
-         {
-         y--;
-         DrawHLine(xstarts[y],viewwidth-1,y);
-         }
-      }
-   y=viewheight-1;
-   for (x=0;x<viewwidth;x++)
-      {
-      bwall=posts[x].floorclip;
-      while (y>bwall)
-         {
-         xstarts[y]=x;
-         y--;
-         }
-      while (y<bwall)
-         {
-         y++;
-         DrawHLine(xstarts[y],x-1,y);
-         }
-      }
-   while (y<viewheight-1)
-      {
-      y++;
-      DrawHLine(xstarts[y],viewwidth-1,y);
-      }
+            DrawHLine(xstarts[y], viewwidth - 1, y);
+        }
+    }
+    y = viewheight - 1;
+
+    for (x = 0; x < viewwidth; x++) {
+        bwall = posts[x].floorclip;
+        while (y > bwall) {
+            xstarts[y] = x;
+            y--;
+        }
+        while (y < bwall) {
+            y++;
+            DrawHLine(xstarts[y], x - 1, y);
+        }
+    }
+    while (y < viewheight - 1) {
+        y++;
+        DrawHLine(xstarts[y], viewwidth - 1, y);
+    }
 }
 
-#ifndef DOS
-void DrawRow(int count, byte * dest, byte * src)
-{
-	unsigned frac, fracstep;
-	int coord;
+void DrawRow(int count, byte* dest, byte* src) {
+    unsigned frac, fracstep;
+    int coord;
 
-	frac = (mr_yfrac<<16) + (mr_xfrac&0xffff);
-	fracstep = (mr_ystep<<16) + (mr_xstep&0xffff);
+    frac = (mr_yfrac << 16) + (mr_xfrac & 0xffff);
+    fracstep = (mr_ystep << 16) + (mr_xstep & 0xffff);
 
-	while (count--) {
-		/* extract the x/y coordinates */
-		coord = ((frac >> (32-7)) | ((frac >> (32-23)) << 7)) & 16383;
-		
-		*dest++ = shadingtable[src[coord]];
-		frac += fracstep;
-	}
+    while (count--) {
+        /* extract the x/y coordinates */
+        coord = ((frac >> (32 - 7)) | ((frac >> (32 - 23)) << 7)) & 16383;
+
+        *dest++ = shadingtable[src[coord]];
+        frac += fracstep;
+    }
 }
-#endif

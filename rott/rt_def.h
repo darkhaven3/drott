@@ -50,7 +50,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #error please define your platform.
 #endif
 
-#if PLATFORM_DOS || PLATFORM_WIN32
+#if PLATFORM_WIN32
 #define PATH_SEP_CHAR '\\'
 #define PATH_SEP_STR  "\\"
 #elif PLATFORM_UNIX
@@ -95,9 +95,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define NULL       0
 #endif
 
-#define PI      3.141592657
-#define LONG(a) ((int)a)
-#define M_PI            3.14159
+#define PI			3.141592657
+#define LONG(a)		((int)a)
+#define M_PI        3.14159
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -115,11 +115,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define max(a, b)  (((a) > (b)) ? (a) : (b))
 #endif
 
-#if !PLATFORM_DOS
-  #if PLATFORM_WIN32
+#if PLATFORM_WIN32
     #define strcmpi(x, y) stricmp(x, y)
     #define _fstricmp(x, y) stricmp(x, y)
-  #elif PLATFORM_UNIX
+#elif PLATFORM_UNIX
     #ifndef strcmpi
       #define strcmpi(x, y) strcasecmp(x, y)
     #endif
@@ -138,19 +137,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
     char *ultoa(unsigned long, char *, int);
     char getch(void);
     long filelength(int handle);
-  #else
-    #error please define for your platform.
-  #endif
-
-#if !defined(ANSIESC)
-#define STUB_FUNCTION fprintf(stderr,"STUB: %s at " __FILE__ ", line %d, thread %d\n",__FUNCTION__,__LINE__,getpid())
 #else
-#define STUB_FUNCTION
+    #error please define for your platform.
 #endif
+
+#define STUB_FUNCTION
 
 #define far
 #define cdecl
-#endif
 
 //***************************************************************************
 //
@@ -158,16 +152,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //***************************************************************************
 #define VIEWGLOBAL              0x10000         // globals visable flush to wall
-/*
-#define VIEWWIDTH               MAXSCREENWIDTH//320*2             // size of view window
-#define VIEWHEIGHT              MAXSCREENHEIGHT//200*2
-#define MAXSCANLINES            MAXSCREENHEIGHT//200*2             // size of ylookup table
-*/
 #define CHARWIDTH               2
 #define TILEWIDTH               4
 #define STATUSLINES             16
-
-
 
 //***************************************************************************
 //
@@ -199,7 +186,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //***************************************************************************
 
-
 #define GLOBAL1                           (1l<<16)
 #define TILEGLOBAL                        GLOBAL1
 #define PIXGLOBAL                         (GLOBAL1/64)
@@ -215,7 +201,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ELEVATORTILE                      72
 #define ALTELEVATORTILE                   106
 #define LASTLEVELVALUE                    459
-
 #define AREANUMBER(x,y)                   (MAPSPOT((x),(y),0)-AREATILE)
 
 //***************************************************************************
@@ -276,158 +261,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //***************************************************************************
 
-///////////////////      GLOBAL DATA TYPES ///////////////////////////////
-
-
-typedef unsigned char           byte;
-typedef unsigned short int      word;
-typedef unsigned int            longword;
-typedef int fixed;
-
-
-//////////////////////////////////////////////////////////////////////////
-
-
-//////////////////      GLOBAL ENUMERATED TYPES    ///////////////////////
-
-
-/* boolean is serialized at the moment, and watcomc made it a byte. */
-
-typedef unsigned char boolean;
-enum {
-  false, true
-};
-
-typedef enum {
-		  east,
-		  northeast,
-		  north,
-		  northwest,
-		  west,
-		  southwest,
-		  south,
-		  southeast,
-		  nodir
-} dirtype;
-
-typedef enum
- {SPRITE,
-  WALL,
-  ACTOR,
-  DOOR,
-  PWALL,
-  MWALL
- }
- thingtype;
-
 #define NUMTXBUTTONS    16
-enum    {
-		  bt_nobutton=-1,
-		  bt_attack=0,
-		  bt_strafe=1,
-		  bt_run=2,
-		  bt_use=3,
-		  bt_lookup=4,
-		  bt_lookdown=5,
-		  bt_swapweapon=6,
-		  bt_dropweapon=7,
-		  bt_horizonup=8,
-        bt_horizondown=9,
-        bt_pistol=10,
-        bt_dualpistol=11,
-        bt_mp40=12,
-        bt_missileweapon=13,
-        bt_autorun=14,
-		  bt_recordsound=15,
-		  bt_strafeleft=16,
-		  bt_straferight=17,
-        bt_turnaround=18,
-        bt_aimbutton=19,
-        di_north=20,
-        di_east=21,
-        di_south=22,
-        di_west=23,
-        bt_map=24,
-        bt_message=25,
-        bt_directmsg=26,
-        NUMBUTTONS
-};
-
-
-#if (SHAREWARE == 0)
- #define MAXWEAPONS  13
-#else
- #define MAXWEAPONS  9
-#endif
-
-
-typedef enum    { wp_pistol,
-						wp_twopistol,
-						wp_mp40,
-						wp_bazooka,
-						wp_heatseeker,
-                  wp_drunk,
-                  wp_firebomb,
-                  wp_firewall,
-						wp_godhand,
-
-#if (SHAREWARE == 0)
-                  wp_split,
-						wp_kes,
-						wp_bat,
-                  wp_dog
-#endif
-
-                } weapontype;
-
-
-
-enum    {
-						gd_baby,
-						gd_easy,
-						gd_medium,
-						gd_hard
-};
-
-
-typedef enum    {
-		  ex_stillplaying,
-		  ex_completed,
-		  ex_died,
-		  ex_warped,
-		  ex_resetgame,
-		  ex_loadedgame,
-		  ex_victorious,
-		  ex_abort,
-		  ex_demodone,
-		  ex_skiplevel,
-		  ex_secretlevel,
-        ex_secretdone,
-        ex_titles,
-		  ex_demorecord,
-		  ex_demoplayback,
-
-		  ex_bossdied,
-		  ex_gameover,
-		  ex_battledone
-} exit_t;
-
-// Types for cache lumps (for endian converters)
-enum    {
-	cache_other,
-	cache_pic_t,
-	cache_lpic_t,
-	cache_font_t,
-	cache_lbm_t,
-	cache_patch_t,
-	cache_transpatch_t,
-	cache_cfont_t
-};
-
-////////////////////////////////////////////////////////////////////////////
-
-/////////////////      GLOBAL STRUCTURE TYPES     //////////////////////////
-
 
 //=================== SHARED FLAGS =====================================//
 
@@ -504,5 +338,157 @@ enum    {
 #define FL_WEAPON               0x200000
 #define FL_TRANSLUCENT          0x2000000
 #define FL_HEIGHTFLIPPABLE      0x40000000
+
+//shareware stuff
+
+#if (SHAREWARE == 0)
+#define MAXWEAPONS  13
+#else
+#define MAXWEAPONS  9
+#endif
+
+///////////////////      GLOBAL DATA TYPES ///////////////////////////////
+
+
+typedef unsigned char           byte;
+typedef unsigned short int      word;
+typedef unsigned int            longword;
+typedef int fixed;
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
+//////////////////      GLOBAL ENUMERATED TYPES    ///////////////////////
+
+
+/* boolean is serialized at the moment, and watcomc made it a byte. */
+
+typedef unsigned char boolean;
+enum {
+  false, true
+};
+
+typedef enum {
+		  east,
+		  northeast,
+		  north,
+		  northwest,
+		  west,
+		  southwest,
+		  south,
+		  southeast,
+		  nodir
+} dirtype;
+
+typedef enum
+ {SPRITE,
+  WALL,
+  ACTOR,
+  DOOR,
+  PWALL,
+  MWALL
+ }
+ thingtype;
+
+enum    {
+		  bt_nobutton=-1,
+		  bt_attack=0,
+		  bt_strafe=1,
+		  bt_run=2,
+		  bt_use=3,
+		  bt_lookup=4,
+		  bt_lookdown=5,
+		  bt_swapweapon=6,
+		  bt_dropweapon=7,
+		  bt_horizonup=8,
+        bt_horizondown=9,
+        bt_pistol=10,
+        bt_dualpistol=11,
+        bt_mp40=12,
+        bt_missileweapon=13,
+        bt_autorun=14,
+		  bt_recordsound=15,
+		  bt_strafeleft=16,
+		  bt_straferight=17,
+        bt_turnaround=18,
+        bt_aimbutton=19,
+        di_north=20,
+        di_east=21,
+        di_south=22,
+        di_west=23,
+        bt_map=24,
+        bt_message=25,
+        bt_directmsg=26,
+        NUMBUTTONS
+};
+
+
+typedef enum    { wp_pistol,
+						wp_twopistol,
+						wp_mp40,
+						wp_bazooka,
+						wp_heatseeker,
+                  wp_drunk,
+                  wp_firebomb,
+                  wp_firewall,
+						wp_godhand,
+
+#if (SHAREWARE == 0)
+                  wp_split,
+						wp_kes,
+						wp_bat,
+                  wp_dog
+#endif
+
+                } weapontype;
+
+
+
+enum    {
+						gd_baby,
+						gd_easy,
+						gd_medium,
+						gd_hard
+};
+
+
+typedef enum    {
+		  ex_stillplaying,
+		  ex_completed,
+		  ex_died,
+		  ex_warped,
+		  ex_resetgame,
+		  ex_loadedgame,
+		  ex_victorious,
+		  ex_abort,
+		  ex_demodone,
+		  ex_skiplevel,
+		  ex_secretlevel,
+        ex_secretdone,
+        ex_titles,
+		  ex_demorecord,
+		  ex_demoplayback,
+
+		  ex_bossdied,
+		  ex_gameover,
+		  ex_battledone
+} exit_t;
+
+// Types for cache lumps (for endian converters)
+enum    {
+	cache_other,
+	cache_pic_t,
+	cache_lpic_t,
+	cache_font_t,
+	cache_lbm_t,
+	cache_patch_t,
+	cache_transpatch_t,
+	cache_cfont_t
+};
+
+////////////////////////////////////////////////////////////////////////////
+
+/////////////////      GLOBAL STRUCTURE TYPES     //////////////////////////
 
 #endif

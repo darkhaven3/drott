@@ -33,14 +33,14 @@ typedef struct
    byte     data;
 } pic_t;
 
-#define CONVERT_ENDIAN_pic_t(pp) { }
-
 typedef struct
 {
    short     width,height;
    short     orgx,orgy;
    byte     data;
 } lpic_t;
+
+#define CONVERT_ENDIAN_pic_t(pp) { }    //:mad:
 
 #define CONVERT_ENDIAN_lpic_t(lp)            \
     {                                        \

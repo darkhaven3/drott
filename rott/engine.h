@@ -38,14 +38,13 @@ typedef struct
   int      posttype;
   int      alttile;
 } wallcast_t;
-extern wallcast_t posts[800+2];//bna++ JUST MAKE IT MAX RES
-//extern wallcast_t posts[642];//bna++
-//extern wallcast_t posts[321];
+
+extern wallcast_t posts[3440+8];//was 800+2
 
 extern int lasttilex;
 extern int lasttiley;
 
-void Refresh ( void );
+void Refresh (void);
 
 #define IsWindow(x,y)       (MAPSPOT((x),(y),2)==13)
 
