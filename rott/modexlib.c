@@ -25,13 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include <ctype.h>
 
-#ifdef DOS
-#include <malloc.h>
-#include <dos.h>
-#include <conio.h>
-#include <io.h>
-#endif
-
 #include <stdlib.h>
 #include <sys/stat.h>
 #include "modexlib.h"
@@ -41,12 +34,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_net.h" // for GamePaused
 #include "myprint.h"
 
-static void StretchMemPicture ();
+#include "SDL.h"
+
 // GLOBAL VARIABLES
 
 boolean StretchScreen=0;//bná++
 extern boolean iG_aimCross;
 extern boolean sdl_fullscreen;
+extern boolean sdl_scalemethod;
 extern int iG_X_center;
 extern int iG_Y_center;
 char 	   *iG_buf_center;
@@ -63,10 +58,6 @@ byte  *displayofs;
 boolean graphicsmode=false;		//???
 char        *bufofsTopLimit;		//[*** FREERES SUPPORT? ***]
 char        *bufofsBottomLimit;
-
-void DrawCenterAim ();
-
-#include "SDL.h"
 
 #ifndef STUB_FUNCTION
 
@@ -88,6 +79,9 @@ void DrawCenterAim ();
 */
 static SDL_Surface *sdl_surface = NULL;
 static SDL_Surface *unstretch_sdl_surface = NULL;
+
+//static SDL_Surface* s_gamewindow = NULL;
+
 
 static SDL_Window *screen;
 static SDL_Renderer *renderer;
@@ -149,6 +143,8 @@ void GraphicsMode ( void )
 	argbbuffer = SDL_CreateRGBSurface(0,
 	                                  iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, bpp,
 	                                  rmask, gmask, bmask, amask);
+
+	//s_gamewindow = SDL_CreateRGBSurface(0, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, 8, 0, 0, 0, 0);
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 	texture = SDL_CreateTexture(renderer,
@@ -282,20 +278,8 @@ void VL_SetVGAPlaneMode ( void )
 =
 =======================
 */
-void VL_CopyPlanarPage ( byte * src, byte * dest )
-{
-#ifdef DOS
-   int plane;
-
-   for (plane=0;plane<4;plane++)
-      {
-      VGAREADMAP(plane);
-      VGAWRITEMAP(plane);
+void VL_CopyPlanarPage ( byte * src, byte * dest ) {
       memcpy(dest,src,screensize);
-      }
-#else
-      memcpy(dest,src,screensize);
-#endif
 }
 
 /*
@@ -308,6 +292,7 @@ void VL_CopyPlanarPage ( byte * src, byte * dest )
 */
 void VL_CopyPlanarPageToMemory ( byte * src, byte * dest ) {
       memcpy(dest,src,screensize);
+	  //[stub] replace with VL_CopyPlanarPage or equivalent
 }
 
 /*
@@ -319,21 +304,7 @@ void VL_CopyPlanarPageToMemory ( byte * src, byte * dest ) {
 */
 void VL_CopyBufferToAll ( byte *buffer )
 {
-#ifdef DOS
-   int plane;
-
-   for (plane=0;plane<4;plane++)
-      {
-      VGAREADMAP(plane);
-      VGAWRITEMAP(plane);
-      if (page1start!=buffer)
-         memcpy((byte *)page1start,(byte *)buffer,screensize);
-      if (page2start!=buffer)
-         memcpy((byte *)page2start,(byte *)buffer,screensize);
-      if (page3start!=buffer)
-         memcpy((byte *)page3start,(byte *)buffer,screensize);
-      }
-#endif
+	//[stub]
 }
 
 /*
@@ -360,12 +331,7 @@ void VL_CopyDisplayToHidden ( void )
 
 void VL_ClearBuffer (byte *buf, byte color)
 {
-#ifdef DOS
-  VGAMAPMASK(15);
   memset((byte *)buf,color,screensize);
-#else
-  memset((byte *)buf,color,screensize);
-#endif
 }
 
 /*
@@ -380,12 +346,7 @@ void VL_ClearBuffer (byte *buf, byte color)
 
 void VL_ClearVideo (byte color)
 {
-#ifdef DOS
-  VGAMAPMASK(15);
-  memset((byte *)(0xa000<<4),color,0x10000);
-#else
   memset (sdl_surface->pixels, color, iGLOBAL_SCREENWIDTH*iGLOBAL_SCREENHEIGHT);
-#endif
 }
 
 /*
@@ -406,11 +367,8 @@ void VL_DePlaneVGA (void)
 void VH_UpdateScreen (void)
 { 	
 
-	if (StretchScreen){//bna++
-		StretchMemPicture ();
-	}else{
-		DrawCenterAim ();
-	}
+	if (StretchScreen || !sdl_scalemethod) StretchMemPicture ();
+
 	SDL_BlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
 	//SDL_LowerBlit(VL_GetVideoSurface(), &blit_rect, argbbuffer, &blit_rect);
 	SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
@@ -430,33 +388,16 @@ void VH_UpdateScreen (void)
 
 void XFlipPage ( void )
 {
-#ifdef DOS
-   displayofs=bufferofs;
 
-//   _disable();
+ 	if (StretchScreen || sdl_scalemethod == 2) StretchMemPicture ();
 
-   outp(CRTC_INDEX,CRTC_STARTHIGH);
-   outp(CRTC_DATA,((displayofs&0x0000ffff)>>8));
-
-//   _enable();
-
-   bufferofs += screensize;
-   if (bufferofs > page3start)
-      bufferofs = page1start;
-#else
- 	if (StretchScreen){//bna++
-		StretchMemPicture ();
-	}else{
-		DrawCenterAim ();
-	}
-   //SDL_BlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
+   //SDL_LowerBlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
    SDL_LowerBlit(sdl_surface, &blit_rect, argbbuffer, &blit_rect);
    SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
    SDL_RenderClear(renderer);
    SDL_RenderCopy(renderer, texture, NULL, NULL);
    SDL_RenderPresent(renderer);
  
-#endif
 }
 
 
@@ -488,8 +429,7 @@ void DisableScreenStretch(void)
 {
    if (iGLOBAL_SCREENWIDTH <= 320 || !StretchScreen) return;
 	
-   displayofs = sdl_surface->pixels +
-	(displayofs - (byte *)unstretch_sdl_surface->pixels);
+   displayofs = sdl_surface->pixels + (displayofs - (byte *)unstretch_sdl_surface->pixels);	//??
    bufferofs  = sdl_surface->pixels;
    page1start = sdl_surface->pixels;
    page2start = sdl_surface->pixels;
@@ -515,53 +455,6 @@ static void StretchMemPicture ()
   dest.h = iGLOBAL_SCREENHEIGHT;
   SDL_SoftStretch(unstretch_sdl_surface, &src, sdl_surface, &dest);
 }
-
-// bna function added start
-extern	boolean ingame;
-int		iG_playerTilt;
-
-void DrawCenterAim ()
-{
-	int x;
-
-	int percenthealth = (locplayerstate->health * 10) / MaxHitpointsForCharacter(locplayerstate);
-	int color = percenthealth < 3 ? egacolor[RED] : percenthealth < 4 ? egacolor[YELLOW] : egacolor[GREEN];
-
-	if (iG_aimCross && !GamePaused){
-		if (( ingame == true )&&(iGLOBAL_SCREENWIDTH>320)){
-			  if ((iG_playerTilt <0 )||(iG_playerTilt >iGLOBAL_SCREENHEIGHT/2)){
-					iG_playerTilt = -(2048 - iG_playerTilt);
-			  }
-			  if (iGLOBAL_SCREENWIDTH == 640){ x = iG_playerTilt;iG_playerTilt=x/2; }
-			  iG_buf_center = bufferofs + ((iG_Y_center-iG_playerTilt)*iGLOBAL_SCREENWIDTH);//+iG_X_center;
-
-			  for (x=iG_X_center-10;x<=iG_X_center-4;x++){
-				  if ((iG_buf_center+x < bufofsTopLimit)&&(iG_buf_center+x > bufofsBottomLimit)){
-					 *(iG_buf_center+x) = color;
-				  }
-			  }
-			  for (x=iG_X_center+4;x<=iG_X_center+10;x++){
-				  if ((iG_buf_center+x < bufofsTopLimit)&&(iG_buf_center+x > bufofsBottomLimit)){
-					 *(iG_buf_center+x) = color;
-				  }
-			  }
-			  for (x=10;x>=4;x--){
-				  if (((iG_buf_center-(x*iGLOBAL_SCREENWIDTH)+iG_X_center) < bufofsTopLimit)&&((iG_buf_center-(x*iGLOBAL_SCREENWIDTH)+iG_X_center) > bufofsBottomLimit)){
-					 *(iG_buf_center-(x*iGLOBAL_SCREENWIDTH)+iG_X_center) = color;
-				  }
-			  }
-			  for (x=4;x<=10;x++){
-				  if (((iG_buf_center+(x*iGLOBAL_SCREENWIDTH)+iG_X_center) < bufofsTopLimit)&&((iG_buf_center+(x*iGLOBAL_SCREENWIDTH)+iG_X_center) > bufofsBottomLimit)){
-					 *(iG_buf_center+(x*iGLOBAL_SCREENWIDTH)+iG_X_center) = color;
-				  }
-			  }
-		}
-	}
-}
-// bna function added end
-
-
-
 
 // bna section -------------------------------------------
 

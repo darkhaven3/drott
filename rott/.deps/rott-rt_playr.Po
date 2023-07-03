@@ -172,17 +172,17 @@ rott-rt_playr.o: rt_playr.c C:/msys64/mingw32/include/string.h \
  C:/msys64/usr/include/SDL2/SDL_timer.h \
  C:/msys64/usr/include/SDL2/SDL_version.h \
  C:/msys64/usr/include/SDL2/SDL_locale.h \
- C:/msys64/usr/include/SDL2/SDL_misc.h rt_def.h develop.h \
+ C:/msys64/usr/include/SDL2/SDL_misc.h rt_sqrt.h rt_def.h develop.h \
  C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/io.h \
  C:/msys64/mingw32/include/getopt.h \
  C:/msys64/mingw32/include/pthread_unistd.h \
  C:/msys64/mingw32/include/dirent.h C:/msys64/mingw32/include/ctype.h \
- watcom.h rt_sound.h music.h sndcards.h gmove.h states.h rt_sqrt.h \
- rt_actor.h rt_main.h rottnet.h rt_battl.h rt_playr.h rt_stat.h rt_ted.h \
- isr.h keyb.h rt_draw.h rt_door.h rt_menu.h lumpy.h rt_in.h rt_view.h \
+ watcom.h rt_sound.h music.h sndcards.h gmove.h states.h rt_actor.h \
+ rt_main.h rottnet.h rt_battl.h rt_playr.h rt_stat.h rt_ted.h isr.h \
+ keyb.h rt_draw.h rt_door.h rt_menu.h lumpy.h rt_in.h rt_view.h \
  modexlib.h WinRott.h rt_com.h rt_util.h rt_game.h rt_cfg.h rt_rand.h \
- z_zone.h rt_swift.h engine.h _rt_play.h rt_spbal.h rt_floor.h rt_msg.h \
- rt_debug.h sprites.h rt_net.h rt_dmand.h memcheck.h
+ z_zone.h rt_swift.h engine.h _rt_play.h rt_floor.h rt_msg.h rt_debug.h \
+ sprites.h rt_net.h rt_dmand.h memcheck.h
 C:/msys64/mingw32/include/string.h:
 C:/msys64/mingw32/include/crtdefs.h:
 C:/msys64/mingw32/include/corecrt.h:
@@ -363,6 +363,7 @@ C:/msys64/usr/include/SDL2/SDL_timer.h:
 C:/msys64/usr/include/SDL2/SDL_version.h:
 C:/msys64/usr/include/SDL2/SDL_locale.h:
 C:/msys64/usr/include/SDL2/SDL_misc.h:
+rt_sqrt.h:
 rt_def.h:
 develop.h:
 C:/msys64/mingw32/include/unistd.h:
@@ -377,7 +378,6 @@ music.h:
 sndcards.h:
 gmove.h:
 states.h:
-rt_sqrt.h:
 rt_actor.h:
 rt_main.h:
 rottnet.h:
@@ -404,7 +404,6 @@ z_zone.h:
 rt_swift.h:
 engine.h:
 _rt_play.h:
-rt_spbal.h:
 rt_floor.h:
 rt_msg.h:
 rt_debug.h:

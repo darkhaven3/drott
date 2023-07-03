@@ -60,8 +60,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "memcheck.h"
 
 
-
-
 #define SGN(x)  (((x) > 0)?(1):(-1))
 
 
@@ -2090,7 +2088,7 @@ void T_Spring(objtype*ob)
       if (!temp->momentumz)
          {
          op = FixedMul(GRAVITY,(temp->z-5)<<16) << 1;
-         temp->momentumz = -FixedSqrtHP(op);
+         temp->momentumz = - FixedSqrtHP(op);
          SD_PlaySoundRTP(SD_SPRINGBOARDSND,ob->x,ob->y);
          }
       }
@@ -10586,8 +10584,6 @@ void DamagePlayerActor(objtype *ob, int damage)
    if (ob==player)
       {
       damagecount += damage;
-      if (cybermanenabled)
-         SWIFT_TactileFeedback (10*damage, 15, 15);
       if ( SHOW_BOTTOM_STATUS_BAR() )
          DrawBarHealth (false);
       }

@@ -25,16 +25,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define _ROTT_
 
-#ifdef DOS
-#include <io.h>
-#include <bios.h>
-#include <conio.h>
-#include <process.h>
-#else
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
-#endif
 
 #include <stdlib.h>
 #include <fcntl.h>
@@ -101,18 +95,12 @@ int     MusicMode        = 0;
 int     MUvolume         = 196;
 int     FXvolume         = 196;
 
-#ifdef DOS
-fx_blaster_config SBSettings =
-   {
-   0x220, fx_SB, 7, 1, 5, 0x330, 0x620
-   };
-#endif
-
 boolean mouseenabled     = 1;
 boolean usemouselook     = 0;
 int     inverse_mouse    = 1; //set  to -1 to invert mouse
 boolean usejump          = 0;
 boolean sdl_fullscreen   = 1;
+boolean sdl_scalemethod  = 1;
 
 boolean joystickenabled  = 0;
 boolean joypadenabled    = 0;
@@ -122,12 +110,7 @@ int     threshold        = 1;
 int     NumVoices        = 4;
 int     NumChannels      = 1;
 int     NumBits          = 8;
-#ifdef DOS
-int     MidiAddress      = 0x330;
-#endif
-boolean cybermanenabled  = false;
-boolean assassinenabled  = false;
-boolean spaceballenabled = false;
+
 boolean AutoDetailOn     = true;
 int     DoubleClickSpeed = 20;
 boolean BobbinOn         = true;
@@ -149,13 +132,10 @@ int     fulllight        = 0;
 int     viewsize         = 7;
 
 #endif
+
 MacroList CommbatMacros[MAXMACROS];
 
-#ifdef DOS
-char *ApogeePath = "APOGEECD";
-#else
 char ApogeePath[256];
-#endif
 
 //******************************************************************************
 //
@@ -300,27 +280,12 @@ boolean ParseSoundFile (void)
 
       ReadInt ("NumBits",&NumBits);
 
-#ifdef DOS
-      // Read in Midi Address
-
-      ReadInt ("MidiAddress",&MidiAddress);
-#endif
-
       // Read in stereo reversal
 
       ReadBoolean ("StereoReverse",&stereoreversed);
 
-#ifdef DOS
-      // Read in Sound Blaster info
-      ReadUnsigned ("SBType",  &SBSettings.Type );
-      ReadUnsigned ("SBPort",  &SBSettings.Address );
-      ReadUnsigned ("SBIrq",   &SBSettings.Interrupt );
-      ReadUnsigned ("SBDma8",  &SBSettings.Dma8 );
-      ReadUnsigned ("SBDma16", &SBSettings.Dma16 );
-      ReadUnsigned ("SBMidi",  &SBSettings.Midi );
-      ReadUnsigned ("SBEmu",   &SBSettings.Emu );
-#endif
    }
+
    else
       retval = false;
 
@@ -334,21 +299,13 @@ boolean ParseSoundFile (void)
 // SetSoundDefaultValues ()
 //
 //******************************************************************************
-void SetSoundDefaultValues
-   (
-   void
-   )
-
-   {
-#ifdef DOS
-   fx_blaster_config blaster;
-#endif
+void SetSoundDefaultValues (void) {
    int status;
 
    //
    //  no config file, so select default values
    //
-   #if !defined(PLATFORM_DOS)
+
    // icculus' SDL_mixer driver looks like a soundscape to us
    MusicMode   = 6;
    FXMode      = 6;
@@ -356,27 +313,7 @@ void SetSoundDefaultValues
    NumChannels = 2;
    NumBits     = 16;
    stereoreversed = false;
-   #else
-   MusicMode   = 0;
-   FXMode      = 0;
-   NumVoices   = 4;
-   NumChannels = 1;
-   NumBits     = 8;
-   MidiAddress = 0x330;
-   stereoreversed = false;
 
-   status = FX_GetBlasterSettings( &blaster );
-   if ( status == FX_Ok )
-      {
-      SBSettings.Type      = blaster.Type;
-      SBSettings.Address   = blaster.Address;
-      SBSettings.Interrupt = blaster.Interrupt;
-      SBSettings.Dma8      = blaster.Dma8;
-      SBSettings.Dma16     = blaster.Dma16;
-      SBSettings.Midi      = blaster.Midi;
-      SBSettings.Emu       = blaster.Emu;
-      }
-   #endif
    }
 
 
@@ -541,6 +478,8 @@ boolean ParseConfigFile (void)
       ReadInt("WindowWidth", &iGLOBAL_WINDOWWIDTH);
       ReadInt("WindowHeight", &iGLOBAL_WINDOWHEIGHT);
 
+      ReadBoolean("SDLScaleMethod", &sdl_scalemethod);
+
       // Read in ViewSize
 
       ReadInt("ViewSize",&viewsize);
@@ -677,15 +616,6 @@ boolean ParseConfigFile (void)
          GetTokenEOL (false);
          ConvertStringToPasswordString ( &name[0] );
          }
-
-      if (!CybermanPresent)
-         cybermanenabled = false;
-
-      if (!AssassinPresent)
-         assassinenabled = false;
-
-      if (!SpaceBallPresent)
-         spaceballenabled = false;
 
       if (!MousePresent)
          mouseenabled = false;
@@ -1010,13 +940,6 @@ void ReadConfig (void)
 
       Z_Free (scriptbuffer);
       }
-#ifdef DOS
-   else if ( !SOUNDSETUP )
-      {
-      Error( "Could not find SOUND.ROT.  Please run SNDSETUP to configure "
-         "your sound hardware." );
-      }
-#endif
 
 
 #ifdef _ROTT_
@@ -1575,20 +1498,8 @@ void WriteSoundConfig
    SafeWriteString(file,"\n;\n");
    SafeWriteString(file,"; Music Modes\n");
    SafeWriteString(file,"; 0  -  Off\n");
-#ifdef DOS
-   SafeWriteString(file,"; 1  -  UltraSound\n");
-   SafeWriteString(file,"; 2  -  Sound Blaster\n");
-   SafeWriteString(file,"; 3  -  Sound Man 16\n");
-   SafeWriteString(file,"; 4  -  Pro Audio Spectrum\n");
-   SafeWriteString(file,"; 5  -  Awe32\n");
-   SafeWriteString(file,"; 6  -  SoundScape\n");
-   SafeWriteString(file,"; 7  -  Wave Blaster\n");
-   SafeWriteString(file,"; 8  -  General Midi\n");
-   SafeWriteString(file,"; 9  -  Sound Canvas\n");
-   SafeWriteString(file,"; 10 -  Adlib\n");
-#else
    SafeWriteString(file,"; 6  -  On\n");
-#endif
+
    WriteParameter(file,"MusicMode        ",MusicMode);
 
    // Write out FX Mode
@@ -1596,20 +1507,8 @@ void WriteSoundConfig
    SafeWriteString(file,"\n;\n");
    SafeWriteString(file,"; FX Modes\n");
    SafeWriteString(file,"; 0  -  Off\n");
-#ifdef DOS
-   SafeWriteString(file,"; 1  -  UltraSound\n");
-   SafeWriteString(file,"; 2  -  Sound Blaster\n");
-   SafeWriteString(file,"; 3  -  Sound Man 16\n");
-   SafeWriteString(file,"; 4  -  Pro Audio Spectrum\n");
-   SafeWriteString(file,"; 5  -  Awe32\n");
-   SafeWriteString(file,"; 6  -  SoundScape\n");
-   SafeWriteString(file,"; 7  -  Adlib\n");
-   SafeWriteString(file,"; 8  -  Disney Sound Source\n");
-   SafeWriteString(file,"; 9  -  Tandy Sound Source\n");
-   SafeWriteString(file,"; 10 -  PC Speaker\n");
-#else
    SafeWriteString(file,"; 6  -  On\n");
-#endif
+
    WriteParameter(file,"FXMode           ",FXMode);
 
    // Write in Music Volume
@@ -1649,23 +1548,6 @@ void WriteSoundConfig
    SafeWriteString(file,"; 16 bit\n");
    WriteParameter(file,"NumBits          ",NumBits);
 
-#ifdef DOS
-   // Write out Midi Address
-
-   SafeWriteString(file,"\n;\n");
-   SafeWriteString(file,"; Midi Addresses\n");
-   SafeWriteString(file,"; $300\n");
-   SafeWriteString(file,"; $310\n");
-   SafeWriteString(file,"; $320\n");
-   SafeWriteString(file,"; $330\n");
-   SafeWriteString(file,"; $340\n");
-   SafeWriteString(file,"; $350\n");
-   SafeWriteString(file,"; $360\n");
-   SafeWriteString(file,"; $370\n");
-   SafeWriteString(file,"; $380\n");
-   WriteParameterHex(file,"MidiAddress      ",MidiAddress);
-#endif
-
    // Write out stereo reversal
 
    SafeWriteString(file,"\n;\n");
@@ -1673,20 +1555,6 @@ void WriteSoundConfig
    SafeWriteString(file,"; 0 no reversal\n");
    SafeWriteString(file,"; 1 reverse stereo\n");
    WriteParameter (file,"StereoReverse      ",stereoreversed);
-
-#ifdef DOS
-   // Write out Sound Blaster info
-
-   SafeWriteString(file,"\n;\n");
-   SafeWriteString(file,"; Sound Blaster Settings\n");
-   WriteParameter(file, "SBType           ", SBSettings.Type );
-   WriteParameterHex(file, "SBPort           ", SBSettings.Address );
-   WriteParameter(file, "SBIrq            ", SBSettings.Interrupt );
-   WriteParameter(file, "SBDma8           ", SBSettings.Dma8 );
-   WriteParameter(file, "SBDma16          ", SBSettings.Dma16 );
-   WriteParameterHex(file, "SBMidi           ", SBSettings.Midi );
-   WriteParameterHex(file, "SBEmu            ", SBSettings.Emu );
-#endif
 
    close (file);
    }
@@ -1803,8 +1671,19 @@ void WriteConfig (void)
    SafeWriteString(file,"; 320x200, 640x480 and 800x600\n");
    WriteParameter(file,"ScreenWidth      ",iGLOBAL_SCREENWIDTH);
    WriteParameter(file,"ScreenHeight     ",iGLOBAL_SCREENHEIGHT);
+
+   SafeWriteString(file, "\n;\n");
+   SafeWriteString(file, "; Window resolution. This can be any value \n");
+   SafeWriteString(file, "; you want, as long as it's greater than \n");
+   SafeWriteString(file, "; your game resolution. \n");
    WriteParameter(file,"WindowWidth      ", iGLOBAL_WINDOWWIDTH);
    WriteParameter(file,"WindowHeight     ", iGLOBAL_WINDOWHEIGHT);
+
+   SafeWriteString(file, "\n;\n");
+   SafeWriteString(file, "; SDL scaling method. \n");
+   SafeWriteString(file, "; 0 - Internal (StretchMemPicture) \n");
+   SafeWriteString(file, "; 1 - SDL_SoftScale \n");
+   WriteParameter(file, "SDLScaleMethod      ", sdl_scalemethod);
 
    // Write out ViewSize
 
@@ -1849,20 +1728,6 @@ void WriteConfig (void)
    SafeWriteString(file,"; Threshold of Mouse and Joystick\n");
    SafeWriteString(file,"; (smallest) 1 - 15 (largest)\n");
    WriteParameter(file,"Threshold        ",threshold);
-
-   // Write in Cyberman Enabled
-
-//   SafeWriteString(file,"\n;\n");
-//   SafeWriteString(file,"; 1 - Cyberman Enabled\n");
-//   SafeWriteString(file,"; 0 - Cyberman Disabled\n");
-//   WriteParameter(file,"CybermanEnabled  ",cybermanenabled);
-
-   // Write in Spaceball Enabled
-
-//   SafeWriteString(file,"\n;\n");
-//   SafeWriteString(file,"; 1 - Spaceball Enabled\n");
-//   SafeWriteString(file,"; 0 - Spaceball Disabled\n");
-//   WriteParameter(file,"SpaceballEnabled ",spaceballenabled);
 
    // Write in Auto Detail
 

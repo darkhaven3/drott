@@ -22,12 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "profile.h"
 #include "rt_def.h"
 #include <string.h>
-
-#ifdef DOS
-#include <dos.h>
-#include <conio.h>
-#endif
-
 #include "watcom.h"
 #include "sprites.h"
 #include "rt_actor.h"
@@ -63,25 +57,52 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_rand.h"
 #include "rt_net.h"
 #include "rt_sc_a.h"
-//MED
-#include "memcheck.h"
+#include "memcheck.h"   //MED
 
+//
+//defines
+//
 
+//apogee screen stuff
+#define APOGEEXANGLE 913
+#define APOGEEXMAG   180
+#define APOGEESTARTY 0
+#define APOGEEENDY   100
+#define APOGEESCALESTART (FINEANGLES<<4)
+#define APOGEESCALEEND (FINEANGLES)
+#define APOGEESONGTIME (124-1)
+
+//missile stuff? why is this here?
+#define NUMEXPLOSIONTYPES 4
+
+//default colors for when no sky or floor
+#define CEILINGCOLOR 24
+#define FLOORCOLOR 32
+
+typedef struct {
+    char  name[11];
+    byte  numframes;
+} ExplosionInfoType;
+
+//
+// function prototypes
+//
+
+//externals
 extern void VH_UpdateScreen (void);
 
+//locals
+void SetColorLightLevel(int x, int y, visobj_t* sprite, int dir, int color, int fullbright);
+void DrawRotatedScreen(int cx, int cy, byte* destscreen, int angle, int scale, int masked);     // :thinking:
+void InterpolateMaskedWall(visobj_t* plane);
+void InterpolateDoor(visobj_t* plane);
+void InterpolateWall(visobj_t* plane);
 
-
-//int testval;
-/*
-=============================================================================
-
-Global Variables                                                                                                                                 GLOBAL VARIABLES
-
-=============================================================================
-*/
+//
+// global variables
+//
 
 int iG_masked;
-
 int whereami=-1;
 
 byte * shadingtable;
@@ -89,8 +110,8 @@ byte * shadingtable;
 word   tilemap[MAPSIZE][MAPSIZE]; // wall values only
 byte   spotvis[MAPSIZE][MAPSIZE];
 byte   mapseen[MAPSIZE][MAPSIZE];
-unsigned long * lights;
 
+unsigned long * lights;
 int         wstart;
 
 
@@ -191,12 +212,6 @@ static const int weaponshape[NUMWEAPGRAPHICS] =     //[SHAR] why even separate t
 		W_BMALEPISTOL1
 #endif
 		};
-
-void SetColorLightLevel (int x, int y, visobj_t * sprite, int dir, int color, int fullbright);
-void DrawRotatedScreen(int cx, int cy, byte *destscreen, int angle, int scale, int masked);     // :thinking:
-void InterpolateMaskedWall (visobj_t * plane);
-void InterpolateDoor (visobj_t * plane);
-void InterpolateWall (visobj_t * plane);
 
 /*
 ==================
@@ -1939,50 +1954,19 @@ void   DrawWalls (void)
    whereami=13;
    
    plane = 0;
-   
-   if (doublestep>1)
-      {
-#ifdef DOS
-      for (plane=0;plane<4;plane+=2)
-#endif
-         {
-         VGAMAPMASK((1<<plane)+(1<<(plane+1)));
-         buf=(byte *)(bufferofs);
-#ifdef DOS
-         for (post=&posts[plane];post<&posts[viewwidth];post+=4,buf++)
-#else
-         for (post=&posts[plane];post<&posts[viewwidth];post+=2,buf+=2)
-#endif
-            {
-            SetWallLightLevel(post);
-            DrawWallPost(post,buf);
-#ifndef DOS            
-            DrawWallPost(post,buf+1); 
-#endif
-            (post+1)->ceilingclip=post->ceilingclip;
-            (post+1)->floorclip=post->floorclip;
-            }
+   buf = (byte*)(bufferofs);    //was originally in both if() branches below
+
+   if (doublestep>1) for (post=&posts[plane];post<&posts[viewwidth];post+=2,buf+=2) {
+                SetWallLightLevel(post);
+                DrawWallPost(post,buf);          
+                DrawWallPost(post,buf+1);
+                (post+1)->ceilingclip=post->ceilingclip;
+                (post+1)->floorclip=post->floorclip;
          }
-		}
-   else
-      {
-#ifdef DOS
-      for (plane=0;plane<4;plane++)
-#endif
-         {
-         VGAWRITEMAP(plane);
-         buf=(byte *)(bufferofs);
-#ifdef DOS
-         for (post=&posts[plane];post<&posts[viewwidth];post+=4,buf++)
-#else
-         for (post=&posts[plane];post<&posts[viewwidth];post++,buf++)
-#endif
-            {
-            SetWallLightLevel(post);
-            DrawWallPost(post,buf);
+   else for (post=&posts[plane];post<&posts[viewwidth];post++,buf++) {
+                SetWallLightLevel(post);
+                DrawWallPost(post,buf);
             }
-         }
-      }
 }
 
 
@@ -2223,7 +2207,7 @@ void WallRefresh (void)
    whereami=16;
    firstcoloffset=(firstcoloffset+(tics<<8))&65535;
 
-   dtime=GetFastTics();
+   dtime = 0;
    if (missobj)
       {
       viewangle=missobj->angle;
@@ -2324,7 +2308,7 @@ void WallRefresh (void)
    UpdateClientControls();
    DrawWalls();
    UpdateClientControls();
-   walltime=GetFastTics()-dtime;
+   walltime = 0 - dtime;
 
 }
 
@@ -2478,27 +2462,13 @@ void InterpolateDoor (visobj_t * plane)
    botinc=d1-d2;
    if (plane->x1>=viewwidth)
       return;
-#ifdef DOS
-   for (pl=0;pl<4;pl++)
-#endif
-      {
-#ifdef DOS
-      top=topinc*pl;
-      bot=(d2*dx)+(pl*botinc);
-      height=(plane->h1<<DHEIGHTFRACTION)+(dh*pl);
-      buf=(byte *)bufferofs+((pl+plane->x1)>>2);
-      VGAWRITEMAP((plane->x1+pl)&3);
 
-      for (i=plane->x1+pl;i<=plane->x2;i+=4,buf++)
-#else
       top=0;
       bot=(d2*dx);
       height=(plane->h1<<DHEIGHTFRACTION);
       buf=(byte *)bufferofs+(plane->x1);
 
-      for (i=plane->x1;i<=plane->x2;i++,buf++)
-#endif
-         {
+      for (i=plane->x1;i<=plane->x2;i++,buf++) {
          if ((i>=0 && i<viewwidth) && (bot!=0) && (posts[i].wallheight<=(height>>DHEIGHTFRACTION)) )
             {
             dc_invscale=height>>(HEIGHTFRACTION+DHEIGHTFRACTION-10);
@@ -2527,18 +2497,12 @@ void InterpolateDoor (visobj_t * plane)
                R_DrawWallColumn (buf);
                }
             }
-            
-#ifdef DOS
-         top+=topinc<<2;
-         bot+=botinc<<2;
-         height+=dh<<2;
-#else
+
          top+=topinc;
          bot+=botinc;
          height+=dh;
-#endif
+
          }
-      }
 }
 
 
@@ -2619,28 +2583,13 @@ void InterpolateMaskedWall (visobj_t * plane)
    botinc=d1-d2;
    if (plane->x1>=viewwidth)
       return;
-#ifdef DOS
-   for (pl=0;pl<4;pl++)
-#endif
-      {
-#ifdef DOS
-      int planenum;
 
-      top=topinc*pl;
-      bot=(d2*dx)+(pl*botinc);
-      height=(plane->h1<<DHEIGHTFRACTION)+(dh*pl);
-      buf=(byte *)bufferofs+((pl+plane->x1)>>2);
-      planenum=((plane->x1+pl)&3);
-      VGAWRITEMAP(planenum);
-      VGAREADMAP(planenum);
-      for (i=plane->x1+pl;i<=plane->x2;i+=4,buf++)
-#else
       top=0;
       bot=(d2*dx);
       height=(plane->h1<<DHEIGHTFRACTION);
       buf=(byte *)bufferofs+(plane->x1);
       for (i=plane->x1;i<=plane->x2;i++,buf++)
-#endif
+
          {
          if ((i>=0 && i<viewwidth) && (bot!=0) && (posts[i].wallheight<=(height>>DHEIGHTFRACTION)) )
             {
@@ -2668,17 +2617,10 @@ void InterpolateMaskedWall (visobj_t * plane)
                   ScaleMaskedPost (p3->collumnofs[texture]+shape3,buf);
                }
             }
-#ifdef DOS
-         top+=topinc<<2;
-         bot+=botinc<<2;
-         height+=dh<<2;
-#else
          top+=topinc;
          bot+=botinc;
          height+=dh;
-#endif
          }
-      }
 }
 
 /*
@@ -2688,7 +2630,7 @@ void InterpolateMaskedWall (visobj_t * plane)
 =
 ========================
 */
-#define PLX  (320-24)
+#define PLX  296
 #define PLY  16
 void DrawPlayerLocation ( void )
 {
@@ -2698,19 +2640,17 @@ void DrawPlayerLocation ( void )
    CurrentFont=tinyfont;
 
    whereami=20;
-   VGAMAPMASK(15);
    for (i=0;i<18;i++)
-#ifdef DOS
-      memset((byte *)bufferofs+(ylookup[i+PLY])+(PLX>>2),0,6);
-#else
       memset((byte *)bufferofs+(ylookup[i+PLY])+PLX,0,6);
-#endif
-   px=PLX;
-	py=PLY;
+
+    px=PLX;
+    py=PLY;
 	VW_DrawPropString(strupr(itoa(player->x,&buf[0],16)));
+
 	px=PLX;
 	py=PLY+6;
 	VW_DrawPropString(strupr(itoa(player->y,&buf[0],16)));
+
 	px=PLX;
 	py=PLY+12;
 	VW_DrawPropString(strupr(itoa(player->angle,&buf[0],16)));
@@ -2735,7 +2675,7 @@ void      ThreeDRefresh (void)
    whereami=21;
    tempptr=player;
 
-//[netplay] some kind of network dev mode? might be useful later
+//[netplay] network dev mode might be useful, but i'm not supporting multiplayer yet
 #if (DEVELOPMENT == 1)
    if (Keyboard[sc_9])
       {
@@ -2808,13 +2748,9 @@ void      ThreeDRefresh (void)
 		   DrawScreenSizedSprite(gmasklump);
 
 
-      if ( SHOW_PLAYER_STATS() )
-         {
-         DrawStats ();
-         }
+      if ( SHOW_PLAYER_STATS() ) DrawStats ();
 
       DoBorderShifts ();
-
       UpdateClientControls ();
       }
 
@@ -2830,10 +2766,9 @@ void      ThreeDRefresh (void)
 //
 // show screen and time last cycle
 //
-   if ((fizzlein==true) && (modemgame==false))
+   if (fizzlein && !modemgame)
    {
-      if (newlevel==true)
-         ShutdownClientControls();
+      if (newlevel==true) ShutdownClientControls();
       bufferofs-=screenofs;
       DrawPlayScreen (true);
       RotateBuffer(0,FINEANGLES,FINEANGLES*8,FINEANGLES,(VBLCOUNTER*3)/4);
@@ -2846,8 +2781,7 @@ void      ThreeDRefresh (void)
 
    UpdateClientControls ();
 
-   if (HUD == true)
-      DrawPlayerLocation();
+   if (HUD == true) DrawPlayerLocation();
 
    FlipPage();
    gamestate.frame++;
@@ -2864,64 +2798,13 @@ void      ThreeDRefresh (void)
 
 void FlipPage ( void )
 {
-#ifdef DOS
-   unsigned displaytemp;
-
-   whereami=22;
-   displayofs = bufferofs;
-
-   displaytemp = displayofs;
-   if ( ( SHAKETICS != 0xFFFF ) && ( !inmenu ) && ( !GamePaused ) &&
-      ( !fizzlein ) )
-      {
-      ScreenShake ();
-      }
-
-
-//   _disable();
-   OUTP(CRTC_INDEX,CRTC_STARTHIGH);
-   OUTP(CRTC_DATA,((displayofs&0x0000ffff)>>8));
-
-
-   if (SHAKETICS != 0xFFFF)
-   {
-      if (SHAKETICS > 0)
-      {
-         OUTP (CRTC_INDEX, CRTC_STARTLOW);
-         OUTP (CRTC_DATA, (displayofs&0x000000FF));
-         displayofs = displaytemp;
-      }
-      else
-      {
-         displayofs = displaytemp;
-         OUTP(CRTC_INDEX,CRTC_STARTHIGH);
-         OUTP(CRTC_DATA,((displayofs&0x0000ffff)>>8));
-         OUTP (CRTC_INDEX, CRTC_STARTLOW);
-         OUTP (CRTC_DATA, (displayofs&0x000000FF));
-         SHAKETICS = 0xFFFF;
-      }
-   }
-//   _enable();
-
-   bufferofs += screensize;
-   if (bufferofs > page3start)
-      bufferofs = page1start;
-#else
 
    whereami=22;
 
-   if ( ( SHAKETICS != 0xFFFF ) && ( !inmenu ) && ( !GamePaused ) &&
-      ( !fizzlein ) )
-      {
-      ScreenShake ();
-      }
-      
-      /* TODO some shake thing */
-      
-      /* just call the one in modexlib.c */
-      XFlipPage();
-      
-#endif
+   if ( (SHAKETICS != 0xFFFF) && !inmenu && !GamePaused && !fizzlein ) ScreenShake();
+
+   XFlipPage();
+
 }
 
 
@@ -2930,20 +2813,9 @@ void FlipPage ( void )
 // TurnShakeOff
 //
 //******************************************************************************
-void TurnShakeOff
-   (
-   void
-   )
-
-   {
-//   _disable();
-   OUTP (CRTC_INDEX, CRTC_STARTHIGH );
-   OUTP (CRTC_DATA, ( ( displayofs & 0x0000ffff ) >> 8 ) );
-   OUTP (CRTC_INDEX, CRTC_STARTLOW);
-   OUTP (CRTC_DATA, (displayofs&0x000000FF));
-//   _enable();
+inline void TurnShakeOff (void) {
    SHAKETICS = 0xFFFF;
-   }
+}
 
 //******************************************************************************
 //
@@ -2967,44 +2839,22 @@ void DrawScaledScreen(int x, int y, int step, byte * src)
     ysize=(iGLOBAL_SCREENHEIGHT<<16)/step;
     if (ysize>iGLOBAL_SCREENHEIGHT) ysize=iGLOBAL_SCREENHEIGHT;
 
-#ifdef DOS
-    for (plane=x;plane<x+4;plane++)
-#endif
-       {
+
        yfrac=0;
-#ifdef DOS
-       VGAWRITEMAP(plane&3);
-#endif
-       for (j=y;j<y+ysize;j++)
-          {
+       for (j=y;j<y+ysize;j++) {
+
           p=src+(iGLOBAL_SCREENWIDTH*(yfrac>>16));
-#ifdef DOS
-          buf=(byte *)bufferofs+ylookup[j]+(plane>>2);
-#else
           buf=(byte *)bufferofs+ylookup[j]+x;
-#endif
-#ifdef DOS
-          xfrac=(plane-x)*step;
-#else
           xfrac=0;
-#endif
           yfrac+=step;
-#ifdef DOS
-          for (i=plane;i<x+xsize;i+=4)
-#else
-          for (i=x;i<x+xsize;i++)
-#endif
-             {
-             *buf=*(p+(xfrac>>16));
-             buf++;
-#ifdef DOS
-             xfrac+=(step<<2);
-#else
-             xfrac+=step;
-#endif
+
+          for (i=x;i<x+xsize;i++) {
+                 *buf=*(p+(xfrac>>16));
+                 buf++;
+                 xfrac+=step;
              }
-          }
        }
+
 }
 
 
@@ -3267,20 +3117,11 @@ void ScaleAndRotateBuffer (int startangle, int endangle, int startscale, int end
 
 void RotateBuffer (int startangle, int endangle, int startscale, int endscale, int time)
 {
-   int savetics;
-
-   //save off fastcounter
-
-   savetics=GetFastTics();
+   int savetics = 0;
 
    StartupRotateBuffer (0);
-
    ScaleAndRotateBuffer (startangle, endangle, startscale, endscale, time);
-
    ShutdownRotateBuffer ();
-
-   // restore fast counter
-   SetFastTics(savetics);
 }
 
 
@@ -3367,20 +3208,14 @@ void DrawRotatedScreen(int cx, int cy, byte *destscreen, int angle, int scale, i
 
 void DrawScaledPost ( int height, byte * src, int offset, int x)
 {
-   patch_t *p;
+   patch_t *p = (patch_t*)src;
 
-   p=(patch_t *)src;
    dc_invscale=(height<<16)/p->origsize;
    dc_iscale=(p->origsize<<16)/height;
    dc_texturemid=(((p->origsize>>1)+p->topoffset)<<SFRACBITS)+(SFRACUNIT>>1);
    sprtopoffset=centeryfrac - FixedMul(dc_texturemid,dc_invscale);
    shadingtable=colormap+(1<<12);
-   VGAWRITEMAP(x&3);
-#ifdef DOS
-   ScaleMaskedPost(((p->collumnofs[offset])+src), (byte *)bufferofs+(x>>2));
-#else
    ScaleMaskedPost(((p->collumnofs[offset])+src), (byte *)bufferofs+x);
-#endif
 }
 
 
@@ -3416,15 +3251,6 @@ void ApogeeTitle (void)
    StartupRotateBuffer (1);
 
    //save off fastcounter
-
-#define APOGEEXANGLE 913
-#define APOGEEXMAG   180
-#define APOGEESTARTY 0
-#define APOGEEENDY   100
-
-#define APOGEESCALESTART (FINEANGLES<<4)
-#define APOGEESCALEEND (FINEANGLES)
-#define APOGEESONGTIME (124-1)
 
    time = APOGEESONGTIME;
 
@@ -3743,415 +3569,30 @@ void UpdateScreenSaver ( void )
 
    FlipPage();
 }
-#if 0
 
 //******************************************************************************
 //
-// DoLaserShoot
-//
-//******************************************************************************
-void DoLaserShoot (char * name)
-{
-
-   int sourcex;
-   int lastx;
-   int sourceheight;
-   int destheight;
-   int sourcestep;
-   int xstep;
-   int hstep;
-   int midx;
-   int startx;
-   int dx;
-   int f;
-   int s;
-   int height;
-   int x;
-   int sx;
-   int size;
-   patch_t *p;
-   byte * shape;
-
-   DrawWorld();
-   midx=160;
-   shape=W_CacheLumpName(name,PU_CACHE);
-   p=(patch_t *)shape;
-   size=p->origsize;
-
-   startx=midx-(size>>1)-(p->leftoffset);
-
-   sourcex=0;
-   lastx=startx+p->width;
-   sourcestep=(320*65536)/p->width;
-   sourceheight=p->origsize<<3;
-   destheight=p->origsize;
-   CalcTics();
-   CalcTics();
-
-
-   for (x=startx;x<lastx;x+=tics,sourcex+=(sourcestep*tics))
-      {
-      for (f=startx;f<=x;f++)
-         DrawScaledPost(destheight,shape,f-startx,f);
-      height=sourceheight<<16;
-      if (x<=midx)
-         {
-         dx=x-(sourcex>>16);
-         xstep=1;
-         }
-      else
-         {
-         dx=(sourcex>>16)-x;
-         xstep=-1;
-         }
-      sx=sourcex>>16;
-      if (dx)
-         hstep=((-destheight+sourceheight)<<16)/dx;
-      else
-         hstep=0;
-      for (s=0;s<dx;s++,height-=hstep,sx+=xstep)
-         DrawScaledPost(height>>16,shape,x-startx,sx);
-      FlipPage();
-      CalcTics();
-      DrawWorld();
-         break;
-      }
-
-   // Write out one more time so that the rest of the screen is clear
-
-   for (f=startx;f<lastx;f++)
-      DrawScaledPost(destheight,shape,f-startx,f);
-   FlipPage();
-}
-
-//******************************************************************************
-//
-// DoIntro
+// DrawBackground - copy FROM background
 //
 //******************************************************************************
 
-#define MAXMAG (80)
-#define OSCTIME (5*VBLCOUNTER)
-#define OSCXSHIFT (4)
-#define OSCTSHIFT (4)
-
-void DoIntro (void)
-{
-   byte * shape;
-   byte * origshape;
-   int mag;
-   int currentmag;
-   int magstep;
-   int time;
-   int x;
-   int t;
-
-   shadingtable=colormap+(1<<12);
-
-   origshape=W_CacheLumpName("ap_wrld",PU_CACHE);
-
-   mag=MAXMAG<<16;
-   magstep = (MAXMAG<<16)/OSCTIME;
-   time = OSCTIME;
-   t=0;
-
-   CalcTics();
-
-   while (time>0)
-      {
-      int yoffset;
-      int ylow;
-      int yhigh;
-      int offset;
-      int postheight;
-      byte * src;
-
-      shape=origshape;
-      VL_ClearBuffer (bufferofs, 0);
-      currentmag=mag>>16;
-      for (x=0;x<320;x++,shape+=200)
-         {
-         VGAWRITEMAP(x&3);
-         src=shape;
-         offset=(t+(x<<OSCXSHIFT))&(FINEANGLES-1);
-         yoffset=FixedMul(currentmag,sintable[offset]);
-         ylow=yoffset;
-         if (ylow<0)
-            {
-            src-=ylow;
-            ylow=0;
-            }
-         if (ylow>199)
-            ylow=199;
-         yhigh=yoffset+200;
-         if (yhigh>199)
-            {
-            yhigh=199;
-            }
-         if (yhigh<0)
-            yhigh=0;
-         postheight=yhigh-ylow+1;
-         if (postheight>0)
-#ifdef DOS
-            DrawSkyPost((byte *)bufferofs + (x>>2) + ylookup[ylow],src,postheight);
-#else
-            DrawSkyPost((byte *)bufferofs + x + ylookup[ylow],src,postheight);
-#endif
-         }
-      FlipPage();
-      CalcTics();
-      mag  -= (magstep * tics);
-      time -= tics;
-      t    += (tics<<OSCTSHIFT);
-      if (mag<0) mag = 0;
-      }
+void DrawBackground ( byte * bkgnd ) {
+   int size = linewidth*200;
+   memcpy((byte *)bufferofs,bkgnd,size);
+   bkgnd+=size;
 }
 
 
 //******************************************************************************
 //
-// DoZIntro
+// PrepareBackground - copy TO background
 //
 //******************************************************************************
 
-#define ZMAXMAG (199)
-#define ZOSCTIME (3*VBLCOUNTER)
-#define ZOSCXSHIFT (2)
-#define ZOSCXSTEP ( (FINEANGLES<<(ZOSCXSHIFT+16))/320 )
-#define ZOSCTSHIFT (2)
-
-void DoZIntro (void)
-{
-   byte * shape;
-   int mag;
-   int currentmag;
-   int magstep;
-   int time;
-   int x;
-   int t;
-
-   SetViewSize (MAXVIEWSIZES-1);
-
-   shadingtable=colormap+(1<<12);
-
-   shape=W_CacheLumpName("ap_wrld",PU_CACHE);
-
-   mag=ZMAXMAG<<16;
-   magstep = (ZMAXMAG<<16)/ZOSCTIME;
-   time = ZOSCTIME;
-   t=0;
-
-   CalcTics();
-
-
-   while (time>0)
-      {
-      int zoffset;
-      int hoffset;
-      int offset;
-      int srcoffset;
-      int bottomscreen;
-      int src;
-//      int i;
-
-
-      VL_ClearBuffer (bufferofs, 0);
-      currentmag=mag>>16;
-
-      srcoffset=0;
-      for (x=0;x<320;)
-         {
-         VGAWRITEMAP(x&3);
-
-         offset=(t+(FixedMul(x,ZOSCXSTEP)))&(FINEANGLES-1);
-         zoffset=FixedMul(currentmag,sintable[offset]);
-//         hoffset=FixedMulShift(currentmag,sintable[offset],17);
-         hoffset=0;
-         dc_texturemid=((100+hoffset)<<SFRACBITS)+(SFRACUNIT>>1);
-
-         dc_invscale=((200+zoffset)<<16)/200;
-         dc_iscale=0xffffffffu/(unsigned)dc_invscale;
-
-         srcoffset+=dc_invscale;
-         sprtopoffset=centeryfrac -  FixedMul(dc_texturemid,dc_invscale);
-         bottomscreen = sprtopoffset + (dc_invscale*200);
-         dc_yl = (sprtopoffset+SFRACUNIT-1)>>SFRACBITS;
-         dc_yh = ((bottomscreen-1)>>SFRACBITS);
-         if (dc_yh >= viewheight)
-            dc_yh = viewheight-1;
-         if (dc_yl < 0)
-            dc_yl = 0;
-         if (dc_yl <= dc_yh)
-            {
-            src=srcoffset>>16;
-            if (src>319)
-               src=319;
-            if (src<0)
-               src=0;
-            dc_source=shape+(src * 200);
-//            if (RandomNumber("hello",0)<128)
-#ifdef DOS
-            R_DrawColumn ((byte *)bufferofs+(x>>2));
-#else
-            R_DrawColumn ((byte *)bufferofs+x);
-#endif
-            }
-//         srcoffset+=0x10000;
-         x++;
-         if ((LastScan) || IN_GetMouseButtons())
-            return;
-         }
-      FlipPage();
-      CalcTics();
-      mag  -= (magstep * tics);
-//      mag  += FixedMulShift((magstep * tics),sintable[time&(FINEANGLES-1)],19);
-      time -= tics;
-      t    += (tics<<ZOSCTSHIFT);
-      if (mag<0) mag = 0;
-      }
-}
-#endif
-
-
-
-// Old Stuff
-
-/*
-   int y1;
-   int y2;
-
-   if (post->alttile!=0)
-      {
-      ht=nominalheight;
-      src2=W_CacheLumpNum(1+post->alttile,PU_CACHE);
-//      src2+=8;
-      }
-   else
-      {
-      ht=maxheight;
-      src2=src;
-      }
-   hp_srcstep=(64<<(16+HEIGHTFRACTION))/post->wallheight;
-   y1 = (((centery<<HFRACTION)-(post->wallheight*pheight)+(1<<(HFRACTION-1))));
-   y2 = (((post->wallheight*ht)+y1)>>HFRACTION);
-
-   if ((y1>>HFRACTION)>=viewheight)
-      {
-      post->ceilingclip=viewheight-1;
-      post->floorclip=viewheight-1;
-      return;
-      }
-   else if (y1<0)
-      {
-      hp_startfrac=FixedMulShift(-y1,hp_srcstep,HFRACTION);
-      y1=0;
-      post->ceilingclip=0;
-      }
-   else
-      {
-      hp_startfrac=FixedMulShift(255-(y1&0xff),hp_srcstep,HFRACTION);
-      y1>>=HFRACTION;
-      post->ceilingclip=y1;
-      }
-   if (y2<0)
-      {
-      post->floorclip=0;
-      post->ceilingclip=0;
-      }
-   else if (y2>viewheight)
-      {
-      DrawHeightPost(viewheight-y1, src2+((post->texture>>4)&0xfc0), buf+ylookup[y1]);
-      post->floorclip=viewheight-1;
-      }
-   else
-      {
-      DrawHeightPost(y2-y1, src2+((post->texture>>4)&0xfc0), buf+ylookup[y1]);
-      post->floorclip=y2-1;
-      }
-
-   if (ht==maxheight)
-      return;
-
-   y1 = (((centery<<HFRACTION)-(post->wallheight*(pheight-ht))+(1<<(HFRACTION-1))));
-   y2 = (((post->wallheight<<6)+y1)>>HFRACTION);
-
-   if ((y1>>HFRACTION)>=viewheight)
-      return;
-   else if (y1<0)
-      {
-      hp_startfrac=FixedMulShift(-y1,hp_srcstep,HFRACTION);
-      y1=0;
-      }
-   else
-      {
-      hp_startfrac=FixedMulShift(255-(y1&0xff),hp_srcstep,HFRACTION);
-      y1>>=HFRACTION;
-      }
-   if (y2<0)
-      return;
-   else if (y2>viewheight)
-      {
-      DrawHeightPost(viewheight-y1, src+((post->texture>>4)&0xfc0), buf+ylookup[y1]);
-      post->floorclip=viewheight-1;
-      }
-   else
-      {
-      DrawHeightPost(y2-y1, src+((post->texture>>4)&0xfc0), buf+ylookup[y1]);
-      post->floorclip=y2-1;
-      }
-}
-*/
-
-
-
-
-
-
-//******************************************************************************
-//
-// DrawBackground
-//
-//******************************************************************************
-
-void DrawBackground ( byte * bkgnd )
-{
-//   int plane;
-   int size;
-
-   size=linewidth*200;
-
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
-      VGAWRITEMAP(plane);
-      memcpy((byte *)bufferofs,bkgnd,size);
-      bkgnd+=size;
-      }
-}
-
-
-//******************************************************************************
-//
-// PrepareBackground
-//
-//******************************************************************************
-
-void PrepareBackground ( byte * bkgnd )
-{
-//   int plane;
-   int size;
-
-   size=linewidth*200;
-
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
-      VGAREADMAP(plane);
-      memcpy(bkgnd,(byte *)bufferofs,size);
-      bkgnd+=size;
-      }
+void PrepareBackground ( byte * bkgnd ) {
+   int size = linewidth*200;
+   memcpy(bkgnd,(byte *)bufferofs,size);
+   bkgnd+=size;
 }
 
 //******************************************************************************
@@ -4160,11 +3601,7 @@ void PrepareBackground ( byte * bkgnd )
 //
 //******************************************************************************
 
-void WarpString (
-                  int x, int y, int endx, int endy,
-                  int time, byte * back, char * str
-                )
-{
+void WarpString(int x, int y, int endx, int endy, int time, byte * back, char * str) {
    int dx;
    int dy;
    int cx;
@@ -4197,10 +3634,6 @@ void WarpString (
       if (LastScan != 0)
          break;
       }
-
-  // DrawBackground ( back );
-  // US_ClippedPrint (endx, endy, str);
-  // FlipPage();
 
 }
 
@@ -4418,44 +3851,28 @@ fadeworld:
    ClearGraphicsScreen();
    MenuFadeIn();
 
+///////////////////////////////////////////////////////////////////////////////
 
    sky=W_CacheLumpNum(W_GetNumForName("SKYSTART")+2,PU_CACHE,CvtNull,1);
    tmp=sky;
-   for (x=0;x<256;x++)
-      {
-      VGAWRITEMAP(x&3);
-      for (y=0;y<200;y++)
-         {
-#ifdef DOS
-         *((byte *)bufferofs+ylookup[y]+(x>>2))=*tmp++;
-#else
-         *((byte *)bufferofs+ylookup[y]+x)=*tmp++;
-#endif
-         }
-      }
+   for (x = 0; x < 256; x++) {
+       for (y = 0; y < 200; y++) *((byte*)bufferofs + ylookup[y] + x) = *tmp++;
+   }
+
    tmp=sky;
-   for (x=256;x<320;x++)
-      {
-      VGAWRITEMAP(x&3);
-      for (y=0;y<200;y++)
-         {
-#ifdef DOS
-         *((byte *)bufferofs+ylookup[y]+(x>>2))=*tmp++;
-#else
-         *((byte *)bufferofs+ylookup[y]+x)=*tmp++;
-#endif
-         }
-      }
+   for (x = 256; x < 320; x++) {
+       for (y = 0; y < 200; y++)
+           *((byte*)bufferofs + ylookup[y] + x) = *tmp++;
+   }
 
-   for(i=0;i<5;i++)
-      {
-      int tx,ty;
+   for (i = 0; i < 5; i++) {
+       int tx, ty;
 
-      tx = 32 + (i << 6);
-      ty = 100;
-      shape = W_GetNumForName(EndCinematicPicNames[i]);
-      DrawUnScaledSprite (tx, ty, shape,16);
-      }
+       tx = 32 + (i << 6);
+       ty = 100;
+       shape = W_GetNumForName(EndCinematicPicNames[i]);
+       DrawUnScaledSprite(tx, ty, shape, 16);
+   }
 
    PrepareBackground ( bkgnd );
 
@@ -4463,8 +3880,7 @@ fadeworld:
    CurrentFont = smallfont;
    LastScan = 0;
 
-   for(i=0;i<NUMENDMESSAGES;i++)
-      {
+   for(i=0;i<NUMENDMESSAGES;i++) {
       if (i>3)
          I_Delay(50);
 
@@ -4484,16 +3900,11 @@ fadeworld:
       if (LastScan !=0)
          break;
 
-      if (i<=3)
-         I_Delay(40);
-      if (LastScan !=0)
-         break;
+      if (i<=3) I_Delay(40);
+      if (LastScan !=0) break;
 
       WarpString (x, y-50, x, -50, time2, bkgnd, EndCinematicText[i]);
-      if (LastScan !=0)
-         break;
-
-
+      if (LastScan !=0) break;
       }
 
    if (LastScan!=0)
@@ -4501,31 +3912,16 @@ fadeworld:
 
    sky=W_CacheLumpNum(W_GetNumForName("SKYSTART")+2,PU_CACHE,CvtNull,1);
    tmp=sky;
-   for (x=0;x<256;x++)
-      {
-      VGAWRITEMAP(x&3);
-      for (y=0;y<200;y++)
-         {
-#ifdef DOS
-         *((byte *)bufferofs+ylookup[y]+(x>>2))=*tmp++;
-#else
-         *((byte *)bufferofs+ylookup[y]+x)=*tmp++;
-#endif
-         }
-      }
+   for (x = 0; x < 256; x++) {
+       for (y = 0; y < 200; y++)
+           *((byte*)bufferofs + ylookup[y] + x) = *tmp++;
+   }
+
    tmp=sky;
-   for (x=256;x<320;x++)
-      {
-      VGAWRITEMAP(x&3);
-      for (y=0;y<200;y++)
-         {
-#ifdef DOS
-         *((byte *)bufferofs+ylookup[y]+(x>>2))=*tmp++;
-#else
-         *((byte *)bufferofs+ylookup[y]+x)=*tmp++;
-#endif
-         }
-      }
+   for (x = 256; x < 320; x++) {
+       for (y = 0; y < 200; y++)
+           *((byte*)bufferofs + ylookup[y] + x) = *tmp++;
+   }
 
    for(i=0;i<5;i++)
       {
@@ -4684,31 +4080,11 @@ static char     youWin8Msg[] =
            "\n"
            "      THE REAL END";
 
-#define NUMEXPLOSIONTYPES 4
-
-typedef struct {
-  char  name[11];
-  byte  numframes;
-} ExplosionInfoType;
-
-ExplosionInfoType ExplosionInfo[NUMEXPLOSIONTYPES]=
-{
+ExplosionInfoType ExplosionInfo[NUMEXPLOSIONTYPES] = {
   {"EXPLOS1\0",20},
   {"EXP1\0",20},
   {"GREXP1\0",25},
   {"PART1\0",12},
-#if 0
-  {"GUTS1\0",12},
-  {"ORGAN1\0",12},
-  {"RIB1\0",12},
-  {"GPINK1\0",12},
-  {"GHEAD1\0",12},
-  {"GARM1\0",12},
-  {"GLEG1\0",12},
-  {"GHUM1\0",12},
-  {"GHIP1\0",12},
-  {"GLIMB1\0",12},
-#endif
 };
 
 
@@ -4731,59 +4107,39 @@ void ResetTransmitterExplosion ( ExplosionType * Explosion )
    Explosion->y=(RandomNumber("Explosion",3)>>1);
 }
 
-void CacheTransmitterExplosions ( void )
-{
+void CacheTransmitterExplosions(void) {
    int i,j,num;
 
-   for (i=0;i<NUMEXPLOSIONTYPES;i++)
-      {
-      num=W_GetNumForName(ExplosionInfo[i].name);
-      for (j=0;j<ExplosionInfo[i].numframes;j++)
-         {
-         W_CacheLumpNum(num+j, PU_CACHE, Cvt_patch_t, 1);
-         }
-      }
+   for (i = 0; i < NUMEXPLOSIONTYPES; i++) {
+       num = W_GetNumForName(ExplosionInfo[i].name);
+       for (j = 0; j < ExplosionInfo[i].numframes; j++)
+           W_CacheLumpNum(num + j, PU_CACHE, Cvt_patch_t, 1);
+   }
 }
 
-void SetupTransmitterExplosions ( void )
-{
-   int i;
-
-   for (i=0;i<MAXTRANSMITTEREXPLOSIONS;i++)
-      {
-      ResetTransmitterExplosion(&Explosions[i]);
-      }
+//might as well be inline (note: &Explosions is static)
+static inline void SetupTransmitterExplosions(void) {
+   for (int i=0;i<MAXTRANSMITTEREXPLOSIONS;i++) ResetTransmitterExplosion(&Explosions[i]);
 }
 void UpdateTransmitterExplosions ( void )
 {
-   int i;
-   for (i=0;i<MAXTRANSMITTEREXPLOSIONS;i++)
-      {
-      Explosions[i].frame+=tics;
-      if (Explosions[i].frame>=(ExplosionInfo[Explosions[i].which].numframes<<1))
-         {
-         ResetTransmitterExplosion(&Explosions[i]);
-         SD_Play(SD_EXPLODEFLOORSND+(RandomNumber("Explosion",4)>>7));
-         }
-      }
+    for (int i = 0; i < MAXTRANSMITTEREXPLOSIONS; i++) {
+        Explosions[i].frame += tics;
+
+        if (Explosions[i].frame >= (ExplosionInfo[Explosions[i].which].numframes << 1)) {
+            ResetTransmitterExplosion(&Explosions[i]);
+            SD_Play(SD_EXPLODEFLOORSND + (RandomNumber("Explosion", 4) >> 7));
+        }
+
+    }
 }
 
-void DrawTransmitterExplosions ( void )
-{
-   int i;
-   for (i=0;i<MAXTRANSMITTEREXPLOSIONS;i++)
-      {
-      DrawUnScaledSprite (
-                      Explosions[i].x,
-                      Explosions[i].y,
-                      (W_GetNumForName(ExplosionInfo[Explosions[i].which].name) +
-                      (Explosions[i].frame>>1)),
-                      16
-                      );
-      }
+static inline void DrawTransmitterExplosions (void) {
+   for (int i=0;i<MAXTRANSMITTEREXPLOSIONS;i++)
+      DrawUnScaledSprite (Explosions[i].x, Explosions[i].y, (W_GetNumForName(ExplosionInfo[Explosions[i].which].name) + (Explosions[i].frame>>1)), 16);
 }
 
-void DoTransmitterExplosion ( void )
+void DoTransmitterExplosion(void)
 {
    byte * back;
    int i;
@@ -4822,8 +4178,7 @@ void DoTransmitterExplosion ( void )
    SafeFree(back);
 }
 
-void ShowTransmitter ( void )
-{
+void ShowTransmitter(void) {
    MenuFadeOut();
    DrawNormalSprite(0,0,W_GetNumForName("transmit"));
    FlipPage();
@@ -4849,14 +4204,12 @@ void ShowFinalDoor ( void )
    VL_FadeOut (0, 255, 0, 0, 0, 30);
 }
 
-void ShowFinalFire ( void )
-{
+void ShowFinalFire (void) {
    byte pal[768];
 
    MenuFadeOut();
-
    VL_ClearBuffer (bufferofs, 0);
-   DrawNormalSprite (0, (200-120)>>1, W_GetNumForName("finlfire"));
+   DrawNormalSprite (0, 80>>1, W_GetNumForName("finlfire"));
    FlipPage();
    memcpy(&pal[0],W_CacheLumpName("finfrpal",PU_CACHE,CvtNull, 1),768);
    VL_NormalizePalette(&pal[0]);
@@ -6068,11 +5421,7 @@ void DrawSkyPost (byte * buf, byte * src, int height)
 	}*/
 }
 
-#define CEILINGCOLOR 24 //default color when no sky or floor
-#define FLOORCOLOR 32
-
-void RefreshClear (void)
-{
+void RefreshClear (void) {
 	int start, base;
 	
 	memset(spotvis, 0, sizeof(spotvis));
@@ -6095,422 +5444,6 @@ void RefreshClear (void)
 	if (start > 0) {
 		VL_Bar(0, base, iGLOBAL_SCREENHEIGHT, start, FLOORCOLOR);
 	}
-}
-
-#endif
-
-#if 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef struct {
-  int   x;
-  int   y;
-  int   angle;
-  int   speed;
-  int   color;
-  int   endx;
-  int   endy;
-  int   plane;
-  int   time;
-} ParticleType;
-
-#define NUMPARTICLES 300
-#define PARTICLETHINKTIME 5
-#define Fix(a)        (a &= (FINEANGLES-1))
-ParticleType * Particle;
-int numparticles;
-
-//******************************************************************************
-//
-// InitializeParticles
-//
-//******************************************************************************
-
-void InitializeParticles (void)
-{
-   int i;
-   ParticleType * part;
-
-   Particle=(ParticleType *)SafeMalloc ( sizeof(ParticleType) * numparticles );
-   memset ( Particle, 0, sizeof(ParticleType) * numparticles );
-
-   for (i=0;i<numparticles;i++)
-      {
-      part=&Particle[i];
-      part->x=((RandomNumber("hello",0)*RandomNumber("hello",0))%viewwidth)<<16;
-      part->y=((RandomNumber("hello",0)*RandomNumber("hello",0))%viewheight)<<16;
-//      part->x=(((RandomNumber("hello",0)*RandomNumber("hello",0))%(viewwidth-40)+20)<<16);
-//      part->y=(((RandomNumber("hello",0)*RandomNumber("hello",0))%(viewheight-40)+20)<<16);
-      part->angle=(RandomNumber("hello",0)*RandomNumber("hello",0))%FINEANGLES;
-//      part->speed=(RandomNumber("hello",0)%2)<<16;
-      part->speed=(1<<16)-1;
-      part->color=RandomNumber("hello",0);
-      part->endx=-1;
-      part->endy=-1;
-      part->plane=(part->x>>16)&3;
-      part->time=(RandomNumber("",0)%PARTICLETHINKTIME)+1;
-//      part->color=255;
-      }
-}
-
-//******************************************************************************
-//
-// ShutdownParticles
-//
-//******************************************************************************
-
-void ShutdownParticles (void)
-{
-   SafeFree(Particle);
-}
-
-
-void AdjustParticleAngle(int maxadjust, int *currangle,int targetangle)
-   {
-   int dangle,i,magangle;
-
-   for(i=0;i<maxadjust;i++)
-      {
-      dangle = *currangle - targetangle;
-
-      if (dangle)
-         {
-         magangle = abs(dangle);
-         if (magangle > (ANGLES/2))
-            {
-            if (dangle > 0)
-               (*currangle) ++;
-            else
-               (*currangle) --;
-            }
-         else
-            {
-            if (dangle > 0)
-               (*currangle) --;
-            else
-               (*currangle) ++;
-            }
-         Fix(*currangle);
-         }
-      }
-   }
-
-//******************************************************************************
-//
-// UpdateParticles
-//
-//******************************************************************************
-
-//#define MAXADJUST (FINEANGLES/40)
-#define MAXADJUST (FINEANGLES/20)
-void UpdateParticles (int type)
-{
-   int i;
-   int dx,dy;
-   ParticleType * target;
-   ParticleType * part;
-
-   if (type==0)
-      {
-      for (i=0;i<numparticles-1;i++)
-         {
-         int angle;
-
-         part=&Particle[i];
-//         target=&Particle[numparticles-1];
-//         target=&Particle[i+1];
-         target=&Particle[(RandomNumber("",0)*RandomNumber("",0))%numparticles];
-         part->x+=-FixedMul (part->speed, costable[part->angle]);
-         part->y+= FixedMul (part->speed, sintable[part->angle]);
-         part->plane=(part->x>>16)&3;
-
-         dx = part->x - target->x;
-         dy = target->y - part->y;
-         if (dx && dy)
-            {
-            angle = atan2_appx(dx,dy);
-            AdjustParticleAngle(MAXADJUST,&(part->angle),angle);
-            }
-         }
-      part=&Particle[numparticles-1];
-      part->x+=-FixedMul (part->speed, costable[part->angle]);
-      part->y+= FixedMul (part->speed, sintable[part->angle]);
-      part->plane=(part->x>>16)&3;
-
-      dx=part->x>>16;
-      dy=part->y>>16;
-
-      if ( (dx<20) || (dx>(viewwidth-20)) )
-         {
-         if ( part->angle < (FINEANGLES/2) )
-            {
-            part->angle=FINEANGLES/2-part->angle;
-            Fix(part->angle);
-            }
-         else
-            {
-            part->angle=FINEANGLES-part->angle;
-            Fix(part->angle);
-            }
-         }
-      if ( (dy<20) || (dy>(viewheight-20)) )
-         {
-         part->angle=FINEANGLES-part->angle;
-         Fix(part->angle);
-         }
-      }
-   else
-      {
-      for (i=0;i<numparticles;i++)
-         {
-         int angle;
-
-         part=&Particle[i];
-         if ((part->x>>16)!=part->endx)
-            part->x+=-FixedMul (part->speed, costable[part->angle]);
-         else
-            part->x=part->endx<<16;
-         if ((part->y>>16)!=part->endy)
-            part->y+= FixedMul (part->speed, sintable[part->angle]);
-         else
-            part->y=part->endy<<16;
-         part->plane=(part->x>>16)&3;
-
-         part->time--;
-         if (part->time==0)
-            {
-            part->time=PARTICLETHINKTIME;
-            dx = part->x - (part->endx<<16);
-            dy = (part->endy<<16) - part->y;
-            if (dx && dy)
-               {
-               angle = atan2_appx(dx,dy);
-               AdjustParticleAngle(MAXADJUST,&(part->angle),angle);
-               }
-            }
-         }
-      }
-}
-
-//******************************************************************************
-//
-// DrawParticles
-//
-//******************************************************************************
-
-void DrawParticles (void)
-{
-   int i;
-   int dx,dy;
-   int plane;
-   ParticleType * part;
-
-   VL_ClearBuffer (bufferofs, 0);
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
-      VGAWRITEMAP(plane);
-      for (i=0;i<numparticles;i++)
-         {
-         part=&Particle[i];
-         if (part->plane!=plane)
-            continue;
-         dx=part->x>>16;
-         dy=part->y>>16;
-         if (dx<0) dx=0;
-         if (dx>=viewwidth) dx=viewwidth-1;
-         if (dy<0) dy=0;
-         if (dy>=viewheight) dy=viewheight-1;
-#ifdef DOS
-         *( (byte *) bufferofs + (dx>>2) + ylookup[dy] ) = part->color;
-#else
-         *( (byte *) bufferofs + dx + ylookup[dy] ) = part->color;
-#endif
-         }
-      }
-}
-
-void DrawParticleTemplate (void)
-{
-   byte pal[768];
-
-   viewwidth=320;
-   viewheight=200;
-   memcpy(&pal[0],W_CacheLumpName("ap_pal",PU_CACHE),768);
-   VL_NormalizePalette(&pal[0]);
-   SwitchPalette(&pal[0],35);
-   VL_ClearBuffer (bufferofs, 255);
-   DrawNormalSprite (0, 0, W_GetNumForName("ap_titl"));
-}
-
-void DrawAlternateParticleTemplate (void)
-{
-   viewwidth=320;
-   viewheight=200;
-   VL_ClearBuffer (bufferofs, 255);
-   DrawNormalSprite (0, 0, W_GetNumForName("LIFE_C1"));
-}
-
-int CountParticles (void)
-{
-   int plane,a,b;
-   int count;
-
-   count=0;
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
-      VGAREADMAP(plane);
-      for (a=0;a<200;a++)
-         {
-#ifdef DOS
-         for (b=0;b<80;b++)
-#else
-         for (b=0;b<320;b++)
-#endif
-            {
-            if (*((byte *)bufferofs+(a*linewidth)+b)!=255)
-               count++;
-            }
-         }
-      }
-   return count;
-}
-
-void AssignParticles (void)
-{
-   int plane,a,b;
-   byte pixel;
-   ParticleType * part;
-
-   part=&Particle[0];
-
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
-      VGAREADMAP(plane);
-      for (a=0;a<200;a++)
-         {
-#ifdef DOS
-         for (b=0;b<80;b++)
-#else
-         for (b=0;b<320;b++)
-#endif
-            {
-            pixel = *((byte *)bufferofs+(a*linewidth)+b);
-            if (pixel!=255)
-               {
-#ifdef DOS
-               part->endx=plane+(b<<2);
-#else
-               part->endx=b;
-#endif
-               part->endy=a;
-               part->color=pixel;
-               part++;
-               }
-            }
-         }
-      }
-}
-
-//******************************************************************************
-//
-// ParticleIntro
-//
-//******************************************************************************
-
-void ParticleIntro (void)
-{
-   int i,j;
-
-
-   SetViewSize (MAXVIEWSIZES-1);
-   numparticles=NUMPARTICLES;
-   DrawAlternateParticleTemplate ();
-//   DrawParticleTemplate ();
-   numparticles=CountParticles ();
-   InitializeParticles ();
-   AssignParticles();
-//   numparticles>>=1;
-
-   CalcTics();
-   CalcTics();
-   LastScan=0;
-   for (i=0;i<VBLCOUNTER*15;i+=tics)
-      {
-      DrawParticles();
-      FlipPage();
-      for (j=0;j<tics;j++)
-         {
-         UpdateParticles(0);
-         }
-      CalcTics();
-      if ((LastScan) || IN_GetMouseButtons())
-         break;;
-      }
-   LastScan=0;
-   for (i=0;i<VBLCOUNTER*15;i+=tics)
-      {
-      DrawParticles();
-      FlipPage();
-      for (j=0;j<tics;j++)
-         {
-         UpdateParticles(1);
-         }
-      CalcTics();
-      if ((LastScan) || IN_GetMouseButtons())
-         break;;
-      }
-   ShutdownParticles ();
 }
 
 #endif

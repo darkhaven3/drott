@@ -176,10 +176,9 @@ rott-rt_in.o: rt_in.c C:/msys64/mingw32/include/stdio.h \
  C:/msys64/mingw32/include/io.h C:/msys64/mingw32/include/getopt.h \
  C:/msys64/mingw32/include/pthread_unistd.h \
  C:/msys64/mingw32/include/dirent.h C:/msys64/mingw32/include/ctype.h \
- rt_scancodes.h rt_main.h rottnet.h rt_battl.h rt_spbal.h rt_in.h \
- _rt_in.h isr.h keyb.h rt_util.h rt_swift.h rt_playr.h rt_actor.h \
- states.h rt_stat.h rt_ted.h rt_vh_a.h rt_cfg.h rt_msg.h rt_net.h \
- rt_com.h memcheck.h
+ rt_scancodes.h rt_main.h rottnet.h rt_battl.h rt_in.h _rt_in.h isr.h \
+ keyb.h rt_util.h rt_swift.h rt_vh_a.h rt_cfg.h rt_msg.h rt_playr.h \
+ rt_actor.h states.h rt_stat.h rt_ted.h rt_net.h rt_com.h memcheck.h
 C:/msys64/mingw32/include/stdio.h:
 C:/msys64/mingw32/include/corecrt_stdio_config.h:
 C:/msys64/mingw32/include/corecrt.h:
@@ -374,21 +373,20 @@ rt_scancodes.h:
 rt_main.h:
 rottnet.h:
 rt_battl.h:
-rt_spbal.h:
 rt_in.h:
 _rt_in.h:
 isr.h:
 keyb.h:
 rt_util.h:
 rt_swift.h:
+rt_vh_a.h:
+rt_cfg.h:
+rt_msg.h:
 rt_playr.h:
 rt_actor.h:
 states.h:
 rt_stat.h:
 rt_ted.h:
-rt_vh_a.h:
-rt_cfg.h:
-rt_msg.h:
 rt_net.h:
 rt_com.h:
 memcheck.h:

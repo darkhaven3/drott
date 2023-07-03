@@ -500,7 +500,6 @@ void StartupClientControls ( void )
 	memset (controlbuf, 0, sizeof (controlbuf));
    buttonbits = 0;
    lastpolltime=-1;
-   IN_ClearKeyboardQueue ();
 
    if (modemgame==true)
       {

@@ -788,7 +788,6 @@ boolean US_LineInput (int x, int y, char *buf, const char *def, boolean escok,
 
    memset (s, 0, MaxString);
    memset (olds, 0, MaxString);
-   IN_ClearKeyboardQueue ();
 
    BKw = maxwidth;
    BKh = CurrentFont->height;
@@ -908,7 +907,6 @@ boolean US_LineInput (int x, int y, char *buf, const char *def, boolean escok,
             }
          lastkey = key_None;
          Keyboard[sc_BackSpace] = 0;
-         IN_ClearKeyboardQueue ();
          break;
 
       case sc_Delete:
@@ -922,7 +920,6 @@ boolean US_LineInput (int x, int y, char *buf, const char *def, boolean escok,
          }
          lastkey = key_None;
          Keyboard[sc_Delete] = 0;
-         IN_ClearKeyboardQueue ();
          break;
 
       case 0x4c:  // Keypad 5
@@ -1038,8 +1035,6 @@ boolean US_LineInput (int x, int y, char *buf, const char *def, boolean escok,
       VW_UpdateScreen ();
    else
       RefreshMenuBuf (0);
-
-   IN_ClearKeyboardQueue ();
    return (result);
 }
 
@@ -1082,7 +1077,6 @@ boolean US_lineinput (int x, int y, char *buf, const char *def, boolean escok,
    memset (s, 0, MaxString);
    memset (xx, 0, MaxString);
    memset (olds, 0, MaxString);
-   IN_ClearKeyboardQueue ();
 
    BKw = maxwidth;
    BKh = CurrentFont->height;
@@ -1202,7 +1196,6 @@ boolean US_lineinput (int x, int y, char *buf, const char *def, boolean escok,
             }
          lastkey = key_None;
          Keyboard[sc_BackSpace] = 0;
-         IN_ClearKeyboardQueue ();
          break;
 
       case sc_Delete:
@@ -1217,7 +1210,6 @@ boolean US_lineinput (int x, int y, char *buf, const char *def, boolean escok,
             }
          lastkey = key_None;
          Keyboard[sc_Delete] = 0;
-         IN_ClearKeyboardQueue ();
          break;
 
       case 0x4c:  // Keypad 5
@@ -1330,8 +1322,6 @@ boolean US_lineinput (int x, int y, char *buf, const char *def, boolean escok,
       VW_UpdateScreen ();
    else
       RefreshMenuBuf (0);
-
-   IN_ClearKeyboardQueue ();
    return (result);
 }
 

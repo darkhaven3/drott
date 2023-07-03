@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_scancodes.h"
 
 #include "rt_main.h"
-#include "rt_spbal.h"
 #include "rt_def.h"
 #include "rt_in.h"
 #include "_rt_in.h"
@@ -63,9 +62,6 @@ int IgnoreMouse = 0;
 
 // configuration variables
 //
-boolean  SpaceBallPresent;
-boolean  CybermanPresent;
-boolean  AssassinPresent;
 boolean  MousePresent;
 boolean  JoysPresent[MaxJoys];
 boolean  JoyPadPresent     = 0;
@@ -91,8 +87,6 @@ int LastLetter = 0;
 char LetterQueue[MAXLETTERS];
 ModemMessage MSG;
 
-
-#if USE_SDL
 static SDL_Joystick* sdl_joysticks[MaxJoys];
 static int sdl_mouse_delta_x = 0;
 static int sdl_mouse_delta_y = 0;
@@ -102,7 +96,6 @@ static word *sdl_stick_button_state = NULL;
 static word sdl_sticks_joybits = 0;
 static int sdl_mouse_grabbed = 0;
 extern boolean sdl_fullscreen;
-#endif
 
 
 //   'q','w','e','r','t','y','u','i','o','p','[',']','\\', 0 ,'a','s',
@@ -131,20 +124,6 @@ const char ShiftedScanChars[128] =    // Shifted Scan code names with single cha
     0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
 };
 
-#if 0
-const char ScanChars[128] =    // Scan code names with single chars
-{
-   '?','?','1','2','3','4','5','6','7','8','9','0','-','+','?','?',
-   'Q','W','E','R','T','Y','U','I','O','P','[',']','|','?','A','S',
-   'D','F','G','H','J','K','L',';','\'','?','?','?','Z','X','C','V',
-   'B','N','M',',','.','/','?','?','?',' ','?','?','?','?','?','?',
-   '?','?','?','?','?','?','?','?','?','?','-','?','5','?','+','?',
-   '?','?','?','?','?','?','?','?','?','?','?','?','?','?','?','?',
-   '?','?','?','?','?','?','?','?','?','?','?','?','?','?','?','?',
-   '?','?','?','?','?','?','?','?','?','?','?','?','?','?','?','?'
-};
-#endif
-
 
 
 //****************************************************************************
@@ -169,7 +148,7 @@ static   Direction   DirTable[] =      // Quick lookup for total direction
 
 int (far *function_ptr)();
 
-static char *ParmStrings[] = {"nojoys","nomouse","spaceball","cyberman","assassin",NULL};
+static char *ParmStrings[] = {"nojoys","nomouse","unused","nada","zilch",NULL};
 
 
 #define sdldebug printf
@@ -228,13 +207,6 @@ static int sdl_mouse_motion_filter(SDL_Event const *event)
            	mouse_y = event->motion.y;
         } /* else */
     } /* else */
-
-#if 0
-   	if (mouse_x < 0) mouse_x = 0;
-   	if (mouse_x > surface->w) mouse_x = surface->w;
-   	if (mouse_y < 0) mouse_y = 0;
-   	if (mouse_y > surface->h) mouse_y = surface->h;
-#endif
 
     /* set static vars... */
     sdl_mouse_delta_x += mouse_relative_x;
@@ -788,11 +760,7 @@ void INL_ShutJoy (word joy)
 void IN_Startup (void)
 {
    boolean checkjoys,
-           checkmouse,
-           checkcyberman,
-           checkspaceball,
-           swiftstatus,
-           checkassassin;
+           checkmouse;
 
    word    i;
 
@@ -808,12 +776,6 @@ sdl_mouse_grabbed = 1;
 
    checkjoys        = true;
    checkmouse       = true;
-   checkcyberman    = false;
-   checkassassin    = false;
-   checkspaceball   = false;
-   SpaceBallPresent = false;
-   CybermanPresent  = false;
-   AssassinPresent  = false;
 
    for (i = 1; i < _argc; i++)
    {
@@ -827,19 +789,10 @@ sdl_mouse_grabbed = 1;
          checkmouse = false;
       break;
 
-      case 2:
-         checkspaceball = true;
-      break;
-
-      case 3:
-         checkcyberman = true;
-         checkmouse = false;
-      break;
-
-      case 4:
-         checkassassin = true;
-         checkmouse = false;
-      break;
+      case 2: //spaceball check was here
+      case 3: //cyberman check was here
+      case 4: //assassin check was here
+        break;
       }
    }
 
@@ -855,63 +808,8 @@ sdl_mouse_grabbed = 1;
          }
       }
 
-   if (checkspaceball)
-      {
-      OpenSpaceBall ();
-      spaceballenabled=true;
-      }
-
-   if ((checkcyberman || checkassassin) && (swiftstatus = SWIFT_Initialize ()))
-   {
-      int dynamic;
-
-      if (checkcyberman)
-         {
-         CybermanPresent = swiftstatus;
-         cybermanenabled = true;
-         }
-      else if (checkassassin)
-         {
-         AssassinPresent = checkassassin & swiftstatus;
-         assassinenabled = true;
-         }
-
-      dynamic = SWIFT_GetDynamicDeviceData ();
-
-      SWIFT_TactileFeedback (40, 20, 20);
-
-      if (SWIFT_GetDynamicDeviceData () == 2)
-         Error ("SWIFT ERROR : External Power too high!\n");
-
-      SWIFT_TactileFeedback (100, 10, 10);
-      if (!quiet)
-         printf("IN_Startup: Swift Device Present\n");
-   }
-
    IN_Started = true;
 }
-
-
-#if 0
-//******************************************************************************
-//
-// IN_Default() - Sets up default conditions for the Input Mgr
-//
-//******************************************************************************
-
-void IN_Default (boolean gotit, ControlType in)
-{
-   if
-   (
-      (!gotit)
-   ||    ((in == ctrl_Joystick1) && !JoysPresent[0])
-   ||    ((in == ctrl_Joystick2) && !JoysPresent[1])
-   ||    ((in == ctrl_Mouse) && !MousePresent)
-   )
-      in = ctrl_Keyboard1;
-   IN_SetControlType (0, in);
-}
-#endif
 
 //******************************************************************************
 //
@@ -930,11 +828,6 @@ void IN_Shutdown (void)
 
    for (i = 0;i < MaxJoys;i++)
       INL_ShutJoy(i);
-
-   if (CybermanPresent || AssassinPresent)
-      SWIFT_Terminate ();
-
-   CloseSpaceBall ();
 
    IN_Started = false;
 }
@@ -1094,11 +987,6 @@ void IN_StartAck (void)
    buttons = IN_JoyButtons () << 4;
 
    buttons |= IN_GetMouseButtons();
-
-	if (SpaceBallPresent && spaceballenabled)
-		{
-      buttons |= GetSpaceBallButtons ();
-      }
 
    for (i=0;i<8;i++,buttons>>=1)
       if (buttons&1)
@@ -1314,75 +1202,6 @@ int IN_InputUpdateKeyboard (void)
 
    return (returnval);
 }
-
-
-//******************************************************************************
-//
-// IN_ClearKeyboardQueue ()
-//
-//******************************************************************************
-
-void IN_ClearKeyboardQueue (void)
-{
-   return;
-
-//   IN_ClearKeysDown ();
-
-//   Keytail = Keyhead = 0;
-//   memset (KeyboardQueue, 0, sizeof (KeyboardQueue));
-//   I_SendKeyboardData(0xf6);
-//   I_SendKeyboardData(0xf4);
-}
-
-
-#if 0
-//******************************************************************************
-//
-// IN_DumpKeyboardQueue ()
-//
-//******************************************************************************
-
-void IN_DumpKeyboardQueue (void)
-{
-   int head = Keyhead;
-   int tail = Keytail;
-   int key;
-
-   if (tail != head)
-   {
-      SoftError( "START DUMP\n");
-
-      while (head != tail)
-      {
-         if (KeyboardQueue[head] & 0x80)        // Up event
-         {
-            key = KeyboardQueue[head] & 0x7F;   // AND off high bit
-
-//            if (keysdown[key])
-//            {
-//               SoftError( "%s - was put in next refresh\n",
-//                                 IN_GetScanName (key));
-//            }
-//            else
-//            {
-               if (Keyboard[key] == 0)
-                  SoftError( "%s %ld - was lost\n", IN_GetScanName (key), key);
-               else
-                  SoftError( "%s %ld - up\n", IN_GetScanName (key), key);
-//            }
-         }
-         else                                      // Down event
-            SoftError( "%s %ld - down\n", IN_GetScanName (KeyboardQueue[head]), KeyboardQueue[head]);
-
-         head = (head+1)&(KEYQMAX-1);
-      }        // while
-
-      SoftError( "END DUMP\n");
-
-    }           // if
-}
-#endif
-
 
 //******************************************************************************
 //
