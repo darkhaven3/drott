@@ -1014,68 +1014,31 @@ boolean MusicStarted( void )
 //
 //***************************************************************************
 
-int MU_Startup ( boolean bombonerror )
-{
+int MU_Startup(boolean bombonerror) {
    int status;
    int card;
 
-   if (MU_Started==true)
-      {
-      MU_StopSong();
-      MU_Shutdown();
-      }
-   if ( ( MusicMode < 0 ) || ( MusicMode >= 11 ) )
-      {
-      return( 0 );
-      }
-   card = musicnums[ MusicMode ];
-   if (card==-1) // Check if it is off
-      return (0);
-
-#ifdef DOS
-   if ( ( card == SoundBlaster ) || ( card == Awe32 ) || ( card == WaveBlaster ) )
-      {
-      if ( SD_Started == false )
-         {
-         extern fx_blaster_config SBSettings;
-         int numvoices;
-         int numbits;
-         int numchannels;
-
-         FX_SetupSoundBlaster( SBSettings, &numvoices,
-            &numbits, &numchannels );
-         }
-      }
-
-   if (card== UltraSound)
-      {
-      MU_SetupGUSInitFile();
-      }
-
-   status=MUSIC_Init( card, MidiAddress );
-#else
-   /* Not DOS, no address config needed */
-   status=MUSIC_Init( card, 0 );
-#endif
-
-
-   if (status != MUSIC_Ok) {
-      if (bombonerror)
-         {
-         DeleteSoundFile ();
-         Error( "%s\n", MUSIC_ErrorString( status ) );
-         }
-      else
-         return (status);
+   if (MU_Started == true) {
+       MU_StopSong();
+       MU_Shutdown();
    }
 
+   if (MusicMode < 0 || MusicMode >= 11) return 0;
+   card = musicnums[MusicMode];
+   if (card==-1) return 0;   // Check if it is off
+
+   status=MUSIC_Init( card, 0 );
+   if (status != MUSIC_Ok) {
+       if (bombonerror) {
+           DeleteSoundFile();
+           Error("%s\n", MUSIC_ErrorString(status));
+       }
+       else return status;
+   }
    currentsong=0;
-
    MU_Started=true;
-
    MU_SetVolume (MUvolume);
-
-   return (0);
+   return 0;
 }
 
 //***************************************************************************

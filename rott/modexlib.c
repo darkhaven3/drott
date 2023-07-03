@@ -389,7 +389,7 @@ void VH_UpdateScreen (void)
 void XFlipPage ( void )
 {
 
- 	if (StretchScreen || sdl_scalemethod == 2) StretchMemPicture ();
+ 	if (StretchScreen || sdl_scalemethod == 1) StretchMemPicture ();
 
    //SDL_LowerBlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
    SDL_LowerBlit(sdl_surface, &blit_rect, argbbuffer, &blit_rect);

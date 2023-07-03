@@ -24,25 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stddef.h>
 #include <fcntl.h>
 #include <string.h>
-
-#ifdef DOS
-#include <malloc.h>
-#include <dos.h>
-#include <io.h>
-#include <conio.h>
-#include <graph.h>
-#include <process.h>
-#include <direct.h>
-#include <bios.h>
-#else
 #include <signal.h>
-#endif
-
-#if USE_SDL
-/* Need to redefine main to SDL_main on some platforms... */
-#include "SDL.h"
-#endif
-
+#include "SDL.h"        // Need to redefine main to SDL_main on some platforms...
 #include "rt_actor.h"
 #include "rt_stat.h"
 #include "rt_vid.h"
@@ -82,7 +65,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cin_main.h"
 #include "rottnet.h"
 #include "rt_scale.h"
-
 #include "music.h"
 #include "fx_man.h"
 //MED
@@ -155,10 +137,8 @@ void Init_Tables (void);
 void CheckRemoteRidicule ( int scancode );
 void SetRottScreenRes (int Width, int Height);
 
-#ifndef DOS
 extern void crash_print (int);
 extern int setup_homedir (void);
-#endif
 
 //extern int G_argc;
 //extern char G_argv[30][80];
@@ -174,25 +154,25 @@ extern void	ReadDelay(long delay);
 extern void RecordDemoQuery ( void );
 
 
-int main (int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    char *macwd;
-    extern char *BATTMAPS;
-	_argc = argc;
-	_argv = argv;
+    char* macwd;
+    extern char* BATTMAPS;
+    _argc = argc;
+    _argv = argv;
 
 #if defined(PLATFORM_MACOSX)
     {
         /* OS X will give us a path in the form '/Applications/Rise of the Triad.app/Contents/MacOS/Rise of the Triad'.
            Our data is in Contents/Resources. */
-        char *path;
+        char* path;
         const char suffix[] = "/Resources/";
         int end;
-        path = (char *)malloc(strlen(argv[0]) + strlen(suffix) + 1);
+        path = (char*)malloc(strlen(argv[0]) + strlen(suffix) + 1);
         if (path == NULL) return 1;
         strcpy(path, argv[0]);
         /* Back up two '/'s. */
-        for (end = strlen(path)-1; end >= 0 && path[end] != '/'; end--);
+        for (end = strlen(path) - 1; end >= 0 && path[end] != '/'; end--);
         if (end >= 0) for (--end; end >= 0 && path[end] != '/'; end--);
         strcpy(&path[end], suffix);
         printf("Changing to working directory: %s\n", path);
@@ -201,608 +181,469 @@ int main (int argc, char *argv[])
     }
 #endif
 
-   signal (11, crash_print);
-   if (setup_homedir() == -1) return 1;
+    signal(11, crash_print);
+    if (setup_homedir() == -1) return 1;
 
-   // Set which release version we're on
-   gamestate.Version = ROTTVERSION;
+    // Set which release version we're on
+    gamestate.Version = ROTTVERSION;
 
-//[SHAR]
+    //[SHAR]
 #if ( SHAREWARE == 1 )
-   BATTMAPS = strdup(STANDARDBATTLELEVELS);
-   FixFilePath(BATTMAPS);
-   gamestate.Product = ROTT_SHAREWARE;
+    BATTMAPS = strdup(STANDARDBATTLELEVELS);
+    FixFilePath(BATTMAPS);
+    gamestate.Product = ROTT_SHAREWARE;
 #else
-   BATTMAPS = strdup(SITELICENSEBATTLELEVELS);
-   FixFilePath(BATTMAPS);
-   if (!access(BATTMAPS, R_OK))
-   {
-       gamestate.Product = ROTT_SITELICENSE;
-   }
-   else
-   {
-       free(BATTMAPS);
-       BATTMAPS = strdup(SUPERROTTBATTLELEVELS);
-       FixFilePath(BATTMAPS);
-       if (!access(BATTMAPS, R_OK))
-       {
-           gamestate.Product = ROTT_SUPERCD;
-       }
-       else
-       {
-           free(BATTMAPS);
-           BATTMAPS = strdup(STANDARDBATTLELEVELS);
-           FixFilePath(BATTMAPS);
-           gamestate.Product = ROTT_REGISTERED;
-       }
-   }
+    BATTMAPS = strdup(SITELICENSEBATTLELEVELS);
+    FixFilePath(BATTMAPS);
+    if (!access(BATTMAPS, R_OK))
+    {
+        gamestate.Product = ROTT_SITELICENSE;
+    }
+    else
+    {
+        free(BATTMAPS);
+        BATTMAPS = strdup(SUPERROTTBATTLELEVELS);
+        FixFilePath(BATTMAPS);
+        if (!access(BATTMAPS, R_OK))
+        {
+            gamestate.Product = ROTT_SUPERCD;
+        }
+        else
+        {
+            free(BATTMAPS);
+            BATTMAPS = strdup(STANDARDBATTLELEVELS);
+            FixFilePath(BATTMAPS);
+            gamestate.Product = ROTT_REGISTERED;
+        }
+    }
 #endif
 
-   DrawRottTitle ();
-   gamestate.randomseed=-1;
+    DrawRottTitle();
 
-   gamestate.autorun = 0;
-   StartupSoftError();
-//   UL_ErrorStartup ();
+    gamestate.randomseed = -1;
+    gamestate.autorun = 0;
 
-   CheckCommandLineParameters();
+    StartupSoftError();
+    CheckCommandLineParameters();
+    Z_Init(50000, 8000000);       // Start up Memory manager with a certain amount of reserved memory
+    IN_Startup();
+    InitializeGameCommands();
+    if (!standalone) {
+        ReadConfig();
+        ReadSETUPFiles();
+        doublestep = 0;
+        SetupWads();
+        BuildTables();
+        GetMenuInfo();
+    }
 
-   // Start up Memory manager with a certain amount of reserved memory
+    SetRottScreenRes(iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
 
-   Z_Init(50000,4000000);
+    if (!standalone) {
+        int status1 = 0;
+        int status2 = 0;
+        int status3 = 0;
 
-   IN_Startup ();
+        if (!NoSound) {
+            if (!quiet) printf("MU_Startup: ");
 
-   InitializeGameCommands();
-   if (standalone==false)
-      {
-      ReadConfig ();
-      ReadSETUPFiles ();
-      doublestep=0;
-      SetupWads();
-      BuildTables ();
-      GetMenuInfo ();
-      }
+            status1 = MU_Startup(false);
+            if (!quiet) printf("%s\n", MUSIC_ErrorString(MUSIC_Error));
+        }
 
-   SetRottScreenRes (iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
-   
-//   if (modemgame==true)
-//      {
-//      SCREENSHOTS=true;
-//      if (standalone==false)
-//         {
-//         MenuFixup ();
-//         }
-//      MAPSTATS=true;
-//      }
-   if (standalone==false)
-      {
-      int status1 = 0;
-      int status2 = 0;
-      int status3 = 0;
+        if (!NoSound) {
+            int nv, nb, nc;
 
-      if ( !NoSound && !IS8250 )
-         {
-         if (!quiet)
-            printf( "MU_Startup: " );
-         status1 = MU_Startup(false);
-         if (!quiet)
-            printf( "%s\n", MUSIC_ErrorString( MUSIC_Error ) );
-         }
-      else if ( IS8250 )
-         {
-         printf( "==============================================================================\n");
-         printf( "WARNING: 8250 detected.\n" );
-         printf( "Music has been disabled.  This is necessary to maintain high interrupt\n" );
-         printf( "rates with the 8250 UART which will improve overall game performance.\n");
-         printf( "                      < Press any key to continue >\n");
-         printf( "==============================================================================\n");
-         getch();
-         }
+            if (!quiet) printf("SD_SetupFXCard: ");
+            status2 = SD_SetupFXCard(&nv, &nb, &nc);
+            if (!quiet) printf("%s\n", FX_ErrorString(FX_Error));
 
-      if (!NoSound)
-         {
-         int nv, nb, nc;
-
-         if (!quiet)
-            printf( "SD_SetupFXCard: " );
-         status2 = SD_SetupFXCard (&nv, &nb, &nc);
-         if (!quiet)
-            printf( "%s\n", FX_ErrorString( FX_Error ) );
-
-         if ( !status2 )
-            {
-            if (!quiet)
-               printf( "SD_Startup: " );
-            status3 = SD_Startup(false);
-            if (!quiet)
-               printf( "%s\n", FX_ErrorString( FX_Error ) );
+            if (!status2) {
+                if (!quiet)
+                    printf("SD_Startup: ");
+                status3 = SD_Startup(false);
+                if (!quiet)
+                    printf("%s\n", FX_ErrorString(FX_Error));
             }
-         }
-      else
-         {
-         if (!quiet)
-            printf( "Sound FX disabled.\n" );
-         }
+        }
+        else if (!quiet) printf("Sound FX disabled.\n");
 
-      Init_Tables ();
-      InitializeRNG ();
-      InitializeMessages();
-      LoadColorMap();
-      }
-   if (infopause==true)
-      {
-      printf("\n< Press any key to continue >\n");
-      getch();
-      }
-#if 0
-#if (SHAREWARE == 1)
-   if ((!SOUNDSETUP) && (standalone==false))
-      {
-      byte * txtscn;
-      int i;
+        Init_Tables();
+        InitializeRNG();
+        InitializeMessages();
+        LoadColorMap();
+    }
+    if (infopause) {
+        printf("\n< Press any key to continue >\n");
+        getch();
+    }
+    locplayerstate = &PLAYERSTATE[consoleplayer];
 
-      for (i=0;i<20;i++)
-         printf("\n");
-      txtscn = (byte *) W_CacheLumpNum (W_GetNumForName ("rotts10"), PU_CACHE);
-      memcpy ((byte *)0xB8000, txtscn, 4000);
-      I_Delay (600);
-      }
-#endif
-#endif
-   locplayerstate = &PLAYERSTATE[consoleplayer];
+    if (standalone == true)
+        ServerLoop();
 
-   if (standalone==true)
-      ServerLoop();
+    VL_SetVGAPlaneMode();
+    VL_SetPalette(origpal);
 
-   VL_SetVGAPlaneMode();
-   VL_SetPalette(origpal);
+    playstate = ex_titles;
+    gamestate.battlemode = battle_StandAloneGame;
 
-//   SetTextMode();
-//   GraphicsMode();
-//   SetTextMode();
-//   VL_SetVGAPlaneMode();
-//   VL_SetPalette(origpal);
-//   SetBorderColor(155);
-//   SetViewSize(0);
+    BATTLE_SetOptions(&BATTLE_Options[battle_StandAloneGame]);
 
-#ifdef DOS
-   if ( SOUNDSETUP )
-      {
-      SwitchPalette( origpal, 35 );
-      CP_SoundSetup();
-      }
-#endif
-
-   playstate = ex_titles;
-   gamestate.battlemode = battle_StandAloneGame;
-
-   BATTLE_SetOptions( &BATTLE_Options[ battle_StandAloneGame ] );
-
-   if (turbo || tedlevel)
-		{
-      if (modemgame == true)
-         {
-         turbo = false;
-         NoWait = true;
-         }
-      else
-         {
-         PlayTurboGame();
-         }
-      }
-   else
-      {
+    if (turbo || tedlevel)
+    {
+        if (modemgame == true)
+        {
+            turbo = false;
+            NoWait = true;
+        }
+        else
+        {
+            PlayTurboGame();
+        }
+    }
+    else {
 #if (SHAREWARE == 0)
-      if ( dopefish == true )
-         {
-         DopefishTitle();
-         }
-      else if ( NoWait == false )
-         {
-         ApogeeTitle();
-         }
+        if (dopefish) DopefishTitle();
+        else if (!NoWait) ApogeeTitle();
 #else
-      if ( NoWait == false )
-         {
-         if (W_CheckNumForName("svendor") != -1)
-            {
-            lbm_t * LBM;
-
-            LBM = (lbm_t *) W_CacheLumpName( "svendor", PU_CACHE, Cvt_lbm_t, 1);
-            VL_DecompressLBM (LBM,true);
-            I_Delay(40);
-            MenuFadeOut();
+        if (!NoWait) {
+            if (W_CheckNumForName("svendor") != -1) {
+                lbm_t* LBM = (lbm_t*)W_CacheLumpName("svendor", PU_CACHE, Cvt_lbm_t, 1);
+                VL_DecompressLBM(LBM, true);
+                I_Delay(40);
+                MenuFadeOut();
             }
-//         ParticleIntro ();
-         ApogeeTitle();
-         }
+            ApogeeTitle();
+        }
 #endif
-      }
+    }
+    GameLoop();
+    QuitGame();
 
-   GameLoop();
-
-
-   QuitGame();
-   
-   return 0;
+    return 0;
 }
 
-void DrawRottTitle ( void )
-{
+void DrawRottTitle ( void ) {
    char title[80];
    char buf[5];
 
    SetTextMode();
-   TurnOffTextCursor ();
+   TurnOffTextCursor();
 
-   if (CheckParm("QUIET") == 0)
-      {
-      SetTextMode();
-      TurnOffTextCursor ();
-#ifdef DOS
-      if (CheckParm ("SOUNDSETUP") == 0)
-         {
-#endif
+   if (!CheckParm("QUIET")) {
+       SetTextMode();
+       TurnOffTextCursor();
 #ifdef ANSIESC
-         printf("\n\n\n");
+       printf("\n\n\n");
 #endif
-         strcpy (title,"Rise of the Triad Startup  Version ");
-         strcat (title,itoa(ROTTMAJORVERSION,&buf[0],10));
-         strcat (title,".");
-//MED
+       strcpy(title, "Rise of the Triad Startup  Version ");
+       strcat(title, itoa(ROTTMAJORVERSION, &buf[0], 10));
+       strcat(title, ".");
+       //MED
 #if (SHAREWARE==1)||(DOPEFISH==0)
-         strcat (title,itoa(ROTTMINORVERSION,&buf[0],10));
+       strcat(title, itoa(ROTTMINORVERSION, &buf[0], 10));
 #else
-         strcat (title,"DFISH");
+       strcat(title, "DFISH");
 #endif
 #ifndef ANSIESC
-         strcat (title,"\n");
+       strcat(title, "\n");
 #endif
 
-         px=(80-strlen(title))>>1;
-         py=0;
+       px = (80 - strlen(title)) >> 1;
+       py = 0;
 
-         UL_printf(title);
+       UL_printf(title);
 
-         memset (title,0,sizeof(title));
+       memset(title, 0, sizeof(title));
 
-         if (gamestate.Product == ROTT_SHAREWARE)
-            {
+       if (gamestate.Product == ROTT_SHAREWARE) {
 #if (DELUXE==1)
-            strcpy(title,"Lasersoft Deluxe Version");
+           strcpy(title, "Lasersoft Deluxe Version");
 #elif (LOWCOST==1)
-            strcpy(title,"Episode One");
+           strcpy(title, "Episode One");
 #else
-            strcpy(title,"Shareware Version");
+           strcpy(title, "Shareware Version");
 #endif
-            }
-         else if (gamestate.Product == ROTT_SUPERCD)
-             strcpy(title,"CD Version");
-         else if (gamestate.Product == ROTT_SITELICENSE)
-             strcpy(title,"Site License CD Version");
-         else
-             strcpy(title,"Commercial Version");
+       }
+       else if (gamestate.Product == ROTT_SUPERCD) strcpy(title, "CD Version");
+       else if (gamestate.Product == ROTT_SITELICENSE) strcpy(title, "Site License CD Version");
+       else strcpy(title, "Commercial Version");
 
-         px=(80-strlen(title))>>1;
-         py=1;
+       px = (80 - strlen(title)) >> 1;
+       py = 1;
 
-         UL_printf(title);
+       UL_printf(title);
 #ifndef ANSIESC
-	 printf ("\n");
+       printf("\n");
 #endif
-
-         UL_ColorBox (0, 0, 80, 2, 0x1e);
-#ifdef DOS
-         }
-      else
-         {
-         printf("\n\n");
-         strcpy (title,"Rise of the Triad Sound Setup  Version ");
-         strcat (title,itoa(ROTTMAJORVERSION,&buf[0],10));
-         strcat (title,".");
-         strcat (title,itoa(ROTTMINORVERSION,&buf[0],10));
-
-         px=(80-strlen(title))>>1;
-         py=0;
-
-         UL_printf(title);
-
-         UL_ColorBox (0, 0, 80, 1, 0x1e);
-         }
-#endif
-      }
-   else
-      {
-      TurnOffTextCursor ();
-      }
+       UL_ColorBox(0, 0, 80, 2, 0x1e);
+   }
+   else TurnOffTextCursor ();
 
 }
 
-void CheckCommandLineParameters( void )
-{
-   char *PStrings[] = {"TEDLEVEL","NOWAIT","NOSOUND","NOW",
-                       "TRANSPORT","DOPEFISH","SCREENSHOTS",
-                       "MONO","MAPSTATS","TILESTATS","VER","net",
-                       "PAUSE","SOUNDSETUP","WARP","IS8250","ENABLEVR",
-                       "TIMELIMIT","MAXTIMELIMIT","NOECHO","DEMOEXIT","QUIET",NULL};
-   int i,n;
+void CheckCommandLineParameters(void) {
+    char* PStrings[] = { "TEDLEVEL","NOWAIT","NOSOUND","NOW",
+                        "TRANSPORT","DOPEFISH","SCREENSHOTS",
+                        "MONO","MAPSTATS","TILESTATS","VER","net",
+                        "PAUSE","SOUNDSETUP","WARP","IS8250","ENABLEVR",
+                        "TIMELIMIT","MAXTIMELIMIT","NOECHO","DEMOEXIT","QUIET",NULL };
+    int i, n;
 
-   infopause=false;
-#ifdef DOS
-   SOUNDSETUP = false;
-#endif
-   tedlevel=false;
-   NoWait=false;
-   NoSound=false;
-   turbo=false;
-   warp=false;
-   dopefish=false;
-   modemgame=false;
-   SCREENSHOTS=false;
-   MONOPRESENT=false;
-   MAPSTATS=false;
-   TILESTATS=false;
-   IS8250 = false;
-   vrenabled = false;
-   demoexit = false;
+    infopause = false;
+    tedlevel = false;
+    NoWait = false;
+    NoSound = false;
+    turbo = false;
+    warp = false;
+    dopefish = false;
+    modemgame = false;
+    SCREENSHOTS = false;
+    MONOPRESENT = false;
+    MAPSTATS = false;
+    TILESTATS = false;
+    IS8250 = false;
+    vrenabled = false;
+    demoexit = false;
 
-   modemgame=false;
-   networkgame=false;
-	consoleplayer=0;
-	numplayers = 1;
-   timelimit=-1;
-   timelimitenabled=false;
-   noecho = false;
-   quiet = false;
+    modemgame = false;
+    networkgame = false;
+    consoleplayer = 0;
+    numplayers = 1;
+    timelimit = -1;
+    timelimitenabled = false;
+    noecho = false;
+    quiet = false;
 
-   if (
+    if (
         (CheckParm("?\0")) ||
         (CheckParm("HELP")) ||
         (
-         (_argc>1) &&
-         (_argv[1][0]=='?')
+            (_argc > 1) &&
+            (_argv[1][0] == '?')
+            )
         )
-      )
-      {
-      SetTextMode ();
-      printf ("Rise of the Triad  (c) 1995 Apogee Software\n\n");
-      printf ("COMMAND LINE PARAMETERS\n");
-      printf ("   AIM        - Give Aim Crosshair.\n");
-      printf ("   FULLSCREEN - Start in fullscreen mode\n");
-      printf ("   WINDOW     - Start in windowed mode\n");
-      printf ("   RESOLUTION - Specify the screen resolution to use\n");
-      printf ("              - next param is <widthxheight>, valid resolutions are:\n");
-      printf ("              - 320x200, 640x480 and 800x600\n");
+    {
+        SetTextMode();
+        printf("Rise of the Triad  (c) 1995 Apogee Software\n\n");
+        printf("COMMAND LINE PARAMETERS\n");
+        printf("   AIM        - Give Aim Crosshair.\n");
+        printf("   FULLSCREEN - Start in fullscreen mode\n");
+        printf("   WINDOW     - Start in windowed mode\n");
+        printf("   RESOLUTION - Specify the screen resolution to use\n");
+        printf("              - next param is <widthxheight>, valid resolutions are:\n");
+        printf("              - 320x200, 640x480 and 800x600\n");
 #if (SHAREWARE==0)
-      printf ("   FILERTL    - used to load Userlevels (RTL files)\n");
-      printf ("              - next parameter is RTL filename\n");
-      printf ("   FILERTC    - used to load Battlelevels (RTC files)\n");
-      printf ("              - next parameter is RTC filename\n");
-      printf ("   FILE       - used to load Extern WAD files\n");
-      printf ("              - next parameter is WAD filename\n");
+        printf("   FILERTL    - used to load Userlevels (RTL files)\n");
+        printf("              - next parameter is RTL filename\n");
+        printf("   FILERTC    - used to load Battlelevels (RTC files)\n");
+        printf("              - next parameter is RTC filename\n");
+        printf("   FILE       - used to load Extern WAD files\n");
+        printf("              - next parameter is WAD filename\n");
 #endif
-      printf ("   SPACEBALL  - Enable check for Spaceball.\n");
-      printf ("   NOJOYS     - Disable check for joystick.\n");
-      printf ("   NOMOUSE    - Disable check for mouse.\n");
-      printf ("   CYBERMAN   - Enable check for Cyberman.\n");
-      printf ("   ASSASSIN   - Enable check for Wingman Assassin.\n");
-      printf ("   VER        - Version number.\n");
-      printf ("   MAPSTATS   - Dump Map statistics to ERROR.\n");
-      printf ("   TILESTATS  - Dump Tile statistics to ERROR.\n");
-      printf ("   MONO       - Enable mono-monitor support.\n");
-      printf ("   SCREENSHOTS- Clean screen capture for shots.\n");
-      printf ("   PAUSE      - Pauses startup screen information.\n");
-#ifdef DOS
-      printf ("   SOUNDSETUP - Setup sound for ROTT\n");
-#endif
-      printf ("   ENABLEVR   - Enable VR helmet input devices\n");
-      printf ("   NOECHO     - Turn off sound reverb\n");
-      printf ("   DEMOEXIT   - Exit program when demo is terminated\n");
-      printf ("   WARP       - Warp to specific ROTT level\n");
-      printf ("                next parameter is level to start on\n");
-      printf ("   TIMELIMIT  - Play ROTT in time limit mode\n");
-      printf ("                next parameter is time in seconds\n");
-      printf ("   MAXTIMELIMIT - Maximum time to count down from\n");
-      printf ("                next parameter is time in seconds\n");
-      printf ("   DOPEFISH   - ?\n");
-      printf (" \n");
-      printf ("CONTROLS\n");
-      printf ("         Arrows           - Move\n");
-      printf ("         Ctrl             - Fire\n");
-      printf ("         Comma/Alt+left   - Sidestep Left\n");
-      printf ("         Period/Alt+right - Sidestep Right\n");
-      printf ("         Shift            - Run/Turn faster\n");
-      printf ("         Space            - Use/Open\n");
-      printf ("         1-4              - Choose Weapon\n");
-      printf ("         5-6              - Scale Weapon Up/Down\n");
-      printf ("         Enter            - Swap Weapon\n");
-      printf ("         Backspace        - Turn 180\n");
-      printf ("         Delete           - Drop Weapon\n");
-      printf ("         +/-              - Change Viewsize\n");
-      printf ("         PgUp/PgDn        - Look Up/Down\n");
-      printf ("         Home/End         - Aim Up/Down\n");
-      printf ("         [ ]              - Sound Volumen\n");
-      printf ("         ( )              - Music Volumen\n");
-      printf ("         Tab              - Enter Automapper\n");
-      printf (" \n");
-      printf ("AUTO-MAPPER\n");
-      printf ("         Arrows           - Scroll around\n");
-      printf ("         PgUp             - Zoom Out\n");
-      printf ("         PgDn             - Zoom In\n");
-      printf ("         Tab              - Exit Auto-Mapper\n");
-      printf (" \n");
-      printf ("HOTKEYS\n");
-      printf ("         F1               - Help\n");
-      printf ("         F2               - Save Game\n");
-      printf ("         F3               - Restore Game\n");
-      printf ("         F4               - Controls/Sound/Music\n");
-      printf ("         F5               - Change Detail Level\n");
-      printf ("         F6               - Quick Save\n");
-      printf ("         F7               - Messages On/Off\n");
-      printf ("         F8               - End Game\n");
-      printf ("         F9               - Quick Load\n");
-      printf ("         F10              - Quit\n");
-      printf ("         F11              - Gamma Correction\n");
-      printf (" \n");
-      printf ("COMM-BAT\n");
-      printf ("         F1 - F10         - RemoteRidicule(tm) sounds\n");
-      printf ("         F12              - Live RemoteRidicule\n");
-      printf ("         T                - Type message to all\n");
-      printf ("         Z                - Type directed message\n");
-      printf ("         Tab              - Toggle KillCount display\n");
-      printf (" \n");
-      printf ("SCREENSHOOT\n");
-#ifdef DOS /* makes no sense under Linux as there are no lbm viewers there */
-      printf ("         Alt+V            - Screenshoot in LBM format\n");
-#endif
-      printf ("         Alt+C            - Screenshoot in PCX format\n");
-      exit (0);
-      }
+        printf("   SPACEBALL  - Enable check for Spaceball.\n");
+        printf("   NOJOYS     - Disable check for joystick.\n");
+        printf("   NOMOUSE    - Disable check for mouse.\n");
+        printf("   CYBERMAN   - Enable check for Cyberman.\n");
+        printf("   ASSASSIN   - Enable check for Wingman Assassin.\n");
+        printf("   VER        - Version number.\n");
+        printf("   MAPSTATS   - Dump Map statistics to ERROR.\n");
+        printf("   TILESTATS  - Dump Tile statistics to ERROR.\n");
+        printf("   MONO       - Enable mono-monitor support.\n");
+        printf("   SCREENSHOTS- Clean screen capture for shots.\n");
+        printf("   PAUSE      - Pauses startup screen information.\n");
+        printf("   ENABLEVR   - Enable VR helmet input devices\n");
+        printf("   NOECHO     - Turn off sound reverb\n");
+        printf("   DEMOEXIT   - Exit program when demo is terminated\n");
+        printf("   WARP       - Warp to specific ROTT level\n");
+        printf("                next parameter is level to start on\n");
+        printf("   TIMELIMIT  - Play ROTT in time limit mode\n");
+        printf("                next parameter is time in seconds\n");
+        printf("   MAXTIMELIMIT - Maximum time to count down from\n");
+        printf("                next parameter is time in seconds\n");
+        printf("   DOPEFISH   - ?\n");
+        printf(" \n");
+        printf("CONTROLS\n");
+        printf("         Arrows           - Move\n");
+        printf("         Ctrl             - Fire\n");
+        printf("         Comma/Alt+left   - Sidestep Left\n");
+        printf("         Period/Alt+right - Sidestep Right\n");
+        printf("         Shift            - Run/Turn faster\n");
+        printf("         Space            - Use/Open\n");
+        printf("         1-4              - Choose Weapon\n");
+        printf("         5-6              - Scale Weapon Up/Down\n");
+        printf("         Enter            - Swap Weapon\n");
+        printf("         Backspace        - Turn 180\n");
+        printf("         Delete           - Drop Weapon\n");
+        printf("         +/-              - Change Viewsize\n");
+        printf("         PgUp/PgDn        - Look Up/Down\n");
+        printf("         Home/End         - Aim Up/Down\n");
+        printf("         [ ]              - Sound Volumen\n");
+        printf("         ( )              - Music Volumen\n");
+        printf("         Tab              - Enter Automapper\n");
+        printf(" \n");
+        printf("AUTO-MAPPER\n");
+        printf("         Arrows           - Scroll around\n");
+        printf("         PgUp             - Zoom Out\n");
+        printf("         PgDn             - Zoom In\n");
+        printf("         Tab              - Exit Auto-Mapper\n");
+        printf(" \n");
+        printf("HOTKEYS\n");
+        printf("         F1               - Help\n");
+        printf("         F2               - Save Game\n");
+        printf("         F3               - Restore Game\n");
+        printf("         F4               - Controls/Sound/Music\n");
+        printf("         F5               - Change Detail Level\n");
+        printf("         F6               - Quick Save\n");
+        printf("         F7               - Messages On/Off\n");
+        printf("         F8               - End Game\n");
+        printf("         F9               - Quick Load\n");
+        printf("         F10              - Quit\n");
+        printf("         F11              - Gamma Correction\n");
+        printf(" \n");
+        printf("COMM-BAT\n");
+        printf("         F1 - F10         - RemoteRidicule(tm) sounds\n");
+        printf("         F12              - Live RemoteRidicule\n");
+        printf("         T                - Type message to all\n");
+        printf("         Z                - Type directed message\n");
+        printf("         Tab              - Toggle KillCount display\n");
+        printf(" \n");
+        printf("SCREENSHOOT\n");
+        printf("         Alt+C            - Screenshoot in PCX format\n");
+        exit(0);
+    }
 
-   // Check For command line parameters
+    // Check For command line parameters
 
-   for (i = 1;i < _argc;i++)
-   {
-      n = US_CheckParm(_argv[i],PStrings);
-      switch(n)
-      {
+    for (i = 1; i < _argc; i++) {
+        n = US_CheckParm(_argv[i], PStrings);
+        switch (n) {
 #if (TEDLAUNCH==1)
-       case 0:
-         tedlevelnum = ParseNum(_argv[i + 1]);
-         tedlevel=true;
-         if (i+3>=_argc)
+        case 0:
+            tedlevelnum = ParseNum(_argv[i + 1]);
+            tedlevel = true;
+            if (i + 3 >= _argc)
             {
-            tedx=0;
-            tedy=0;
+                tedx = 0;
+                tedy = 0;
             }
-         else
+            else
             {
-            tedx=ParseNum(_argv[i + 2]);
-            tedy=ParseNum(_argv[i + 3]);
+                tedx = ParseNum(_argv[i + 2]);
+                tedy = ParseNum(_argv[i + 3]);
             }
-         MenuFixup ();
-         break;
+            MenuFixup();
+            break;
 #endif
-       case 1:
-         NoWait = true;
-         break;
-		 case 2:
-         NoSound = true;
-         break;
-       case 3:
-         turbo = true;
-         break;
-       case 4:
-         warp = true;
-         warpx=ParseNum(_argv[i + 1]);
-         warpy=ParseNum(_argv[i + 2]);
-         warpa=ParseNum(_argv[i + 3]);
-         break;
-       case 5:
-         dopefish=true;
-         break;
-       case 6:
-         SCREENSHOTS = true;
-         break;
-       case 7:
-         MONOPRESENT = true;
-         break;
-       case 8:
-         MAPSTATS = true;
-         break;
-       case 9:
-         TILESTATS = true;
-         break;
-       case 10:
-         SetTextMode ();
-         printf ("Rise of the Triad  (c) 1995 Apogee Software\n");
-//MED
-         if (gamestate.Product == ROTT_SHAREWARE)
+        case 1:
+            NoWait = true;
+            break;
+        case 2:
+            NoSound = true;
+            break;
+        case 3:
+            turbo = true;
+            break;
+        case 4:
+            warp = true;
+            warpx = ParseNum(_argv[i + 1]);
+            warpy = ParseNum(_argv[i + 2]);
+            warpa = ParseNum(_argv[i + 3]);
+            break;
+        case 5:
+            dopefish = true;
+            break;
+        case 6:
+            SCREENSHOTS = true;
+            break;
+        case 7:
+            MONOPRESENT = true;
+            break;
+        case 8:
+            MAPSTATS = true;
+            break;
+        case 9:
+            TILESTATS = true;
+            break;
+        case 10:
+            SetTextMode();
+            printf("Rise of the Triad  (c) 1995 Apogee Software\n");
+            //MED
+            if (gamestate.Product == ROTT_SHAREWARE)
             {
 #if (DELUXE==1)
-            printf("Lasersoft Deluxe ");
+                printf("Lasersoft Deluxe ");
 #elif (LOWCOST==1)
-            printf("Episode One ");
+                printf("Episode One ");
 #else
-            printf("Shareware ");
+                printf("Shareware ");
 #endif
             }
-         else if (gamestate.Product == ROTT_SUPERCD)
-            printf("CD ");
-         else if (gamestate.Product == ROTT_SITELICENSE)
-            printf("Site License ");
-         else
-            printf("Commercial ");
-         printf ("Version %d.%d\n", ROTTMAJORVERSION,ROTTMINORVERSION);
-         exit (0);
-         break;
-       case 11:
-         InitROTTNET();
-		   numplayers = rottcom->numplayers;
-         if (numplayers>MAXPLAYERS)
-            Error("Too many players.\n");
-         if (!quiet)
-	     printf("Playing %ld player ROTT\n",(long int)numplayers);
-         modemgame=true;
-         if (rottcom->gametype==NETWORK_GAME)
-            {
+            else if (gamestate.Product == ROTT_SUPERCD)
+                printf("CD ");
+            else if (gamestate.Product == ROTT_SITELICENSE)
+                printf("Site License ");
+            else
+                printf("Commercial ");
+            printf("Version %d.%d\n", ROTTMAJORVERSION, ROTTMINORVERSION);
+            exit(0);
+            break;
+        case 11:
+            InitROTTNET();
+            numplayers = rottcom->numplayers;
+            if (numplayers > MAXPLAYERS)
+                Error("Too many players.\n");
             if (!quiet)
-               printf("NETWORK GAME\n");
-            networkgame=true;
-            }
-         else
+                printf("Playing %ld player ROTT\n", (long int)numplayers);
+            modemgame = true;
+            if (rottcom->gametype == NETWORK_GAME)
             {
-            if (!quiet)
-               printf("MODEM GAME\n");
+                if (!quiet)
+                    printf("NETWORK GAME\n");
+                networkgame = true;
             }
-         break;
-       case 12:
-         infopause=true;
-         break;
-       case 13:
-#ifdef DOS
-          SOUNDSETUP = true;
-#endif
-          break;
-       case 14:
-          startlevel = (ParseNum(_argv[i + 1])-1);
-          break;
-       case 15:
-          IS8250 = true;
-          break;
-       case 16:
-          vrenabled = true;
-          if (!quiet)
-             printf("Virtual Reality Mode enabled\n");
-          break;
-       case 17:
-          timelimitenabled = true;
-          timelimit = ParseNum(_argv[i + 1]);
-          if (!quiet)
-             printf("Time Limit = %ld Seconds\n",(long int)timelimit);
-          timelimit *= VBLCOUNTER;
-          break;
+            else if (!quiet) printf("MODEM GAME\n");
+            break;
+        case 12:
+            infopause = true;
+            break;
+        case 13: //dos support
+            break;
+        case 14:
+            startlevel = (ParseNum(_argv[i + 1]) - 1);
+            break;
+        case 15:
+            IS8250 = true;
+            break;
+        case 16: //vr support removed
+            break;
+        case 17:
+            timelimitenabled = true;
+            timelimit = ParseNum(_argv[i + 1]);
+            if (!quiet)
+                printf("Time Limit = %ld Seconds\n", (long int)timelimit);
+            timelimit *= VBLCOUNTER;
+            break;
 
-       case 18:
-          maxtimelimit = ParseNum(_argv[i + 1]);
-          maxtimelimit *= VBLCOUNTER;
-          break;
-       case 19:
-          noecho = true;
-          break;
-       case 20:
-          demoexit = true;
-          break;
-       case 21:
-          quiet = true;
-          break;
-      }
-   }
+        case 18:
+            maxtimelimit = ParseNum(_argv[i + 1]);
+            maxtimelimit *= VBLCOUNTER;
+            break;
+        case 19:
+            noecho = true;
+            break;
+        case 20:
+            demoexit = true;
+            break;
+        case 21:
+            quiet = true;
+            break;
+        }
+    }
 }
 
-void SetupWads( void )
-{
+void SetupWads(void) {
    char  *newargs[99];
    int i, arg, argnum = 0;
    char *tempstr = NULL;
@@ -964,45 +805,30 @@ NoRTC:;
 #endif
 
 //   newargs [argnum++] = "credits.wad";
+// Check for Remote Ridicule WAD
 
-   // Check for Remote Ridicule WAD
+   if (RemoteSounds.avail) {
+       char* src;
+       tempstr = realloc(tempstr, strlen(RemoteSounds.path) + strlen(RemoteSounds.file) + 2);
+       strcpy(tempstr, RemoteSounds.path);
+       src = RemoteSounds.path + strlen(RemoteSounds.path) - 1;
+       if (*src != '\\') strcat(tempstr, "\\\0");
+       strcat(tempstr, RemoteSounds.file);
+       newargs[argnum++] = strdup(tempstr);
+   }
+   else newargs [argnum++] = DATADIR "REMOTE1.RTS";
 
-   if (RemoteSounds.avail == true)
-      {
-      char  *src;
-
-      tempstr = realloc(tempstr, strlen(RemoteSounds.path) + strlen(RemoteSounds.file) + 2);
-      strcpy (tempstr,RemoteSounds.path);
-      src = RemoteSounds.path + strlen(RemoteSounds.path) - 1;
-      if (*src != '\\')
-         strcat (tempstr,"\\\0");
-      strcat (tempstr,RemoteSounds.file);
-      newargs [argnum++] = strdup(tempstr);
-      }
-   else
-      {
-      newargs [argnum++] = DATADIR "REMOTE1.RTS";
-      }
-
-   if (tempstr)
-      free(tempstr);
-
+   if (tempstr) free(tempstr);
    newargs [argnum++] = NULL;
-
    W_InitMultipleFiles(newargs);
 }
 
-void PlayTurboGame
-   (
-   void
-   )
-
-   {
-   NewGame = true;
-   locplayerstate->player = DefaultPlayerCharacter;
-   playstate = ex_resetgame;
-   GameLoop();
-   }
+void PlayTurboGame(void) {
+    NewGame = true;
+    locplayerstate->player = DefaultPlayerCharacter;
+    playstate = ex_resetgame;
+    GameLoop();
+}
 
 
 //***************************************************************************
