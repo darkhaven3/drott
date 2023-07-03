@@ -2963,8 +2963,6 @@ void StartupRotateBuffer ( int masked)
    }else if (iGLOBAL_SCREENWIDTH >= 800) { 
 		RotatedImage=SafeMalloc(131072*128);
    }
-//SetupScreen(false);//used these 2 to test screen size
-//VW_UpdateScreen ();
    if (masked==0) {
 	   if (iGLOBAL_SCREENWIDTH == 320) {
 		  memset(RotatedImage,0,131072);
@@ -2983,24 +2981,17 @@ void StartupRotateBuffer ( int masked)
 		  memset(RotatedImage,0xff,131072*128);
 	   }
    }
-      //memset(RotatedImage,0xff,131072);//org
-      //memset(RotatedImage,0xff,131072*8);
 
       if ((masked == false)&&(iGLOBAL_SCREENWIDTH >= 800)) {
 		DisableScreenStretch();
 		// SetTextMode (  );
 
 		k=(28*512);//14336;
-		//k=((0+28)<<10);//28672
 		   for (a=0;a<iGLOBAL_SCREENHEIGHT;a++){
 			   for (b=0;b<iGLOBAL_SCREENWIDTH;b++){
-					//*(RotatedImage+99+((a+28)<<9)+b)   =   *((byte *)bufferofs+(a*linewidth)+b);
-					// 99 is some offset value
 					k = ((a+28)<<10);
 					*(RotatedImage+(k)+b)   =   *((byte *)bufferofs+(a*linewidth)+b);
-					//*(RotatedImage+b)   =   *((byte *)bufferofs+(a*linewidth)+b);
 			   }
-			   //k+=512*2;
 		   }
 	  }else if ((masked == false)&&(iGLOBAL_SCREENWIDTH == 640)) {
 		DisableScreenStretch();
@@ -3020,11 +3011,6 @@ void StartupRotateBuffer ( int masked)
 	  }
 
 }
-/* copier liner af 1024 bredde
-a=0=14436 a=1=14848 a=2=15360 a=3=15872  -> 512 i difference
-*(RotatedImage+(512)+0) = bufferofs+(0*800)+0);
-*(RotatedImage+(512)+100) = bufferofs+(100*800)+0);
-*/
 
 //******************************************************************************
 //

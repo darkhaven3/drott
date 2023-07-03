@@ -77,11 +77,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
-#if defined(__WATCOMC__)
-    #pragma pack(1)
-#endif
-
-
 #if defined(__HIGHC__)
     #define NEAR
     #define FAR
@@ -311,41 +306,6 @@ extern int __embed_edata;
     #pragma Alias(awe32WPLoadWave,"AWE32WPLOADWAVE")
     #pragma Alias(awe32WPStreamWave,"AWE32WPSTREAMWAVE")
     #pragma Alias(awe32WPBuildSFont,"AWE32WPBUILDSFONT")
-#endif
-
-
-#if defined(__WATCOMC__)
-    #pragma pack()
-    #pragma aux awe32NumG "_*"
-    #pragma aux awe32BaseAddx "_*"
-    #pragma aux awe32DramSize "_*"
-    #pragma aux awe32Scratch "_*"
-    #pragma aux awe32SFont "_*"
-    #pragma aux awe32GChannel "_*"
-    #pragma aux awe32MIDIChannel "_*"
-    #pragma aux awe32SoundPad "_*"
-    #pragma aux awe32NRPNChannel "_*"
-    #pragma aux awe32SPad1Obj "_*"
-    #pragma aux awe32SPad2Obj "_*"
-    #pragma aux awe32SPad3Obj "_*"
-    #pragma aux awe32SPad4Obj "_*"
-    #pragma aux awe32SPad5Obj "_*"
-    #pragma aux awe32SPad6Obj "_*"
-    #pragma aux awe32SPad7Obj "_*"
-    #pragma aux __midieng_code "_*"
-    #pragma aux __midieng_ecode "_*"
-    #pragma aux __hardware_code "_*"
-    #pragma aux __hardware_ecode "_*"
-    #pragma aux __sbkload_code "_*"
-    #pragma aux __sbkload_ecode "_*"
-    #pragma aux __nrpn_code "_*"
-    #pragma aux __nrpn_ecode "_*"
-    #pragma aux __midivar_data "_*"
-    #pragma aux __midivar_edata "_*"
-    #pragma aux __nrpnvar_data "_*"
-    #pragma aux __nrpnvar_edata "_*"
-    #pragma aux __embed_data "_*"
-    #pragma aux __embed_edata "_*"
 #endif
 
 

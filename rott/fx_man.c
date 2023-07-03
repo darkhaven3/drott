@@ -11,15 +11,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
-
-#if (defined __WATCOMC__)
-#include "dukesnd_watcom.h"
-#endif
-
-#if (!defined __WATCOMC__)
-#define cdecl
-#endif
-
 #include "SDL.h"
 #include "SDL_mixer.h"
 #include "rt_def.h"      // ROTT music hack
@@ -27,6 +18,8 @@
 #include "rt_util.h"     // ROTT music hack
 #include "fx_man.h"
 #include "music.h"
+
+#define cdecl
 
 #define __FX_TRUE  (1 == 1)
 #define __FX_FALSE (!__FX_TRUE)
@@ -118,10 +111,6 @@ static void MV_CalcPanTable
       }
    }
 /* end ASS copy-pastage */
-
-#ifdef __WATCOMC__
-#pragma aux (__cdecl) channelDoneCallback;
-#endif
 
 // This function is called whenever an SDL_mixer channel completes playback.
 //  We use this for state management and calling the application's callback.

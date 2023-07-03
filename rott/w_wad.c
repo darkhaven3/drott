@@ -169,41 +169,6 @@ void W_AddFile (char *_filename)
         }
 }
 
-
-
-/*
-====================
-=
-= W_CheckWADIntegrity
-=
-====================
-*/
-
-void W_CheckWADIntegrity ( void )
-{
-   int crc;
-
-// CRC disabled because it's not very useful these days
-
-#ifdef DOS
-   crc = CalculateCRC ((byte *)lumpinfo, numlumps*sizeof(lumpinfo_t) );
-
-   if (crc != WADCHECKSUM)
-      {
-      printf("==============================================================================\n");
-      printf("ATTENTION: This version of ROTT has been modified.  If you would like to get\n");
-      printf("a copy of the original game, call 1-800-APOGEE1 or run ROTTHELP.EXE.\n");
-      printf("      You will not receive technical support for this modified version.\n");
-//      printf("                        Press any key to continue\n");
-      printf("==============================================================================\n");
-//      printf("crc=%ld\n",crc);
-//      getch();
-      }
-#endif
-}
-
-
-
 /*
 ====================
 =
@@ -223,37 +188,16 @@ void W_CheckWADIntegrity ( void )
 ====================
 */
 
-void W_InitMultipleFiles (char **filenames)
-{
-//
+void W_InitMultipleFiles (char **filenames) {
 // open all the files, load headers, and count lumps
-//
         numlumps = 0;
         lumpinfo = SafeMalloc(5);   // will be realloced as lumps are added
 
-        for ( ; *filenames ; filenames++)
-                W_AddFile (*filenames);
-
-        if (!numlumps)
-                Error ("W_InitFiles: One or more of the required ROTT 1.3 data files could not be found.");
-
-//
-// set up caching
-//
-        lumpcache = calloc (numlumps, sizeof(*lumpcache));
-        if (!lumpcache)
-           Error("W_InitFiles: lumpcache malloc failed size=%d\n",numlumps<<2);
-
-        if (!quiet)
-           printf("W_Wad: Wad Manager Started NUMLUMPS=%ld\n",(long int)numlumps);
-#if (DATACORRUPTIONTEST == 1)
-        lumpcheck=SafeMalloc(numlumps);
-        memset(lumpcheck,255,numlumps);
-#endif
-#ifdef DOS
-        if (!SOUNDSETUP)
-#endif
-           W_CheckWADIntegrity ();
+        for ( ; *filenames ; filenames++) W_AddFile (*filenames);
+        if (!numlumps) Error ("W_InitFiles: One or more of the required ROTT 1.3 data files could not be found.");
+        lumpcache = calloc (numlumps, sizeof(*lumpcache));  // set up caching
+        if (!lumpcache) Error("W_InitFiles: lumpcache malloc failed size=%d\n",numlumps<<2);
+        if (!quiet) printf("W_Wad: Wad Manager Started NUMLUMPS=%ld\n",(long int)numlumps);
 }
 
 

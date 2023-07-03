@@ -78,19 +78,14 @@ byte  BestColor (int r, int g, int b, byte *palette);
 int   atan2_appx(int,int);
 int   FindDistance(int ix, int iy);
 int   Find_3D_Distance(int ix, int iy, int iz);
-void  SetPalette ( char * pal );
-void  SetaPalette ( byte * pal );
 void  FindEGAColors ( void );
 void  VL_FillPalette (int red, int green, int blue);
-void  VL_SetColor  (int color, int red, int green, int blue);
-void  VL_GetColor  (int color, int *red, int *green, int *blue);
 void  VL_SetPalette (byte *palette);
 void  VL_GetPalette (byte *palette);
 void  UL_printf (byte *str);
 void  VL_NormalizePalette (byte *palette);
 void  MapDebug (char *error, ...) __attribute__((format(printf,1,2)));
 void  OpenMapDebug ( void );
-void  UL_ColorBox (int x, int y, int w, int h, int color);
 
 void UL_DisplayMemoryError ( int memneeded );
 
@@ -100,7 +95,6 @@ void hsort(char * base, int nel, int width, int (*compare)(), void (*switcher)()
 
 char * UL_GetPath (char * path, char *dir);
 boolean UL_ChangeDirectory (char *path);
-boolean UL_ChangeDrive (char *drive);
 void AbortCheck (char * abortstring);
 
 void FixFilePath(char *filename);
@@ -127,16 +121,12 @@ struct find_t
 int _dos_findfirst(char *filename, int x, struct find_t *f);
 int _dos_findnext(struct find_t *f);
 
-#elif PLATFORM_DOS
-   /* no-op */
 #else
 #error please define for your platform.
 #endif
 
 
-#if !PLATFORM_DOS
-struct dosdate_t
-{
+struct dosdate_t {
     unsigned char day;
     unsigned char month;
     unsigned int year;
@@ -144,7 +134,6 @@ struct dosdate_t
 };
 
 void _dos_getdate(struct dosdate_t *date);
-#endif
 
 
 #if (SOFTERROR==1)
@@ -153,12 +142,9 @@ void  SoftwareError (char *error, ...) __attribute__((format(printf,1,2)));
 #define SoftError  SoftwareError
 
 #else
+
 void  SoftwareError (char *error, ...) __attribute__((format(printf,1,2)));
-//#define SoftError  SoftwareError
-
 #define SoftError  if (1) {} else SoftwareError
-
-//#define SoftError
 
 #endif
 
@@ -171,40 +157,9 @@ void  DebugError (char *error, ...) __attribute__((format(printf,1,2)));
 
 void  DebugError (char *error, ...) __attribute__((format(printf,1,2)));
 #define Debug  DebugError
-//#define Debug
 
 #endif
 
 void Square (void);
-
-#ifdef __WATCOMC__
-#pragma aux Square=\
-   "mov edx,03c4h",  \
-   "mov eax,0100h",  \
-	"out dx,ax",      \
-   "mov eax,0e3h",    \
-   "mov edx,03c2h",  \
-   "out dx,ax",      \
-   "mov eax,0300h",  \
-   "mov edx,03c4h",  \
-   "out dx,ax"      \
-   modify exact [eax edx]
-#endif
-
-
-#ifdef DOS
-void my_outp(int port, int data);
-#else
-#define my_outp(a,b)
-#endif
-
-#ifdef __WATCOMC__
-#pragma aux my_outp =  \
-        "out dx,al",                     \
-        parm    [edx] [eax] \
-        modify exact []
-#endif
-
-#define OUTP                              my_outp
 
 #endif

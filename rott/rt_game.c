@@ -57,6 +57,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_floor.h"
 #include "rt_msg.h"
 #include "rt_scale.h"
+#include "rt_vh_a.h"
 #include "develop.h"
 //MED
 #include "memcheck.h"
@@ -2958,7 +2959,7 @@ void DrawEOLHeader
    VWB_DrawPropString( str1 );
    }
 
-   VW_UpdateScreen ();
+   VH_UpdateScreen ();
    }
 
 boolean EndBonusFirst;
@@ -3038,15 +3039,12 @@ void DrawEndBonus
 
       case 2 :
          VL_FillPalette(255,255,255);
-         //bna--VW_UpdateScreen();
          VL_FadeIn(0,255,origpal,10);
          EndBonusVoice = SD_Play( SD_LIGHTNINGSND );
          break;
       }
 
    EndBonusStartY += 10;
-
-   //bna--VW_UpdateScreen();
    while( SD_SoundActive( EndBonusVoice ) && !EndBonusSkip )
       {
       if ( IN_CheckAck() )
@@ -3101,8 +3099,7 @@ void LevelCompleted
    EnableScreenStretch();
    tmpPic = ( pic_t * )W_CacheLumpName( "mmbk", PU_CACHE, Cvt_pic_t, 1 );
    VWB_DrawPic( 0, 0, tmpPic );
-   VW_UpdateScreen();
-//   DisableScreenStretch();
+   VH_UpdateScreen();
 
    IN_StartAck();
    EndBonusVoice = 0;
@@ -3202,35 +3199,12 @@ void LevelCompleted
       }
 
    DrawEOLHeader( playstate );
-/*
-	//bna section  store picture  because its written on again
-   // store screen first
-   picbuf = (byte *)SafeMalloc (64000);
-   memcpy(picbuf ,bufferofs ,64000);
-
-   EnableScreenStretch();
-   VW_UpdateScreen();//tmpPICbuf is destroyed here
-   DisableScreenStretch();
-   //copy it back
-
-   memcpy(bufferofs ,picbuf , 64000);
-	//bna section end
-*/
    
 EndBonusSkip = true;
 
-   while( SD_SoundActive( EndBonusVoice ) && !EndBonusSkip )
-      {
-
-      //bna--VW_UpdateScreen();
-
-      if ( IN_CheckAck() )
-         {
-         EndBonusSkip = true;
-         }
-      }
- //  tmpPic = ( pic_t * )W_CacheLumpName( "mmbk", PU_CACHE, Cvt_pic_t, 1 );
- //  VWB_DrawPic( 0, 0, tmpPic );
+while (SD_SoundActive(EndBonusVoice) && !EndBonusSkip) {
+    if (IN_CheckAck()) EndBonusSkip = true;
+}
     
    if ( GetNextMap(player->tilex,player->tiley) == -1)
       {
@@ -3431,21 +3405,13 @@ EndBonusSkip = true;
 
          }
       }
-    	  
-    
 
-	//bna section 
-//    EnableScreenStretch();//bna++
-    VW_UpdateScreen();//bna++
-//    DisableScreenStretch();//bna++
-	//bna section end
+    VH_UpdateScreen();
+
 
 
    IN_StartAck();
-   while( !IN_CheckAck() )
-      {
-      ;
-      }
+   while( !IN_CheckAck() ) {}
 
    EndLevelStuff = false;
    CurrentFont = smallfont;
@@ -3925,7 +3891,7 @@ void BattleLevelCompleted ( int localplayer )
          py = 192;
          px = ( 320 - w ) / 2;
          VWB_DrawPropString ( text );
-         VW_UpdateScreen ();
+         VH_UpdateScreen ();
 
          do
             {

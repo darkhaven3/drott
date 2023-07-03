@@ -344,31 +344,15 @@ void VL_ClearBuffer (byte *buf, byte color)
 =================
 */
 
-void VL_ClearVideo (byte color)
-{
-  memset (sdl_surface->pixels, color, iGLOBAL_SCREENWIDTH*iGLOBAL_SCREENHEIGHT);
-}
-
-/*
-=================
-=
-= VL_DePlaneVGA
-=
-=================
-*/
-
-void VL_DePlaneVGA (void)
-{
+void VL_ClearVideo(byte color) {
+	memset(sdl_surface->pixels, color, iGLOBAL_SCREENWIDTH * iGLOBAL_SCREENHEIGHT);
 }
 
 
 /* C version of rt_vh_a.asm */
 
-void VH_UpdateScreen (void)
-{ 	
-
-	if (StretchScreen || !sdl_scalemethod) StretchMemPicture ();
-
+void VH_UpdateScreen(void) {
+	if (StretchScreen) StretchMemPicture();
 	SDL_BlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
 	//SDL_LowerBlit(VL_GetVideoSurface(), &blit_rect, argbbuffer, &blit_rect);
 	SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
@@ -386,10 +370,9 @@ void VH_UpdateScreen (void)
 =================
 */
 
-void XFlipPage ( void )
-{
+void XFlipPage ( void ) {
 
- 	if (StretchScreen || sdl_scalemethod == 1) StretchMemPicture ();
+ 	if (StretchScreen) StretchMemPicture ();
 
    //SDL_LowerBlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
    SDL_LowerBlit(sdl_surface, &blit_rect, argbbuffer, &blit_rect);
@@ -402,22 +385,10 @@ void XFlipPage ( void )
 
 
 
-void EnableScreenStretch(void)
-{
-   int i,offset;
-   
+void EnableScreenStretch(void) {
    if (iGLOBAL_SCREENWIDTH <= 320 || StretchScreen) return;
-   
-   if (unstretch_sdl_surface == NULL)
-   {
-      /* should really be just 320x200, but there is code all over the
-         places which crashes then */
-      unstretch_sdl_surface = SDL_CreateRGBSurface(0,
-         iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, 8, 0, 0, 0, 0);
-   }
-	
-   displayofs = unstretch_sdl_surface->pixels +
-	(displayofs - (byte *)sdl_surface->pixels);
+   if (unstretch_sdl_surface == NULL) unstretch_sdl_surface = SDL_CreateRGBSurface(0, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT, 8, 0, 0, 0, 0);
+   displayofs = unstretch_sdl_surface->pixels + (displayofs - (byte *)sdl_surface->pixels);
    bufferofs  = unstretch_sdl_surface->pixels;
    page1start = unstretch_sdl_surface->pixels;
    page2start = unstretch_sdl_surface->pixels;
@@ -425,38 +396,32 @@ void EnableScreenStretch(void)
    StretchScreen = 1;	
 }
 
-void DisableScreenStretch(void)
-{
-   if (iGLOBAL_SCREENWIDTH <= 320 || !StretchScreen) return;
-	
-   displayofs = sdl_surface->pixels + (displayofs - (byte *)unstretch_sdl_surface->pixels);	//??
-   bufferofs  = sdl_surface->pixels;
-   page1start = sdl_surface->pixels;
-   page2start = sdl_surface->pixels;
-   page3start = sdl_surface->pixels;
-   StretchScreen = 0;
-}
-
-
-// bna section -------------------------------------------
-static void StretchMemPicture ()
-{
-  SDL_Rect src;
-  SDL_Rect dest;
-	
-  src.x = 0;
-  src.y = 0;
-  src.w = 320;
-  src.h = 200;
-  
-  dest.x = 0;
-  dest.y = 0;
-  dest.w = iGLOBAL_SCREENWIDTH;
-  dest.h = iGLOBAL_SCREENHEIGHT;
-  SDL_SoftStretch(unstretch_sdl_surface, &src, sdl_surface, &dest);
+void DisableScreenStretch(void) {
+	if (iGLOBAL_SCREENWIDTH <= 320 || !StretchScreen) return;
+	displayofs = sdl_surface->pixels + (displayofs - (byte*)unstretch_sdl_surface->pixels);	//??
+	bufferofs = sdl_surface->pixels;
+	page1start = sdl_surface->pixels;
+	page2start = sdl_surface->pixels;
+	page3start = sdl_surface->pixels;
+	StretchScreen = 0;
 }
 
 // bna section -------------------------------------------
 
+static void StretchMemPicture(void) {
+	SDL_Rect src;
+	SDL_Rect dest;
 
+	src.x = 0;
+	src.y = 0;
+	src.w = 320;
+	src.h = 200;
 
+	dest.x = 0;
+	dest.y = 0;
+	dest.w = iGLOBAL_SCREENWIDTH;
+	dest.h = iGLOBAL_SCREENHEIGHT;
+	SDL_SoftStretch(unstretch_sdl_surface, &src, sdl_surface, &dest);
+}
+
+// bna section -------------------------------------------

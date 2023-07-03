@@ -51,6 +51,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_playr.h"
 #include "rt_sound.h"
 #include "myprint.h"
+#include "rt_vh_a.h"
 //MED
 #include "memcheck.h"
 
@@ -110,11 +111,7 @@ void VW_DrawClippedString (int x, int y, const char *string)
                if ((y>=0) && (y<iGLOBAL_SCREENHEIGHT))
                   {
                   if (*source>0)
-#ifdef DOS
-                     *((byte *)(bufferofs+ylookup[y]+(x>>2))) = *source;
-#else
                      *((byte *)(bufferofs+ylookup[y]+x)) = *source;
-#endif
                   }
                source++;
                y++;
@@ -172,53 +169,6 @@ void US_ClippedPrint (int x, int y, const char *string)
 
 void VW_DrawPropString (const char *string)
 {
-#ifdef DOS
-   byte  pix;
-   int   width,step,height,ht;
-   byte  *source, *dest, *origdest;
-   int   ch,mask;
-
-
-   ht = CurrentFont->height;
-   dest = origdest = (byte *)(bufferofs+ylookup[py]+(px>>2));
-
-
-   mask = 1<<(px&3);
-
-
-   while ((ch = *string++)!=0)
-   {
-      ch -= 31;
-      width = step = CurrentFont->width[ch];
-      source = ((byte *)CurrentFont)+CurrentFont->charofs[ch];
-      while (width--)
-      {
-         VGAMAPMASK(mask);
-
-         height = ht;
-         while (height--)
-         {
-            pix = *source;
-            if (pix)
-               *dest = pix;
-
-            source++;
-            dest += linewidth;
-         }
-
-         px++;
-         mask <<= 1;
-         if (mask == 16)
-         {
-            mask = 1;
-            origdest++;
-         }
-         dest = origdest;
-      }
-   }
-   bufferheight = ht;
-   bufferwidth = ((dest+1)-origdest)*4;
-#else
    byte  pix;
    int   width,step,height,ht;
    byte  *source, *dest, *origdest;
@@ -252,7 +202,6 @@ void VW_DrawPropString (const char *string)
    }
    bufferheight = ht;
    bufferwidth = ((dest+1)-origdest);
-#endif
 }
 
 
@@ -292,13 +241,7 @@ void VW_DrawIPropString (const char *string)
 
 
    ht = CurrentFont->height;
-#ifdef DOS
-   dest = origdest = (byte *)(bufferofs+ylookup[py]+(px>>2));
-#else
    dest = origdest = (byte *)(bufferofs+ylookup[py]+px);
-#endif
-
-
    mask = 1<<(px&3);
 
 
@@ -323,25 +266,15 @@ void VW_DrawIPropString (const char *string)
          }
 
          px++;
-#ifdef DOS
-         mask <<= 1;
-         if (mask == 16)
-         {
-            mask = 1;
-            origdest++;
-         }
-#else
+
 	 origdest++;
-#endif
+
          dest = origdest;
       }
    }
    bufferheight = ht;
-#ifdef DOS
-   bufferwidth = ((dest+1)-origdest)*4;
-#else
    bufferwidth = ((dest+1)-origdest);
-#endif
+
 
 }
 
@@ -1003,39 +936,27 @@ boolean US_LineInput (int x, int y, char *buf, const char *def, boolean escok,
 
          cursorvis ^= true;
       }
-      if (cursorvis)
-         USL_XORICursor (x, y, s, cursor, color);
-
-//      if (GameEscaped==true)
-//         PauseLoop ();
-
-      if (color)
-         VW_UpdateScreen ();
-      else
-         RefreshMenuBuf (0);
+      if (cursorvis) USL_XORICursor (x, y, s, cursor, color);
+      if (color) VH_UpdateScreen();
+      else RefreshMenuBuf(0);
    }
 
    if (cursorvis)
       USL_XORICursor (x, y, s, cursor, color);
 
-   if (!result)
-   {
-      px = x;
-      py = y;
-      if (color)
-         USL_DrawString (olds);
-      else
-         DrawMenuBufPropString (px, py, olds);
+   if (!result) {
+       px = x;
+       py = y;
+       if (color) USL_DrawString(olds);
+       else DrawMenuBufPropString(px, py, olds);
    }
 
 //   if (GameEscaped==true)
 //      PauseLoop ();
 
-   if (color)
-      VW_UpdateScreen ();
-   else
-      RefreshMenuBuf (0);
-   return (result);
+   if(color) VH_UpdateScreen ();
+   else RefreshMenuBuf(0);
+   return result;
 }
 
 
@@ -1100,229 +1021,210 @@ boolean US_lineinput (int x, int y, char *buf, const char *def, boolean escok,
 
    while (!done)
    {
-//      if (GameEscaped == true)
-//         PauseLoop ();
+       //      if (GameEscaped == true)
+       //         PauseLoop ();
 
-      IN_PumpEvents();
-      
-      if (cursorvis)
-         USL_XORICursor (x, y, xx, cursor, color);
+       IN_PumpEvents();
 
-      LastScan = IN_InputUpdateKeyboard ();
-      if (Keyboard[sc_LShift] || Keyboard[sc_RShift])
-         lastkey = ShiftNames[LastScan];
-      else
-         lastkey = ASCIINames[LastScan];
+       if (cursorvis)
+           USL_XORICursor(x, y, xx, cursor, color);
+
+       LastScan = IN_InputUpdateKeyboard();
+       if (Keyboard[sc_LShift] || Keyboard[sc_RShift])
+           lastkey = ShiftNames[LastScan];
+       else
+           lastkey = ASCIINames[LastScan];
 
 
-      switch (LastScan)
-      {
-      case sc_LeftArrow:
+       switch (LastScan)
+       {
+       case sc_LeftArrow:
 
-         if (cursor)
-            {
-            cursor--;
-            cursormoved = true;
-            MN_PlayMenuSnd (SD_MOVECURSORSND);
-            }
-         lastkey = key_None;
-         Keyboard[sc_LeftArrow] = 0;
-         break;
+           if (cursor)
+           {
+               cursor--;
+               cursormoved = true;
+               MN_PlayMenuSnd(SD_MOVECURSORSND);
+           }
+           lastkey = key_None;
+           Keyboard[sc_LeftArrow] = 0;
+           break;
 
-      case sc_RightArrow:
+       case sc_RightArrow:
 
-         if (s[cursor])
-            {
-            cursor++;
-            cursormoved = true;
-            MN_PlayMenuSnd (SD_MOVECURSORSND);
-            }
-         lastkey = key_None;
-         Keyboard[sc_RightArrow] = 0;
-         break;
+           if (s[cursor])
+           {
+               cursor++;
+               cursormoved = true;
+               MN_PlayMenuSnd(SD_MOVECURSORSND);
+           }
+           lastkey = key_None;
+           Keyboard[sc_RightArrow] = 0;
+           break;
 
-      case sc_Home:
+       case sc_Home:
 
-         if ( cursor != 0 )
-            {
-            cursor = 0;
-            cursormoved = true;
-            MN_PlayMenuSnd (SD_MOVECURSORSND);
-            }
-         Keyboard[sc_Home] = 0;
-         lastkey = key_None;
-         break;
+           if (cursor != 0)
+           {
+               cursor = 0;
+               cursormoved = true;
+               MN_PlayMenuSnd(SD_MOVECURSORSND);
+           }
+           Keyboard[sc_Home] = 0;
+           lastkey = key_None;
+           break;
 
-      case sc_End:
+       case sc_End:
 
-         if ( cursor != (int)strlen( s ) )
-            {
-            cursor = strlen (s);
-            cursormoved = true;
-            MN_PlayMenuSnd (SD_MOVECURSORSND);
-            }
-         lastkey = key_None;
-         Keyboard[sc_End] = 0;
-         break;
+           if (cursor != (int)strlen(s))
+           {
+               cursor = strlen(s);
+               cursormoved = true;
+               MN_PlayMenuSnd(SD_MOVECURSORSND);
+           }
+           lastkey = key_None;
+           Keyboard[sc_End] = 0;
+           break;
 
-      case sc_Return:
-         strcpy (buf,s);
-         done = true;
-         result = true;
-         lastkey = key_None;
-         MN_PlayMenuSnd (SD_SELECTSND);
-         break;
+       case sc_Return:
+           strcpy(buf, s);
+           done = true;
+           result = true;
+           lastkey = key_None;
+           MN_PlayMenuSnd(SD_SELECTSND);
+           break;
 
-      case sc_Escape:
-         if (escok)
-         {
-            done = true;
-            result = false;
-            MN_PlayMenuSnd (SD_ESCPRESSEDSND);
-         }
-         lastkey = key_None;
-         break;
+       case sc_Escape:
+           if (escok)
+           {
+               done = true;
+               result = false;
+               MN_PlayMenuSnd(SD_ESCPRESSEDSND);
+           }
+           lastkey = key_None;
+           break;
 
-      case sc_BackSpace:
+       case sc_BackSpace:
 
-         if (cursor)
-            {
-            strcpy (s + cursor - 1,s + cursor);
-            strcpy (xx + cursor - 1,xx + cursor);
-            cursor--;
-            redraw = true;
-            MN_PlayMenuSnd (SD_MOVECURSORSND);
-            cursormoved = true;
-            }
-         lastkey = key_None;
-         Keyboard[sc_BackSpace] = 0;
-         break;
+           if (cursor)
+           {
+               strcpy(s + cursor - 1, s + cursor);
+               strcpy(xx + cursor - 1, xx + cursor);
+               cursor--;
+               redraw = true;
+               MN_PlayMenuSnd(SD_MOVECURSORSND);
+               cursormoved = true;
+           }
+           lastkey = key_None;
+           Keyboard[sc_BackSpace] = 0;
+           break;
 
-      case sc_Delete:
+       case sc_Delete:
 
-         if (s[cursor])
-            {
-            strcpy (s + cursor,s + cursor + 1);
-            strcpy (xx + cursor,xx + cursor + 1);
-            redraw = true;
-            cursormoved = true;
-            MN_PlayMenuSnd (SD_MOVECURSORSND);
-            }
-         lastkey = key_None;
-         Keyboard[sc_Delete] = 0;
-         break;
+           if (s[cursor])
+           {
+               strcpy(s + cursor, s + cursor + 1);
+               strcpy(xx + cursor, xx + cursor + 1);
+               redraw = true;
+               cursormoved = true;
+               MN_PlayMenuSnd(SD_MOVECURSORSND);
+           }
+           lastkey = key_None;
+           Keyboard[sc_Delete] = 0;
+           break;
 
-      case 0x4c:  // Keypad 5
-      case sc_UpArrow:
-      case sc_DownArrow:
-      case sc_PgUp:
-      case sc_PgDn:
-      case sc_Insert:
-         lastkey = key_None;
-         break;
-      }
+       case 0x4c:  // Keypad 5
+       case sc_UpArrow:
+       case sc_DownArrow:
+       case sc_PgUp:
+       case sc_PgDn:
+       case sc_Insert:
+           lastkey = key_None;
+           break;
+       }
 
-//      if (GameEscaped==true)
-//         PauseLoop ();
+       //      if (GameEscaped==true)
+       //         PauseLoop ();
 
-      if (lastkey)
-      {
-         len = strlen (s);
-         USL_MeasureString (xx, &w, &h, CurrentFont);
+       if (lastkey)
+       {
+           len = strlen(s);
+           USL_MeasureString(xx, &w, &h, CurrentFont);
 
-         if
-         (
-            isprint(lastkey)
-         && (len < MaxString - 1)
-         && ((!maxchars) || (len < maxchars))
-         && ((!maxwidth) || ((w+2) < (maxwidth-cursorwidth-2)))
-         )
-         {
-            int ls;
-            int rs;
+           if
+               (
+                   isprint(lastkey)
+                   && (len < MaxString - 1)
+                   && ((!maxchars) || (len < maxchars))
+                   && ((!maxwidth) || ((w + 2) < (maxwidth - cursorwidth - 2)))
+                   )
+           {
+               int ls;
+               int rs;
 
-            for (i = len + 1;i > cursor;i--)
-               s[i] = s[i - 1];
-            s[cursor]   = lastkey;
-            xx[cursor++] = '*';
-            redraw = true;
+               for (i = len + 1; i > cursor; i--)
+                   s[i] = s[i - 1];
+               s[cursor] = lastkey;
+               xx[cursor++] = '*';
+               redraw = true;
 
-            ls = Keyboard[sc_LShift];
-            rs = Keyboard[sc_RShift];
-            memset ((void*)Keyboard, 0, 127*sizeof(int));       // Clear printable keys
-            Keyboard[sc_LShift] = ls;
-            Keyboard[sc_RShift] = rs;
-            MN_PlayMenuSnd (SD_MOVECURSORSND);
-         }
-      }
+               ls = Keyboard[sc_LShift];
+               rs = Keyboard[sc_RShift];
+               memset((void*)Keyboard, 0, 127 * sizeof(int));       // Clear printable keys
+               Keyboard[sc_LShift] = ls;
+               Keyboard[sc_RShift] = rs;
+               MN_PlayMenuSnd(SD_MOVECURSORSND);
+           }
+       }
 
-//      if (GameEscaped==true)
-//         PauseLoop ();
+       if (redraw)
+       {
+           if (color)
+               VWB_Bar(x, y, BKw, BKh, color);
+           else
+               EraseMenuBufRegion(x, y, BKw, BKh);
 
-      if (redraw)
-      {
-         if (color)
-            VWB_Bar (x, y, BKw, BKh, color);
-         else
-            EraseMenuBufRegion (x, y, BKw, BKh);
+           strcpy(olds, s);
 
-         strcpy (olds, s);
+           px = x;
+           py = y;
+           if (color)
+               USL_DrawString(xx);
+           else
+               DrawMenuBufPropString(px, py, xx);
+           px = x;
+           py = y;
 
-         px = x;
-         py = y;
-         if (color)
-            USL_DrawString (xx);
-         else
-            DrawMenuBufPropString (px, py, xx);
-         px = x;
-         py = y;
+           redraw = false;
+       }
 
-         redraw = false;
-      }
+       if (cursormoved)
+       {
+           cursorvis = false;
+           lasttime = GetTicCount() - VBLCOUNTER;
 
-      if (cursormoved)
-      {
-         cursorvis = false;
-         lasttime = GetTicCount() - VBLCOUNTER;
+           cursormoved = false;
+       }
+       if (GetTicCount() - lasttime > VBLCOUNTER / 2) {
+           lasttime = GetTicCount();
+           cursorvis ^= true;
+       }
 
-         cursormoved = false;
-      }
-      if (GetTicCount() - lasttime > VBLCOUNTER / 2)
-      {
-         lasttime = GetTicCount();
-
-         cursorvis ^= true;
-      }
-      if (cursorvis)
-         USL_XORICursor (x, y, xx, cursor, color);
-
-      if (color)
-         VW_UpdateScreen ();
-      else
-         RefreshMenuBuf (0);
+       if (cursorvis) USL_XORICursor(x, y, xx, cursor, color);
+       if (color) VH_UpdateScreen();
+       else RefreshMenuBuf(0);
+   }
+   if (cursorvis) USL_XORICursor (x, y, xx, cursor, color);
+   if (!result) {
+       px = x;
+       py = y;
+       if (color) USL_DrawString(xx);
+       else DrawMenuBufPropString(px, py, xx);
    }
 
-   if (cursorvis)
-      USL_XORICursor (x, y, xx, cursor, color);
-
-   if (!result)
-   {
-      px = x;
-      py = y;
-      if (color)
-         USL_DrawString (xx);
-      else
-         DrawMenuBufPropString (px, py, xx);
-   }
-
-//   if (GameEscaped==true)
-//      PauseLoop ();
-
-   if (color)
-      VW_UpdateScreen ();
-   else
-      RefreshMenuBuf (0);
-   return (result);
+   if (color) VH_UpdateScreen();
+   else RefreshMenuBuf(0);
+   return result;
 }
 
 

@@ -22,12 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef DOS
-#include <dos.h>
-#include <conio.h>
-#endif
-
 #include "rt_def.h"
 #include "_z_zone.h"
 #include "z_zone.h"
@@ -750,24 +744,8 @@ void Z_ChangeTag (void *ptr, int tag)
 ========================
 */
 
-int Z_AvailHeap ( void )
-{
-#ifdef DOS
-   union REGS zregs;
-   struct SREGS zsregs;
-
-
-   zregs.x.eax = 0x00000500;
-   memset( &zsregs, 0, sizeof(zsregs) );
-   zsregs.es = FP_SEG( &MemInfo );
-   zregs.x.edi = FP_OFF( &MemInfo );
-
-   int386x( DPMI_INT, &zregs, &zregs, &zsregs );
-
-   return ((int)MemInfo.LargestBlockAvail);
-#else
+inline int Z_AvailHeap(void) {
 	return MAXMEMORYSIZE;
-#endif
 }
 
 /*

@@ -25,15 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-
-#ifdef DOS
-#include <io.h>
-#include <conio.h>
-#include <dos.h>
-#else
 #include <errno.h>
-#endif
-
 #include "states.h"
 #include "watcom.h"
 #include "rt_ted.h"
@@ -64,6 +56,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_debug.h"
 #include "rt_scale.h"
 #include "rt_net.h"
+#include "rt_vh_a.h"
 //MED
 #include "memcheck.h"
 
@@ -1115,7 +1108,7 @@ void DrawPreCache( void )
 
       US_BufPrint (&temp[0]);
 
-      VW_UpdateScreen();
+      VH_UpdateScreen();
 
       MenuFadeIn ();
       }
@@ -1207,9 +1200,8 @@ void PreCache( void )
 				DrawNormalSprite (91+3+(Gs*(lastmem<<2)),559,W_GetNumForName ("led1"));//led1 progressbar
 				DrawNormalSprite (91+3+(Gs*(lastmem<<2)),559+3,W_GetNumForName ("led1"));//led1 progressbar
 			}
-
             lastmem++;
-				VW_UpdateScreen (); // was missing, fixed
+				VH_UpdateScreen (); // was missing, fixed
             }
          currentcache=(i*MAXLEDS)/(cacheindex+1);
          while (lastcache<=currentcache)
@@ -1232,7 +1224,7 @@ void PreCache( void )
 				DrawNormalSprite (91+3+(Gs*(lastcache<<2)),573+3,W_GetNumForName ("led2"));//led2 progressbar
 			}
 			DisableScreenStretch();//bna++
-			VW_UpdateScreen ();//bna++
+			VH_UpdateScreen ();//bna++
             lastcache++;
             ticdelay--;
             if (ticdelay==0)
@@ -1245,11 +1237,11 @@ void PreCache( void )
                   }
                ticdelay=CACHETICDELAY;
                }
-				VW_UpdateScreen (); // was missing, fixed
+				VH_UpdateScreen (); // was missing, fixed
             }
          }
 	  DisableScreenStretch();//bna++
-	  VW_UpdateScreen ();//bna++
+	  VH_UpdateScreen ();
 	  //I_Delay(200);
       bufferofs=tempbuf;
       ShutdownPreCache ();
@@ -1276,7 +1268,7 @@ DisableScreenStretch();
          //VWB_TBar (PrintX-2, PrintY-2, width+4, height+4);
          US_BufPrint (&buf[0]);
 
-         VW_UpdateScreen();
+         VH_UpdateScreen();
 
          IN_StartAck();
          while (!IN_CheckAck ())

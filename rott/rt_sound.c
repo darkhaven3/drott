@@ -66,17 +66,6 @@ static int NumBadSounds=0;
 static int remotestart;
 static boolean SoundsRemapped = false;
 
-#ifdef DOS
-int musicnums[ 11 ] = {
-   -1, UltraSound, SoundBlaster, SoundMan16, ProAudioSpectrum,
-   Awe32, SoundScape, WaveBlaster, GenMidi, SoundCanvas, Adlib
-   };
-
-int fxnums[ 11 ] = {
-   -1, UltraSound, SoundBlaster, SoundMan16, ProAudioSpectrum,
-   Awe32, SoundScape, Adlib, SoundSource, TandySoundSource, PC
-   };
-#else
 int musicnums[ 11 ] = {
    -1, -1, -1, -1, -1, -1, SoundScape, -1, -1, -1, -1
    };
@@ -84,11 +73,6 @@ int musicnums[ 11 ] = {
 int fxnums[ 11 ] = {
    -1, -1, -1, -1, -1, -1, SoundScape, -1, -1, -1, -1
    };
-#endif
-
-#if 0
-void MU_SetupGUSInitFile( void );
-#endif
 
 int MUSIC_GetPosition( void ) {
    songposition pos;
@@ -108,8 +92,7 @@ void MUSIC_SetPosition( int time ) {
 //
 //***************************************************************************
 
-int SoundNumber ( int x )
-{
+int SoundNumber (int x) {
    if ((x>=SD_REMOTEM1SND) && (x<=SD_REMOTEM10SND))
       return remotestart + x - SD_REMOTEM1SND;
 //      sounds[x].snds[soundtype]+remotestart;
@@ -148,47 +131,25 @@ void SD_MakeCacheable( unsigned long sndnum )
 //
 //***************************************************************************
 
-int SD_SetupFXCard ( int * numvoices, int * numbits, int * numchannels)
-{
-   fx_device device;
-   int status;
-   int card;
+int SD_SetupFXCard(int* numvoices, int* numbits, int* numchannels) {
+    fx_device device;
+    int status;
+    int card;
 
-   if (SD_Started==true)
-      SD_Shutdown();
+    if (SD_Started) SD_Shutdown();
+    if (FXMode < 0 || FXMode >= 11) return 0;
 
-   if ( ( FXMode < 0 ) || ( FXMode >= 11 ) )
-      {
-      return( 0 );
-      }
+    card = fxnums[FXMode];
+    if (card == -1) return 0;      // Check if it is off
+    status = FX_SetupCard(card, &device);
+    if (status == FX_Ok) {
+        *numvoices = device.MaxVoices;
+        *numbits = device.MaxSampleBits;
+        *numchannels = device.MaxChannels;
+    }
 
-   card = fxnums[ FXMode ];
-   if (card==-1) // Check if it is off
-      return (0);
-#ifdef DOS
-   if ( ( card == SoundBlaster ) || ( card == Awe32 ) )
-      {
-      extern fx_blaster_config SBSettings;
-
-      status = FX_SetupSoundBlaster( SBSettings, numvoices,
-         numbits, numchannels );
-      }
-   else
-      {
-#endif
-      status=FX_SetupCard( card, &device );
-      if ( status == FX_Ok )
-         {
-         *numvoices=device.MaxVoices;
-         *numbits=device.MaxSampleBits;
-         *numchannels=device.MaxChannels;
-         }
-#ifdef DOS
-      }
-#endif
-
-   return (status);
-   }
+    return status;
+}
 
 //***************************************************************************
 //
@@ -196,119 +157,54 @@ int SD_SetupFXCard ( int * numvoices, int * numbits, int * numchannels)
 //
 //***************************************************************************
 
-int SD_Startup ( boolean bombonerror )
+int SD_Startup(boolean bombonerror)
 {
-   int status;
-   int card;
-   int voices;
-   int channels;
-   int bits;
-   int i;
-   extern boolean IS8250;
+    int status;
+    int card;
+    int voices;
+    int channels;
+    int bits;
+    int i;
 
-   if (SD_Started==true)
-      SD_Shutdown();
+    if (SD_Started == true) SD_Shutdown();
+    if (FXMode < 0 || FXMode >= 11) return 0;
 
-   if ( ( FXMode < 0 ) || ( FXMode >= 11 ) )
-      {
-      return( 0 );
-      }
-   card = fxnums[ FXMode ];
-   if (card==-1) // Check if it is off
-      return (0);
+    card = fxnums[FXMode];
 
-   switch (card)
-      {
-#ifdef DOS
-      case UltraSound:
-      case SoundBlaster:
-      case SoundMan16:
-      case ProAudioSpectrum:
-      case Awe32:
-      case SoundSource:
-      case TandySoundSource:
-#endif
-      case SoundScape:
-         soundstart=W_GetNumForName("digistrt")+1;
-         soundtype=fx_digital;
-         break;
-#ifdef DOS
-      case Adlib:
-         soundstart=W_GetNumForName("adstart")+1;
-         soundtype=fx_muse;
-         break;
-      case PC:
-         soundstart=W_GetNumForName("pcstart")+1;
-         soundtype=fx_muse;
-         break;
-#endif
-      default:
-         Error("FX: Unsupported Card number %d",FXMode);
-         break;
-      }
+    if (card == -1) return 0;   // Check if it is off
 
-   if ( soundtype == fx_digital )
-      {
-      if ( SoundsRemapped == false )
-         {
-         for( i = 0; i < SD_LASTSOUND; i++ )
-            {
-            int snd;
+    soundstart = W_GetNumForName("digistrt") + 1;
+    soundtype = fx_digital;
 
-            snd = sounds[ i ].snds[ fx_digital ];
-            if ( snd >= 0)
-               {
-               sounds[ i ].snds[ fx_digital ] = W_GetNumForName(
-                  W_GetNameForNum( snd + soundstart ) );
-               }
-            }
-         SoundsRemapped = true;
-         }
-      soundstart = 0;
-      }
+    if (SoundsRemapped == false) {
+        for (i = 0; i < SD_LASTSOUND; i++) {
+            int snd = sounds[i].snds[fx_digital];
+            if (snd >= 0) sounds[i].snds[fx_digital] = W_GetNumForName(W_GetNameForNum(snd + soundstart));
+        }
+        SoundsRemapped = true;
+    }
 
-   voices   = NumVoices;
-   channels = NumChannels;
-   bits     = NumBits;
+    soundstart = 0;
+    voices = NumVoices;
+    channels = NumChannels;
+    bits = NumBits;
+    status = FX_Init(card, voices, channels, bits, 11025);
 
-   if ( IS8250 )
-      {
-      voices   = max( voices, 4 );
-      channels = 1;
-      bits     = 8;
-      }
+    if (status != FX_Ok) {
+        if (bombonerror) {
+            DeleteSoundFile();
+            Error("%s\n", FX_ErrorString(status));
+        }
 
-#ifdef DOS
-   status=FX_Init( card, voices, channels, bits, 11000 );
-#else
-   status=FX_Init( card, voices, channels, bits, 11025 );
-#endif
+        return status;
+    }
 
-   if (status != FX_Ok)
-      {
-      if (bombonerror)
-         {
-         DeleteSoundFile ();
-         Error( "%s\n", FX_ErrorString( status ) );
-         }
-
-      return (status);
-      }
-
-   if (stereoreversed == true)
-      {
-      FX_SetReverseStereo(!FX_GetReverseStereo());
-      }
-
-   FX_SetCallBack( SD_MakeCacheable );
-
-   remotestart=W_GetNumForName("remostrt")+1;
-
-   SD_Started=true;
-
-   FX_SetVolume (FXvolume);
-
-   return (0);
+    if (stereoreversed) FX_SetReverseStereo(!FX_GetReverseStereo());
+    FX_SetCallBack(SD_MakeCacheable);
+    remotestart = W_GetNumForName("remostrt") + 1;
+    SD_Started = true;
+    FX_SetVolume(FXvolume);
+    return 0;
 }
 
 //***************************************************************************
@@ -1047,52 +943,23 @@ int MU_Startup(boolean bombonerror) {
 //
 //***************************************************************************
 
-void MU_Shutdown (void)
-{
-   if (MU_Started==false)
-      return;
+void MU_Shutdown(void) {
+   if (!MU_Started) return;
    MUSIC_Shutdown();
    MU_Started=false;
 }
-
-#ifdef DOS
-//***************************************************************************
-//
-// MU_SetupGUSInitFile - initialize GUS stuff
-//
-//***************************************************************************
-
-void MU_SetupGUSInitFile( void )
-{
-   char filename[ 128 ];
-
-   GetPathFromEnvironment( filename, ApogeePath, GUSMIDIINIFILE );
-   if (access (filename, F_OK) != 0)
-      {
-      int lump;
-
-      lump=W_GetNumForName("gusmidi");
-
-      SaveFile (filename, W_CacheLumpNum(lump,PU_CACHE, CvtNull, 1), W_LumpLength(lump));
-      }
-}
-
-#endif
 
 //***************************************************************************
 //
 // MU_GetNumForType - returns number of song in rottsongs of specific type
 //
 //***************************************************************************
-int MU_GetNumForType ( int type )
-{
+int MU_GetNumForType(int type) {
    int i;
 
-   for (i=0;i<MAXSONGS;i++)
-      {
-      if (rottsongs[i].songtype == type)
-         return i;
-      }
+   for (i = 0; i < MAXSONGS; i++)
+       if (rottsongs[i].songtype == type) return i;
+
    Error("MU_GetNumForType: could not find song type in list\n");
    return -1;
 }
@@ -1104,42 +971,23 @@ int MU_GetNumForType ( int type )
 //
 //***************************************************************************
 
-void MU_PlaySong ( int num )
-{
-   int lump;
-   int size;
-   
-   if (MU_Started==false)
-      return;
+void MU_PlaySong(int num) {
+    int lump;
+    int size;
 
-   if (num<0)
-      return;
+    if (!MU_Started || num < 0) return;
+    if (num >= MAXSONGS) Error("Song number out of range\n");
 
-   if (num>=MAXSONGS)
-      Error("Song number out of range\n");
+    MU_StopSong();
+    lastsongnumber = num;
+    lump = W_GetNumForName(rottsongs[num].lumpname);
+    size = W_LumpLength(lump);
+    currentsong = W_CacheLumpNum(lump, PU_STATIC, CvtNull, 1);
 
-   MU_StopSong();
+    if (rottsongs[num].loopflag == loop_yes) MUSIC_PlaySongROTT(currentsong, size, MUSIC_LoopSong);
+    else MUSIC_PlaySongROTT(currentsong, size, MUSIC_PlayOnce);
 
-   lastsongnumber=num;
-
-   lump = W_GetNumForName(rottsongs[num].lumpname);
-   size = W_LumpLength(lump);
-
-   currentsong=W_CacheLumpNum(lump,PU_STATIC, CvtNull, 1);
-
-#ifdef PLATFORM_DOS
-   if (rottsongs[num].loopflag == loop_yes)
-      MUSIC_PlaySong(currentsong,size,MUSIC_LoopSong);
-   else
-      MUSIC_PlaySong(currentsong,size,MUSIC_PlayOnce);
-#else 
-   if (rottsongs[num].loopflag == loop_yes)
-      MUSIC_PlaySongROTT(currentsong,size,MUSIC_LoopSong);
-   else
-      MUSIC_PlaySongROTT(currentsong,size,MUSIC_PlayOnce);
-#endif
-
-   MU_SetVolume (MUvolume);
+    MU_SetVolume(MUvolume);
 }
 
 //***************************************************************************
@@ -1148,17 +996,14 @@ void MU_PlaySong ( int num )
 //
 //***************************************************************************
 
-void MU_StopSong ( void )
-{
-   if (MU_Started==false)
-      return;
+void MU_StopSong(void) {
+    if (!MU_Started) return;
 
-   MUSIC_StopSong ();
-   if (currentsong)
-      {
-      W_CacheLumpName(rottsongs[lastsongnumber].lumpname,PU_CACHE, CvtNull, 1);
-      currentsong=0;
-      }
+    MUSIC_StopSong();
+    if (currentsong) {
+        W_CacheLumpName(rottsongs[lastsongnumber].lumpname, PU_CACHE, CvtNull, 1);
+        currentsong = 0;
+    }
 }
 
 //***************************************************************************
@@ -1167,8 +1012,7 @@ void MU_StopSong ( void )
 //
 //***************************************************************************
 
-int MU_GetSongNumber ( void )
-{
+inline int MU_GetSongNumber (void) {
    return lastsongnumber;
 }
 
@@ -1179,21 +1023,16 @@ int MU_GetSongNumber ( void )
 //
 //***************************************************************************
 
-void MU_FadeToSong ( int num, int time )
-{
+void MU_FadeToSong(int num, int time) {
    int t;
 
-   if (MU_Started==false)
-      return;
-
+   if (MU_Started==false) return;
    MU_FadeOut(time>>1);
 
-   while (MU_FadeActive())
-      {
-      t=GetTicCount();
-      while (GetTicCount()==t) {}
-      }
-
+   while (MU_FadeActive()) {
+       t = GetTicCount();
+       while (GetTicCount() == t) {}
+   }
    MU_FadeIn (num,time>>1);
 }
 
@@ -1203,14 +1042,12 @@ void MU_FadeToSong ( int num, int time )
 //
 //***************************************************************************
 
-void MU_FadeIn ( int num, int time )
-{
-   if (MU_Started==false)
-      return;
+void MU_FadeIn(int num, int time) {
+    if (!MU_Started) return;
 
-   MUSIC_SetVolume(0);
-   MU_PlaySong ( num );
-   MUSIC_FadeVolume (MUvolume, time);
+    MUSIC_SetVolume(0);
+    MU_PlaySong(num);
+    MUSIC_FadeVolume(MUvolume, time);
 }
 
 //***************************************************************************
@@ -1219,18 +1056,15 @@ void MU_FadeIn ( int num, int time )
 //
 //***************************************************************************
 
-void MU_FadeOut ( int time )
-{
-   if (MU_Started==false)
-      return;
-   if (!MUSIC_SongPlaying())
-      {
+void MU_FadeOut(int time) {
+    if (MU_Started == false) return;
+    if (!MUSIC_SongPlaying()) {
 #if (DEVELOPMENT == 1)
-      SoftError("Called FadeOut with no song playing\n");
+        SoftError("Called FadeOut with no song playing\n");
 #endif
-      return;
-      }
-   MUSIC_FadeVolume(0,time);
+        return;
+    }
+    MUSIC_FadeVolume(0, time);
 }
 
 
@@ -1361,8 +1195,7 @@ void MU_SetSongPosition ( int position )
 //
 //***************************************************************************
 
-void MU_SaveMusic (byte ** buf, int * size)
-{
+void MU_SaveMusic (byte ** buf, int * size) {
    int unitsize;
    byte *ptr;
    int vsize;

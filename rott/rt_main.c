@@ -92,7 +92,6 @@ boolean MONOPRESENT             = false;
 boolean MAPSTATS                = false;
 boolean TILESTATS               = false;
 boolean HUD                     = false;
-boolean IS8250                  = false;
 
 boolean dopefish;
 
@@ -377,7 +376,6 @@ void DrawRottTitle ( void ) {
 #ifndef ANSIESC
        printf("\n");
 #endif
-       UL_ColorBox(0, 0, 80, 2, 0x1e);
    }
    else TurnOffTextCursor ();
 
@@ -387,7 +385,7 @@ void CheckCommandLineParameters(void) {
     char* PStrings[] = { "TEDLEVEL","NOWAIT","NOSOUND","NOW",
                         "TRANSPORT","DOPEFISH","SCREENSHOTS",
                         "MONO","MAPSTATS","TILESTATS","VER","net",
-                        "PAUSE","SOUNDSETUP","WARP","IS8250","ENABLEVR",
+                        "PAUSE","SOUNDSETUP","WARP","REMOVED","REMOVED",
                         "TIMELIMIT","MAXTIMELIMIT","NOECHO","DEMOEXIT","QUIET",NULL };
     int i, n;
 
@@ -403,7 +401,6 @@ void CheckCommandLineParameters(void) {
     MONOPRESENT = false;
     MAPSTATS = false;
     TILESTATS = false;
-    IS8250 = false;
     vrenabled = false;
     demoexit = false;
 
@@ -613,9 +610,7 @@ void CheckCommandLineParameters(void) {
         case 14:
             startlevel = (ParseNum(_argv[i + 1]) - 1);
             break;
-        case 15:
-            IS8250 = true;
-            break;
+        case 15: //8250 support removed
         case 16: //vr support removed
             break;
         case 17:
@@ -973,7 +968,7 @@ void GameLoop (void)
 		   {
          case ex_titles:
 		 
-            VW_UpdateScreen(); //dma - fixes shartitl/shartit2 not showing before the game is played for the first time
+            VH_UpdateScreen(); //dma - fixes shartitl/shartit2 not showing before the game is played for the first time
             BATTLE_Shutdown();
             MU_StartSong(song_title);
 			EnableScreenStretch();
@@ -995,7 +990,7 @@ void GameLoop (void)
                   byte *tempbuf;
                   MenuFadeOut();
                   ClearGraphicsScreen();
-                  SetPalette(&dimpal[0]);
+                  VL_SetPalette((byte*) &dimpal[0]);
                   PlayMovie ("shartitl", true);
                   if ( ( LastScan ) || ( IN_GetMouseButtons() ) )
                      {
@@ -1015,7 +1010,7 @@ void GameLoop (void)
                   tempbuf=bufferofs;
                   bufferofs=page1start; // fixed, was displayofs
                   DrawNormalSprite(320-94,200-41,W_GetNumForName("rsac"));
-						VW_UpdateScreen(); // fixed, was missing
+						VH_UpdateScreen(); // fixed, was missing
                   bufferofs=tempbuf;
                   I_Delay(30);
 
@@ -1324,7 +1319,7 @@ void GameLoop (void)
                CurrentFont=smallfont;
                US_MeasureStr (&width, &height, "%s", str);
                US_ClippedPrint ((320-width)>>1, 180, str);
-               VW_UpdateScreen();
+               VH_UpdateScreen();
                MenuFadeIn();
 
                WaitKeyUp();
@@ -1463,152 +1458,113 @@ void ShutDown (void) {
    extern int totallevelsize;
 #endif
 
-void QuitGame ( void )
-{
+void QuitGame(void) {
 #if (DEBUG == 1)
-   char buf[5];
+       char buf[5];
 #endif
 
 #if (DEVELOPMENT == 1)
-   int temp;
+       int temp;
 #else
-   byte *txtscn;
+       byte* txtscn;
 #endif
-   int k;
+       int k;
 
-   MU_FadeOut(200);
-   while (MU_FadeActive())
-      {
-      int time=GetTicCount();
-      while (GetTicCount()==time) {}
-      }
+       MU_FadeOut(200);
+       while (MU_FadeActive()) {
+           int time = GetTicCount();
+           while (GetTicCount() == time) {}
+       }
 
-   PrintMapStats();
-   PrintTileStats();
-   SetTextMode();
+       PrintMapStats();
+       PrintTileStats();
+       SetTextMode();
 
 #if (DEVELOPMENT == 1)
-   printf("Clean Exit\n");
-   if (gamestate.TimeCount)
-      {
-      temp=(gamestate.frame*VBLCOUNTER*100)/gamestate.TimeCount;
-      printf("fps  = %2ld.%2ld\n",temp/100,temp%100);
-      }
-   printf("argc=%ld\n",_argc);
-   for (k=0;k<_argc;k++) printf("%s\n",_argv[k]);
-   switch( _heapchk() )
-   {
-   case _HEAPOK:
-     printf( "OK - heap is good\n" );
-     break;
-   case _HEAPEMPTY:
-     printf( "OK - heap is empty\n" );
-     break;
-   case _HEAPBADBEGIN:
-     printf( "ERROR - heap is damaged\n" );
-     break;
-   case _HEAPBADNODE:
-     printf( "ERROR - bad node in heap\n" );
-     break;
-   }
-   printf("\nLight Characteristics\n");
-   printf("---------------------\n");
-   if (fog)
-      printf("FOG is ON\n");
-   else
-      printf("FOG is OFF\n");
-   printf("LIGHTLEVEL=%ld\n",GetLightLevelTile());
-   printf("LIGHTRATE =%ld\n",GetLightRateTile());
-   printf("\nCENTERY=%ld\n",centery);
+       printf("Clean Exit\n");
+       if (gamestate.TimeCount)
+       {
+           temp = (gamestate.frame * VBLCOUNTER * 100) / gamestate.TimeCount;
+           printf("fps  = %2ld.%2ld\n", temp / 100, temp % 100);
+       }
+       printf("argc=%ld\n", _argc);
+       for (k = 0; k < _argc; k++) printf("%s\n", _argv[k]);
+       switch (_heapchk())
+       {
+       case _HEAPOK:
+           printf("OK - heap is good\n");
+           break;
+       case _HEAPEMPTY:
+           printf("OK - heap is empty\n");
+           break;
+       case _HEAPBADBEGIN:
+           printf("ERROR - heap is damaged\n");
+           break;
+       case _HEAPBADNODE:
+           printf("ERROR - bad node in heap\n");
+           break;
+       }
+       printf("\nLight Characteristics\n");
+       printf("---------------------\n");
+       if (fog)
+           printf("FOG is ON\n");
+       else
+           printf("FOG is OFF\n");
+       printf("LIGHTLEVEL=%ld\n", GetLightLevelTile());
+       printf("LIGHTRATE =%ld\n", GetLightRateTile());
+       printf("\nCENTERY=%ld\n", centery);
 #else
-#ifdef DOS
-   if ( !SOUNDSETUP )
-      {
-#endif
 #if (SHAREWARE==0)
-      txtscn = (byte *) W_CacheLumpNum (W_GetNumForName ("regend"), PU_CACHE, CvtNull, 1);
+       txtscn = (byte*)W_CacheLumpNum(W_GetNumForName("regend"), PU_CACHE, CvtNull, 1);
 #else
-      txtscn = (byte *) W_CacheLumpNum (W_GetNumForName ("shareend"), PU_CACHE, CvtNull, 1);
+       txtscn = (byte*)W_CacheLumpNum(W_GetNumForName("shareend"), PU_CACHE, CvtNull, 1);
 #endif
-#if DOS
-      for (k = 0; k < 23; k++)
-         printf ("\n");
-      memcpy ((byte *)0xB8000, txtscn, 4000);
-#elif defined (ANSIESC)
-      DisplayTextSplash (txtscn, 25);
+
+#if defined (ANSIESC)
+       DisplayTextSplash(txtscn, 25);
 #endif
 
 #if (DEBUG == 1)
-      px = ERRORVERSIONCOL;
-      py = ERRORVERSIONROW;
+       px = ERRORVERSIONCOL;
+       py = ERRORVERSIONROW;
 #if (BETA == 1)
-      UL_printf ("\xE1");
+       UL_printf("\xE1");
 #else
-      UL_printf (itoa(ROTTMAJORVERSION,&buf[0],10));
+       UL_printf(itoa(ROTTMAJORVERSION, &buf[0], 10));
 #endif
-      // Skip the dot
-      px++;
+       // Skip the dot
+       px++;
 
-      UL_printf (itoa(ROTTMINORVERSION,&buf[0],10));
-#endif
-#ifdef DOS
-      }
+       UL_printf(itoa(ROTTMINORVERSION, &buf[0], 10));
 #endif
 #endif
-
-#ifdef DOS
-   if ( SOUNDSETUP )
-      {
-      printf( "\nSound setup complete.\n"
-              "Type ROTT to run the game.\n" );
-      }
-   ShutDown();
-#endif
-
-   exit(0);
+    exit(0);
 }
 
-void InitCharacter
-   (
-   void
-   )
+void InitCharacter(void) {
+    locplayerstate->health = MaxHitpointsForCharacter(locplayerstate);
+    if (timelimitenabled) locplayerstate->lives = 1;
+    else locplayerstate->lives = 3;
 
-   {
-   locplayerstate->health = MaxHitpointsForCharacter( locplayerstate );
-   if (timelimitenabled == true)
-      {
-      locplayerstate->lives  = 1;
-      }
-   else
-      {
-      locplayerstate->lives  = 3;
-      }
+    ClearTriads(locplayerstate);
+    locplayerstate->playerheight = characters[locplayerstate->player].height;
 
-   ClearTriads (locplayerstate);
-   locplayerstate->playerheight = characters[ locplayerstate->player ].height;
-//   locplayerstate->stepwhich = 0;
-//   locplayerstate->steptime = 0;
+    gamestate.score = 0;
 
-   gamestate.score = 0;
+    if (gamestate.battlemode == battle_StandAloneGame) {
+        gamestate.mapon = startlevel;
+        gamestate.difficulty = DefaultDifficulty;
+    }
+    else gamestate.difficulty = gd_hard;
 
-   if ( gamestate.battlemode == battle_StandAloneGame )
-      {
-      gamestate.mapon = startlevel;
-      gamestate.difficulty = DefaultDifficulty;
-      }
-   else
-      {
-      gamestate.difficulty = gd_hard;
-      }
+    gamestate.dipballs = 0;
+    gamestate.TimeCount = 0;
 
-   gamestate.dipballs = 0;
-   gamestate.TimeCount = 0;
+    godmode = 0;
+    damagecount = 0;
 
-	godmode = 0;
-   damagecount = 0;
-
-   UpdateScore( gamestate.score );
-   }
+    UpdateScore(gamestate.score);
+}
 
 
 
@@ -1753,7 +1709,7 @@ void PauseLoop ( void )
 				DrawTiledRegion( 0, 16, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT - 32, 0, 16, shape );
 				DisableScreenStretch();//dont strech when we go BACK TO GAME
 				DrawPlayScreen(true);//repaint ammo and life stat
-				VW_UpdateScreen ();//update screen
+				VH_UpdateScreen ();//update screen
 		  }
 		  StartupClientControls();
 		   //bna section end
@@ -2425,15 +2381,9 @@ void PollKeyboard (void) {
             {
             SaveScreen( false );
             }
-#ifdef DOS /* makes no sense under Linux as there are no lbm viewers there */
-         else if ( Keyboard[ sc_Alt] && Keyboard[ sc_V ] )
-            {
-            SaveScreen( true );
-            }
-#endif
       #endif
       }
-#ifdef USE_SDL
+
       /* SDL doesn't send proper release events for these */
       if (Keystate[sc_CapsLock])
       {
@@ -2447,7 +2397,7 @@ void PollKeyboard (void) {
          if (Keystate[0x45] == 3)
             Keystate[0x45] = 0;
       }
-#endif
+
    waminot();
    }
 
@@ -2609,60 +2559,17 @@ void WriteLBMfile (char *filename, byte *data, int width, int height)
 
 void GetFileName (boolean saveLBM)
 {
-#ifdef DOS
-   char num[4];
-   int cnt = 0;
-   struct find_t fblock;
-
-   if (saveLBM)
-      memcpy (savename, "ROTT0000.LBM\0", 13);
-   else
-      memcpy (savename, "ROTT0000.PCX\0", 13);
-
-   if (_dos_findfirst (savename, 0, &fblock) != 0)
-      return;
-
-   do
-   {
-      cnt++;
-      memset (&num[0], 0, 4);
-      itoa (cnt, num, 10);
-
-      if (cnt > 99)
-      {
-         savename[5] = num[0];
-         savename[6] = num[1];
-         savename[7] = num[2];
-      }
-      else
-      if (cnt > 9)
-      {
-         savename[6] = num[0];
-         savename[7] = num[1];
-      }
-      else
-         savename[7] = num[0];
-   }
-   while (_dos_findfirst (savename, 0, &fblock) == 0);
-#else
 	int i;
 	
 	for (i = 0; i < 9999; i++) {
 		char filename[128];
 		
-		if (saveLBM) {
-	   		sprintf(savename, "rott%04d.lbm", i);
-	   	} else {
-	   		sprintf(savename, "rott%04d.pcx", i);
-	   	}
+		if (saveLBM) sprintf(savename, "rott%04d.lbm", i);
+        else sprintf(savename, "rott%04d.pcx", i);
 
 		GetPathFromEnvironment( filename, ApogeePath, savename );
-		
-		if (access(filename, F_OK) != 0) {
-			return;
-		}
+		if (access(filename, F_OK) != 0) return;
 	}
-#endif
 }
 
 //****************************************************************************

@@ -322,7 +322,7 @@ MVFunc *PAS_GetFunctionTable
       return( NULL );
       }
 
-   #if defined(__WATCOMC__) && defined(__FLAT__)
+   #if defined(__FLAT__)
       ptr = ( MVFunc * )( ( ( ( unsigned )regs.w.dx ) << 4 ) +
          ( ( unsigned )regs.w.bx ) );
    #else
