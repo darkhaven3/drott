@@ -22,12 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include <string.h>
 
-#ifdef DOS
-#include <malloc.h>
-#include <dos.h>
-#include <conio.h>
-#endif
-
 #include "modexlib.h"
 #include "rt_util.h"
 #include "rt_draw.h"
@@ -393,70 +387,22 @@ void ScaleTransparentClippedPost (byte * src, byte * buf, int level)
 }
 
 
-void ScaleMaskedWidePost (byte * src, byte * buf, int x, int width)
-{
-#ifdef DOS
-   int  ofs;
-   int  msk;
+void ScaleMaskedWidePost(byte* src, byte* buf, int x, int width) {
+    buf += x;
 
-   whereami=30;
-   buf+=x>>2;
-   ofs=((x&3)<<3)+(x&3)+width-1;
-   VGAMAPMASK(*((byte *)mapmasks1+ofs));
-   ScaleMaskedPost(src,buf);
-   msk=(byte)*((byte *)mapmasks2+ofs);
-   if (msk==0)
-      return;
-   buf++;
-   VGAMAPMASK(msk);
-   ScaleMaskedPost(src,buf);
-   msk=(byte)*((byte *)mapmasks3+ofs);
-   if (msk==0)
-      return;
-   buf++;
-   VGAMAPMASK(msk);
-   ScaleMaskedPost(src,buf);
-#else
-	buf += x;
-	
-	while (width--) {
-		ScaleMaskedPost(src,buf);
-		buf++;
-	}
-#endif
+    while (width--) {
+        ScaleMaskedPost(src, buf);
+        buf++;
+    }
 }
 
-void ScaleClippedWidePost (byte * src, byte * buf, int x, int width)
-{
-#ifdef DOS
-   int  ofs;
-   int  msk;
+void ScaleClippedWidePost(byte* src, byte* buf, int x, int width) {
+    buf += x;
 
-   whereami=31;
-   buf+=x>>2;
-   ofs=((x&3)<<3)+(x&3)+width-1;
-   VGAMAPMASK(*((byte *)mapmasks1+ofs));
-   ScaleClippedPost(src,buf);
-   msk=(byte)*((byte *)mapmasks2+ofs);
-   if (msk==0)
-      return;
-	buf++;
-   VGAMAPMASK(msk);
-   ScaleClippedPost(src,buf);
-   msk=(byte)*((byte *)mapmasks3+ofs);
-   if (msk==0)
-      return;
-   buf++;
-   VGAMAPMASK(msk);
-   ScaleClippedPost(src,buf);
-#else
-	buf += x;
-	
-	while (width--) {
-		ScaleClippedPost(src,buf);
-		buf++;
-	}
-#endif
+    while (width--) {
+        ScaleClippedPost(src, buf);
+        buf++;
+    }
 }
 
 
@@ -468,163 +414,125 @@ void ScaleClippedWidePost (byte * src, byte * buf, int x, int width)
 =======================
 */
 
-void ScaleShape (visobj_t * sprite)
+void ScaleShape(visobj_t* sprite)
 {
-   byte *shape;
-   int      frac;
-   patch_t *p;
-   int      x1,x2;
-   int      tx;
-   int      size;
-   int      plane;
+    byte* shape;
+    int      frac;
+    patch_t* p;
+    int      x1, x2;
+    int      tx;
+    int      size;
+    int      plane;
 
-   whereami=32;
-   shape=W_CacheLumpNum(sprite->shapenum,PU_CACHE, Cvt_patch_t, 1);
-   p=(patch_t *)shape;
-   size=p->origsize>>7;
-//   sprite->viewheight<<=1;
-   dc_invscale=sprite->viewheight<<((10-HEIGHTFRACTION)-size);
-   tx=-p->leftoffset;
-   sprite->viewx=(sprite->viewx<<SFRACBITS)-(sprite->viewheight<<(SFRACBITS-HEIGHTFRACTION-1))+(SFRACUNIT>>1);
-//
-// calculate edges of the shape
-//
-        x1 = (sprite->viewx+(tx*dc_invscale))>>SFRACBITS;
-        if (x1 >= viewwidth)
-           {
-           return;               // off the right side
-			  }
-        tx+=p->width;
-        x2 = ((sprite->viewx+(tx*dc_invscale)) >>SFRACBITS) - 1 ;
-        if (x2 < 0)
-           {
-           return;         // off the left side
-           }
+    whereami = 32;
+    shape = W_CacheLumpNum(sprite->shapenum, PU_CACHE, Cvt_patch_t, 1);
+    p = (patch_t*)shape;
+    size = p->origsize >> 7;
+    //   sprite->viewheight<<=1;
+    dc_invscale = sprite->viewheight << ((10 - HEIGHTFRACTION) - size);
+    tx = -p->leftoffset;
+    sprite->viewx = (sprite->viewx << SFRACBITS) - (sprite->viewheight << (SFRACBITS - HEIGHTFRACTION - 1)) + (SFRACUNIT >> 1);
+    //
+    // calculate edges of the shape
+    //
+    x1 = (sprite->viewx + (tx * dc_invscale)) >> SFRACBITS;
+    if (x1 >= viewwidth)
+    {
+        return;               // off the right side
+    }
+    tx += p->width;
+    x2 = ((sprite->viewx + (tx * dc_invscale)) >> SFRACBITS) - 1;
+    if (x2 < 0)
+    {
+        return;         // off the left side
+    }
 
-// dc_iscale=(1<<(16+6+HEIGHTFRACTION+size))/sprite->viewheight;
-   dc_iscale=0xffffffffu/(unsigned)dc_invscale;
-   dc_texturemid=(((sprite->h1<<size) + p->topoffset)<<SFRACBITS);//+(SFRACUNIT>>1);
-   sprtopoffset=centeryfrac -  FixedMul(dc_texturemid,dc_invscale);
-   shadingtable=sprite->colormap;
+    // dc_iscale=(1<<(16+6+HEIGHTFRACTION+size))/sprite->viewheight;
+    dc_iscale = 0xffffffffu / (unsigned)dc_invscale;
+    dc_texturemid = (((sprite->h1 << size) + p->topoffset) << SFRACBITS);//+(SFRACUNIT>>1);
+    sprtopoffset = centeryfrac - FixedMul(dc_texturemid, dc_invscale);
+    shadingtable = sprite->colormap;
 
-   if (x1<0)
-      {
-      frac=dc_iscale*(-x1);
-      x1=0;
-      }
-   else
-      frac=0;
-   x2 = x2 >= viewwidth ? viewwidth-1 : x2;
+    if (x1 < 0)
+    {
+        frac = dc_iscale * (-x1);
+        x1 = 0;
+    }
+    else
+        frac = 0;
+    x2 = x2 >= viewwidth ? viewwidth - 1 : x2;
 
-   if (sprite->viewheight>((1<<(HEIGHTFRACTION+6))<<size))
-      {
-      int      texturecolumn;
-      int      lastcolumn;
-      int      startx;
-      int      width;
+    if (sprite->viewheight > ((1 << (HEIGHTFRACTION + 6)) << size))
+    {
+        int      texturecolumn;
+        int      lastcolumn;
+        int      startx;
+        int      width;
 
-      width=1;
-      startx=0;
-      lastcolumn=-1;
-      for (; x1<=x2 ; x1++, frac += dc_iscale)
+        width = 1;
+        startx = 0;
+        lastcolumn = -1;
+        for (; x1 <= x2; x1++, frac += dc_iscale)
         {
-         if (posts[x1].wallheight>sprite->viewheight)
+            if (posts[x1].wallheight > sprite->viewheight)
             {
-            if (lastcolumn>=0)
-               {
-               ScaleMaskedWidePost(((p->collumnofs[lastcolumn])+shape),(byte *)bufferofs,startx,width);
-               width=1;
-               lastcolumn=-1;
-               }
-            continue;
-				}
-                texturecolumn = frac>>SFRACBITS;
-         if ((texturecolumn==lastcolumn)&&(width<9))
-            {
-            width++;
-            continue;
+                if (lastcolumn >= 0)
+                {
+                    ScaleMaskedWidePost(((p->collumnofs[lastcolumn]) + shape), (byte*)bufferofs, startx, width);
+                    width = 1;
+                    lastcolumn = -1;
+                }
+                continue;
             }
-         else
+            texturecolumn = frac >> SFRACBITS;
+            if ((texturecolumn == lastcolumn) && (width < 9))
             {
-            if (lastcolumn>=0)
-               {
-               ScaleMaskedWidePost(((p->collumnofs[lastcolumn])+shape),(byte *)bufferofs,startx,width);
-               width=1;
-               startx=x1;
-               lastcolumn=texturecolumn;
-               }
+                width++;
+                continue;
+            }
             else
-               {
-               startx=x1;
-               lastcolumn=texturecolumn;
-               }
-            }
-         }
-      if (lastcolumn!=-1)
-         ScaleMaskedWidePost(((p->collumnofs[lastcolumn])+shape),(byte *)bufferofs,startx,width);
-      }
-   else
-      {
-      byte * b;
-      int    startfrac;
-      int    startx;
-
-      startx=x1;
-      startfrac=frac;
-      if (doublestep>1)
-         {
-#ifdef DOS
-         for (plane=startx;plane<startx+4;plane+=2,startfrac+=(dc_iscale<<1))
-#endif
             {
-            frac=startfrac;
-//   VGAWRITEMAP(plane&3);
-#ifdef DOS
-            for (x1=plane;x1<=x2;x1+=4, frac += (dc_iscale<<2))
-#else
-            for (x1=startx;x1<=x2;x1+=2, frac += (dc_iscale<<1))
-#endif
-               {
-               if (
-                   (posts[x1].wallheight>sprite->viewheight) &&
-                   (posts[x1+1].wallheight>sprite->viewheight)
-                  )
-                  continue;
-               if (x1==viewwidth-1)
-                  ScaleMaskedWidePost(((p->collumnofs[frac>>SFRACBITS])+shape),(byte *)bufferofs,x1,1);
-               else
-                  ScaleMaskedWidePost(((p->collumnofs[frac>>SFRACBITS])+shape),(byte *)bufferofs,x1,2);
-               }
+                if (lastcolumn >= 0)
+                {
+                    ScaleMaskedWidePost(((p->collumnofs[lastcolumn]) + shape), (byte*)bufferofs, startx, width);
+                    width = 1;
+                    startx = x1;
+                    lastcolumn = texturecolumn;
+                }
+                else
+                {
+                    startx = x1;
+                    lastcolumn = texturecolumn;
+                }
             }
-         }
-      else
-         {
-#ifdef DOS
-         for (plane=startx;plane<startx+4;plane++,startfrac+=dc_iscale)
-#endif
-            {
-            frac=startfrac;
+        }
+        if (lastcolumn != -1)
+            ScaleMaskedWidePost(((p->collumnofs[lastcolumn]) + shape), (byte*)bufferofs, startx, width);
+    }
+    else {
+        byte* b;
+        int    startfrac;
+        int    startx;
 
-#ifdef DOS
-            b=(byte *)bufferofs+(plane>>2);
-            VGAWRITEMAP(plane&3);
-#else
-            b=(byte *)bufferofs+startx;
-#endif
-
-#ifdef DOS
-            for (x1=plane;x1<=x2;x1+=4, frac += (dc_iscale<<2),b++)
-#else
-            for (x1=startx;x1<=x2;x1++, frac += dc_iscale,b++)
-#endif
-               {
-               if (posts[x1].wallheight>sprite->viewheight)
-                  continue;
-               ScaleMaskedPost(((p->collumnofs[frac>>SFRACBITS])+shape),b);
-               }
+        startx = x1;
+        startfrac = frac;
+        if (doublestep > 1) {
+                frac = startfrac;
+                for (x1 = startx; x1 <= x2; x1 += 2, frac += (dc_iscale << 1)) {
+                    if ((posts[x1].wallheight > sprite->viewheight) && (posts[x1 + 1].wallheight > sprite->viewheight)) continue;
+                    if (x1 == viewwidth - 1) ScaleMaskedWidePost(((p->collumnofs[frac >> SFRACBITS]) + shape), (byte*)bufferofs, x1, 1);
+                    else ScaleMaskedWidePost(((p->collumnofs[frac >> SFRACBITS]) + shape), (byte*)bufferofs, x1, 2);
+                }
+        }
+        else {
+            frac = startfrac;
+            b = (byte*)bufferofs + startx;
+            for (x1 = startx; x1 <= x2; x1++, frac += dc_iscale, b++) {
+                if (posts[x1].wallheight > sprite->viewheight) continue;
+                ScaleMaskedPost(((p->collumnofs[frac >> SFRACBITS]) + shape), b);
             }
-         }
-      }
+        }
+    }
 }
 
 
@@ -685,46 +593,17 @@ void ScaleTransparentShape (visobj_t * sprite)
    else
       frac=0;
    x2 = x2 >= viewwidth ? viewwidth-1 : x2;
-
-#if 0
-   for (; x1<=x2 ; x1++, frac += dc_iscale)
-      {
-      if (posts[x1].wallheight>sprite->viewheight)
-         continue;
-      VGAWRITEMAP(x1&3);
-      VGAREADMAP(x1&3);
-      ScaleTransparentPost(((p->collumnofs[frac>>SFRACBITS])+shape),(byte *)bufferofs+(x1>>2),sprite->h2);
-      }
-#endif
    startx=x1;
    startfrac=frac;
+       frac = startfrac;
+       b = (byte*)bufferofs + startx;
+       for (x1 = startx; x1 <= x2; x1++, frac += dc_iscale, b++)
 
-#ifdef DOS
-   for (plane=startx;plane<startx+4;plane++,startfrac+=dc_iscale)
-#endif
-
-      {
-      frac=startfrac;
-
-#ifdef DOS
-      b=(byte *)bufferofs+(plane>>2);
-      VGAWRITEMAP(plane&3);
-      VGAREADMAP(plane&3);
-#else
-     b=(byte *)bufferofs+startx;
-#endif
-
-#ifdef DOS
-      for (x1=plane;x1<=x2;x1+=4, frac += (dc_iscale<<2),b++)
-#else
-      for (x1=startx;x1<=x2;x1++, frac += dc_iscale,b++)
-#endif
-         {
-         if (posts[x1].wallheight>sprite->viewheight)
-            continue;
-         ScaleTransparentPost(((p->collumnofs[frac>>SFRACBITS])+shape),b,sprite->h2);
-         }
-      }
+       {
+           if (posts[x1].wallheight > sprite->viewheight)
+               continue;
+           ScaleTransparentPost(((p->collumnofs[frac >> SFRACBITS]) + shape), b, sprite->h2);
+       }
 }
 
 /*
@@ -735,84 +614,57 @@ void ScaleTransparentShape (visobj_t * sprite)
 =======================
 */
 
-void ScaleSolidShape (visobj_t * sprite)
+void ScaleSolidShape(visobj_t* sprite)
 {
-   byte *shape;
-   int      frac;
-   patch_t *p;
-   int      x1,x2;
-   int      tx;
-   int      size;
-   int      plane;
-	byte * b;
-   int    startfrac;
-   int    startx;
+    byte* shape;
+    int      frac;
+    patch_t* p;
+    int      x1, x2;
+    int      tx;
+    int      size;
+    int      plane;
+    byte* b;
+    int    startfrac;
+    int    startx;
 
-   whereami=34;
-   shape=W_CacheLumpNum(sprite->shapenum,PU_CACHE, Cvt_patch_t, 1);
-   p=(patch_t *)shape;
-   size=p->origsize>>7;
-   dc_invscale=sprite->viewheight<<((10-HEIGHTFRACTION)-size);
-   tx=-p->leftoffset;
-   sprite->viewx=(sprite->viewx<<SFRACBITS)-(sprite->viewheight<<(SFRACBITS-HEIGHTFRACTION-1))+(SFRACUNIT>>1);
-//
-// calculate edges of the shape
-//
-        x1 = (sprite->viewx+(tx*dc_invscale))>>SFRACBITS;
-        if (x1 >= viewwidth)
-           {
-           return;               // off the right side
-           }
-        tx+=p->width;
-        x2 = ((sprite->viewx+(tx*dc_invscale)) >>SFRACBITS) - 1 ;
-        if (x2 < 0)
-           {
-           return;         // off the left side
-           }
+    whereami = 34;
+    shape = W_CacheLumpNum(sprite->shapenum, PU_CACHE, Cvt_patch_t, 1);
+    p = (patch_t*)shape;
+    size = p->origsize >> 7;
+    dc_invscale = sprite->viewheight << ((10 - HEIGHTFRACTION) - size);
+    tx = -p->leftoffset;
+    sprite->viewx = (sprite->viewx << SFRACBITS) - (sprite->viewheight << (SFRACBITS - HEIGHTFRACTION - 1)) + (SFRACUNIT >> 1);
+    //
+    // calculate edges of the shape
+    //
+    x1 = (sprite->viewx + (tx * dc_invscale)) >> SFRACBITS;
+    if (x1 >= viewwidth) return;    // off the right side
+    tx += p->width;
+    x2 = ((sprite->viewx + (tx * dc_invscale)) >> SFRACBITS) - 1;
+    if (x2 < 0) return;             // off the left side
 
-//   dc_iscale=(1<<(16+6+HEIGHTFRACTION+size))/sprite->viewheight;
-   dc_iscale=0xffffffffu/(unsigned)dc_invscale;
-   dc_texturemid=(((sprite->h1<<size)+p->topoffset)<<SFRACBITS);//+(SFRACUNIT>>1);
-   sprtopoffset=centeryfrac - FixedMul(dc_texturemid,dc_invscale);
-   shadingtable=sprite->colormap;
+    //   dc_iscale=(1<<(16+6+HEIGHTFRACTION+size))/sprite->viewheight;
+    dc_iscale = 0xffffffffu / (unsigned)dc_invscale;
+    dc_texturemid = (((sprite->h1 << size) + p->topoffset) << SFRACBITS);//+(SFRACUNIT>>1);
+    sprtopoffset = centeryfrac - FixedMul(dc_texturemid, dc_invscale);
+    shadingtable = sprite->colormap;
 
-   if (x1<0)
-      {
-      frac=dc_iscale*(-x1);
-      x1=0;
-      }
-   else
-      frac=0;
-   x2 = x2 >= viewwidth ? viewwidth-1 : x2;
+    if (x1 < 0) {
+        frac = dc_iscale * (-x1);
+        x1 = 0;
+    }
+    else frac = 0;
 
-   startx=x1;
-   startfrac=frac;
+    x2 = x2 >= viewwidth ? viewwidth - 1 : x2;
+    startx = x1;
+    startfrac = frac;
+    frac = startfrac;
+    b = (byte*)bufferofs + startx;
 
-#ifdef DOS
-   for (plane=startx;plane<startx+4;plane++,startfrac+=dc_iscale)
-#endif
-   
-      {
-		frac=startfrac;
-
-#ifdef DOS
-      b=(byte *)bufferofs+(plane>>2);
-      VGAWRITEMAP(plane&3);
-#else
-      b=(byte *)bufferofs+startx;
-#endif
-
-#ifdef DOS
-      for (x1=plane;x1<=x2;x1+=4, frac += (dc_iscale<<2),b++)
-#else
-      for (x1=startx;x1<=x2;x1++, frac += dc_iscale,b++)
-#endif
-         {
-         if (posts[x1].wallheight>sprite->viewheight)
-            continue;
-         ScaleSolidMaskedPost(sprite->h2,((p->collumnofs[frac>>SFRACBITS])+shape),b);
-         }
-      }
+    for (x1 = startx; x1 <= x2; x1++, frac += dc_iscale, b++) {
+        if (posts[x1].wallheight > sprite->viewheight) continue;
+        ScaleSolidMaskedPost(sprite->h2, ((p->collumnofs[frac >> SFRACBITS]) + shape), b);
+    }
 }
 
 
@@ -824,80 +676,57 @@ void ScaleSolidShape (visobj_t * sprite)
 =======================
 */
 
-void ScaleWeapon (int xoff, int y, int shapenum)
-{
-	byte *shape;
-	int      frac;
-	int      h;
-	patch_t *p;
-	int      x1,x2;
-	int      tx;
-	int      xcent;
-	byte * b;
-	int    startfrac;
-	int    startx;
-   int    plane;
+void ScaleWeapon(int xoff, int y, int shapenum) {
+    byte* shape;
+    int      frac;
+    int      h;
+    patch_t* p;
+    int      x1, x2;
+    int      tx;
+    int      xcent;
+    byte* b;
+    int    startfrac;
+    int    startx;
+    int    plane;
 
-   whereami=35;
-   SetPlayerLightLevel();
-   shape=W_CacheLumpNum(shapenum,PU_CACHE, Cvt_patch_t, 1);
-   p=(patch_t *)shape;
-   h=((p->origsize*weaponscale)>>17);
-   centeryclipped=(viewheight-h)+FixedMul(y,weaponscale);
-   xcent=centerx+FixedMul(xoff,weaponscale);
-   dc_invscale=(h<<17)/p->origsize;
+    whereami = 35;
+    SetPlayerLightLevel();
+    shape = W_CacheLumpNum(shapenum, PU_CACHE, Cvt_patch_t, 1);
+    p = (patch_t*)shape;
+    h = ((p->origsize * weaponscale) >> 17);
+    centeryclipped = (viewheight - h) + FixedMul(y, weaponscale);
+    xcent = centerx + FixedMul(xoff, weaponscale);
+    dc_invscale = (h << 17) / p->origsize;
 
-	tx=-p->leftoffset;
-	xcent=(xcent<<SFRACBITS)-(h<<SFRACBITS);
-//
-// calculate edges of the shape
-//
-		  x1 = (xcent+(tx*dc_invscale))>>SFRACBITS;
-		  if (x1 >= viewwidth)
-					 return;               // off the right side
-        tx+=p->width;
-        x2 = ((xcent+(tx*dc_invscale)) >>SFRACBITS) - 1 ;
-        if (x2 < 0)
-                return;         // off the left side
+    tx = -p->leftoffset;
+    xcent = (xcent << SFRACBITS) - (h << SFRACBITS);
 
-   dc_iscale=0xffffffffu/(unsigned)dc_invscale;
-   dc_texturemid=(((p->origsize>>1)+p->topoffset)<<SFRACBITS)+(SFRACUNIT>>2);
-   sprtopoffset=(centeryclipped<<16) - FixedMul(dc_texturemid,dc_invscale);
+    // calculate edges of the shape
+    x1 = (xcent + (tx * dc_invscale)) >> SFRACBITS;
+    if (x1 >= viewwidth)  return;               // off the right side
+    tx += p->width;
+    x2 = ((xcent + (tx * dc_invscale)) >> SFRACBITS) - 1;
+    if (x2 < 0) return;                         // off the left side
 
-//
-// store information in a vissprite
-//
-   if (x1<0)
-		{
-      frac=dc_iscale*(-x1);
-      x1=0;
-      }
-   else
-      frac=0;
+    dc_iscale = 0xffffffffu / (unsigned)dc_invscale;
+    dc_texturemid = (((p->origsize >> 1) + p->topoffset) << SFRACBITS) + (SFRACUNIT >> 2);
+    sprtopoffset = (centeryclipped << 16) - FixedMul(dc_texturemid, dc_invscale);
 
-   x2 = x2 >= viewwidth ? viewwidth-1 : x2;
+    // store information in a vissprite
+    if (x1 < 0) {
+        frac = dc_iscale * (-x1);
+        x1 = 0;
+    }
+    else frac = 0;
 
-	startx=x1;
-	startfrac=frac;
+    x2 = x2 >= viewwidth ? viewwidth - 1 : x2;
 
-#ifdef DOS
-   for (plane=startx;plane<startx+4;plane++,startfrac+=dc_iscale)
-#endif
-      {
-      frac=startfrac;
-#ifdef DOS
-      b=(byte *)bufferofs+(plane>>2);
-#else
-      b=(byte *)bufferofs+startx;
-#endif
-      VGAWRITEMAP(plane&3);
-#ifdef DOS
-      for (x1=plane; x1<=x2 ; x1+=4, frac += dc_iscale<<2,b++)
-#else
-      for (x1=startx; x1<=x2 ; x1++, frac += dc_iscale,b++)
-#endif
-         ScaleClippedPost(((p->collumnofs[frac>>SFRACBITS])+shape),b);
-      }
+    startx = x1;
+    startfrac = frac;
+    frac = startfrac;
+
+    b = (byte*)bufferofs + startx;
+    for (x1 = startx; x1 <= x2; x1++, frac += dc_iscale, b++) ScaleClippedPost(((p->collumnofs[frac >> SFRACBITS]) + shape), b);
 }
 
 
@@ -911,81 +740,55 @@ void ScaleWeapon (int xoff, int y, int shapenum)
 =======================
 */
 
-void DrawUnScaledSprite (int x, int y, int shapenum, int shade)
-{
-   byte *shape;
-   int      frac;
-   patch_t *p;
-   int      x1,x2;
-   int      tx;
-   int      xcent;
-   byte * b;
-   int    startfrac;
-   int    startx;
-	int    plane;
-        
-   whereami=36;
-   shadingtable=colormap+(shade<<8);
-   centeryclipped=y;
-   xcent=x;
-   shape=W_CacheLumpNum(shapenum,PU_CACHE, Cvt_patch_t, 1);
-   p=(patch_t *)shape;
-	dc_invscale=0x10000;
+void DrawUnScaledSprite(int x, int y, int shapenum, int shade) {
+    byte* shape;
+    int      frac;
+    patch_t* p;
+    int      x1, x2;
+    int      tx;
+    int      xcent;
+    byte* b;
+    int    startfrac;
+    int    startx;
+    int    plane;
 
-   tx=-p->leftoffset;
-   xcent-=p->origsize>>1;
-//
-// calculate edges of the shape
-//
-		  x1 = xcent+tx;
-		  if (x1 >= viewwidth)
-					 return;               // off the right side
-		  tx+=p->width;
-		  x2 = xcent+tx - 1;
-		  if (x2 < 0)
-					 return;         // off the left side
+    whereami = 36;
+    shadingtable = colormap + (shade << 8);
+    centeryclipped = y;
+    xcent = x;
+    shape = W_CacheLumpNum(shapenum, PU_CACHE, Cvt_patch_t, 1);
+    p = (patch_t*)shape;
+    dc_invscale = 0x10000;
 
-	dc_iscale=0x10000;
-   dc_texturemid=(((p->height>>1)+p->topoffset)<<SFRACBITS);//+(SFRACUNIT>>1);
-	sprtopoffset=(centeryclipped<<16) - dc_texturemid;
+    tx = -p->leftoffset;
+    xcent -= p->origsize >> 1;
+    //
+    // calculate edges of the shape
+    //
+    x1 = xcent + tx;
+    if (x1 >= viewwidth) return;     // off the right side
+    tx += p->width;
+    x2 = xcent + tx - 1;
+    if (x2 < 0) return;              // off the left side
 
-//
-// store information in a vissprite
-//
-   if (x1<0)
-      {
-      frac=dc_iscale*(-x1);
-      x1=0;
-      }
-   else
-      frac = 0;
+    dc_iscale = 0x10000;
+    dc_texturemid = (((p->height >> 1) + p->topoffset) << SFRACBITS);//+(SFRACUNIT>>1);
+    sprtopoffset = (centeryclipped << 16) - dc_texturemid;
 
-   x2 = x2 >= viewwidth ? viewwidth-1 : x2;
+    // store information in a vissprite
+    if (x1 < 0) {
+        frac = dc_iscale * (-x1);
+        x1 = 0;
+    }
+    else frac = 0;
 
-   startx=x1;
-   startfrac=frac;
+    x2 = x2 >= viewwidth ? viewwidth - 1 : x2;
+    startx = x1;
+    startfrac = frac;
+    frac = startfrac;
+    b = (byte*)bufferofs + startx;
 
-#ifdef DOS
-   for (plane=startx;plane<startx+4;plane++,startfrac+=dc_iscale)
-#endif
-
-		{
-		frac=startfrac;
-
-#ifdef DOS
-		b=(byte *)bufferofs+(plane>>2);
-      VGAWRITEMAP(plane&3);
-#else
-                b=(byte *)bufferofs+startx;
-#endif
-
-#ifdef DOS
-		for (x1=plane; x1<=x2 ; x1+=4, frac += dc_iscale<<2,b++)
-#else
-		for (x1=startx; x1<=x2 ; x1++, frac += dc_iscale,b++)
-#endif
-			ScaleClippedPost(((p->collumnofs[frac>>SFRACBITS])+shape),b);
-		}
+    for (x1 = startx; x1 <= x2; x1++, frac += dc_iscale, b++) ScaleClippedPost(((p->collumnofs[frac >> SFRACBITS]) + shape), b);
 }
 
 
@@ -1011,8 +814,7 @@ void DrawScreenSprite (int x, int y, int shapenum)
 =======================
 */
 
-void DrawPositionedScaledSprite (int x, int y, int shapenum, int height, int type)
-{
+void DrawPositionedScaledSprite (int x, int y, int shapenum, int height, int type) {
 	byte *shape;
 	int      frac;
 	patch_t *p;
@@ -1072,26 +874,14 @@ void DrawPositionedScaledSprite (int x, int y, int shapenum, int height, int typ
 	startx=x1;
    startfrac=frac;
 
-#ifdef DOS
-   for (plane=startx;plane<startx+4;plane++,startfrac+=dc_iscale)
-#endif
-
       {
       frac=startfrac;
 
-#ifdef DOS
-      b=(byte *)bufferofs+(plane>>2);
-      VGAWRITEMAP(plane&3);
-      VGAREADMAP(plane&3);
-#else
       b=(byte *)bufferofs+startx;
-#endif
 
-#ifdef DOS
-      for (x1=plane; x1<=x2 ; x1+=4, frac += dc_iscale<<2,b++)
-#else
+
       for (x1=startx; x1<=x2 ; x1++, frac += dc_iscale,b++)
-#endif
+
          if (type==0)
             ScaleClippedPost(((p->collumnofs[frac>>SFRACBITS])+shape),b);
          else
@@ -1308,156 +1098,122 @@ void DrawNormalPost (byte * src, byte * buf)
 //
 //******************************************************************************
 
-void DrawNormalSprite (int x, int y, int shapenum)
-{
-   byte *buffer;
-   int cnt;
-   byte *shape;
-   patch_t *p;
-   int plane;
-   byte * b;
-   int startx;
+void DrawNormalSprite(int x, int y, int shapenum) {
+    byte* buffer;
+    int cnt;
+    byte* shape;
+    patch_t* p;
+    int plane;
+    byte* b;
+    int startx;
 
-   whereami=41;
+    whereami = 41;
 
-   shape = W_CacheLumpNum (shapenum, PU_CACHE, Cvt_patch_t, 1);
-   p = (patch_t *)shape;
+    shape = W_CacheLumpNum(shapenum, PU_CACHE, Cvt_patch_t, 1);
+    p = (patch_t*)shape;
 
-   if (((x-p->leftoffset)<0) || ((x-p->leftoffset+p->width)>iGLOBAL_SCREENWIDTH))
-      Error ("DrawNormalSprite: x is out of range x=%d\n",x-p->leftoffset+p->width);
-   if (((y-p->topoffset)<0) || ((y-p->topoffset+p->height)>iGLOBAL_SCREENHEIGHT))
-      Error ("DrawNormalSprite: y is out of range y=%d\n",y-p->topoffset+p->height);
+    if (((x - p->leftoffset) < 0) || ((x - p->leftoffset + p->width) > iGLOBAL_SCREENWIDTH)) Error("DrawNormalSprite: x is out of range x=%d\n", x - p->leftoffset + p->width);
+    if (((y - p->topoffset) < 0) || ((y - p->topoffset + p->height) > iGLOBAL_SCREENHEIGHT)) Error("DrawNormalSprite: y is out of range y=%d\n", y - p->topoffset + p->height);
 
-   startx=x-p->leftoffset;
-   buffer = (byte*)bufferofs+ylookup[y-p->topoffset];
+    startx = x - p->leftoffset;
+    buffer = (byte*)bufferofs + ylookup[y - p->topoffset];
+    b = buffer + startx;
 
-#ifdef DOS
-   for (plane=startx;plane<startx+4;plane++)
-#endif
-      {
-#ifdef DOS
-      b=buffer+(plane>>2);
-      VGAWRITEMAP(plane&3);
-#else
-      b=buffer+startx; 
-#endif
-     
-#ifdef DOS 
-      for (cnt = plane-startx; cnt < p->width; cnt+=4,b++)
-#else
-      for (cnt = 0; cnt < p->width; cnt++,b++)
-#endif
-         DrawNormalPost ((byte *)(p->collumnofs[cnt]+shape), b);
-      }
+    for (cnt = 0; cnt < p->width; cnt++, b++) DrawNormalPost((byte*)(p->collumnofs[cnt] + shape), b);
+
 }
 
-#ifndef DOS
+void R_DrawColumn(byte* buf) {
+    // This is *NOT* 100% correct - DDOI
+    int count;
+    int frac, fracstep;
+    byte* dest;
 
-void R_DrawColumn (byte * buf)
-{
-	// This is *NOT* 100% correct - DDOI
-	int count;
-	int frac, fracstep;
-	byte *dest;
+    count = dc_yh - dc_yl + 1;
+    if (count < 0) return;
 
-	count = dc_yh - dc_yl + 1;
-	if (count < 0) return;
+    dest = buf + ylookup[dc_yl];
 
-	dest = buf + ylookup[dc_yl];
+    fracstep = dc_iscale;
+    frac = dc_texturemid + (dc_yl - centery) * fracstep;
 
-	fracstep = dc_iscale;
-	frac = dc_texturemid + (dc_yl-centery)*fracstep;
-
-	while (count--) {
-		//*dest = test++;
-		*dest = shadingtable[dc_source[(frac>>SFRACBITS)]];
-		dest += iGLOBAL_SCREENWIDTH;
-		frac += fracstep;
-	}
+    while (count--) {
+        //*dest = test++;
+        *dest = shadingtable[dc_source[(frac >> SFRACBITS)]];
+        dest += iGLOBAL_SCREENWIDTH;
+        frac += fracstep;
+    }
 }
 
-void R_TransColumn (byte * buf)
-{
-	int count;
-	byte *dest;
+void R_TransColumn(byte* buf) {
+    int count;
+    byte* dest;
 
-	count = dc_yh - dc_yl + 1;
-	if (count < 0) return;
+    count = dc_yh - dc_yl + 1;
+    if (count < 0) return;
 
-	dest = buf + ylookup[dc_yl];
+    dest = buf + ylookup[dc_yl];
 
-	while (count--)
-	{
-		*dest = shadingtable[*dest];
-		dest += iGLOBAL_SCREENWIDTH;
-	}
+    while (count--) {
+        *dest = shadingtable[*dest];
+        dest += iGLOBAL_SCREENWIDTH;
+    }
 }
 
-void R_DrawWallColumn (byte * buf)
-{
-	// This is *NOT* 100% correct - DDOI
-	int count;
-	int frac, fracstep;
-	byte *dest;
+void R_DrawWallColumn(byte* buf) {
+    // This is *NOT* 100% correct - DDOI
+    int count;
+    int frac, fracstep;
+    byte* dest;
 
-	count = dc_yh - dc_yl;
-	if (count < 0) return;
+    count = dc_yh - dc_yl;
+    if (count < 0) return;
+    dest = buf + ylookup[dc_yl];
 
-	dest = buf + ylookup[dc_yl];
+    fracstep = dc_iscale;
+    frac = dc_texturemid + (dc_yl - centery) * fracstep;
+    frac <<= 10;
+    fracstep <<= 10;
 
-	fracstep = dc_iscale;
-	frac = dc_texturemid + (dc_yl-centery)*fracstep;
-	frac <<= 10;
-	fracstep <<= 10;
-
-	while (count--) {
-		//*dest = 6;
-		*dest = shadingtable[dc_source[(((unsigned)frac)>>26)]];
-		dest += iGLOBAL_SCREENWIDTH;
-		frac += fracstep;
-	}
+    while (count--) {
+        //*dest = 6;
+        *dest = shadingtable[dc_source[(((unsigned)frac) >> 26)]];
+        dest += iGLOBAL_SCREENWIDTH;
+        frac += fracstep;
+    }
 }
 
-void R_DrawClippedColumn (byte * buf)
-{
-	// This is *NOT* 100% correct - DDOI zxcv
-	int count;
-	int frac, fracstep;
-	byte *dest;
-//		byte *b;int y;
+void R_DrawClippedColumn(byte* buf) {
+    // This is *NOT* 100% correct - DDOI zxcv
+    int count;
+    int frac, fracstep;
+    byte* dest;
 
-	count = dc_yh - dc_yl + 1;
-	if (count < 0) return;
+    count = dc_yh - dc_yl + 1;
+    if (count < 0) return;
 
-   dest = buf + ylookup[dc_yl];
-
-
-	fracstep = dc_iscale;
-	frac = dc_texturemid + (dc_yl-centeryclipped)*fracstep;
-
-	while (count--) {
-		*dest = shadingtable[dc_source[(((unsigned)frac)>>SFRACBITS)]];
-		dest += iGLOBAL_SCREENWIDTH;
-		frac += fracstep;
-	}
+    dest = buf + ylookup[dc_yl];
+    fracstep = dc_iscale;
+    frac = dc_texturemid + (dc_yl - centeryclipped) * fracstep;
+    while (count--) {
+        *dest = shadingtable[dc_source[(((unsigned)frac) >> SFRACBITS)]];
+        dest += iGLOBAL_SCREENWIDTH;
+        frac += fracstep;
+    }
 }
 
-void R_DrawSolidColumn (int color, byte * buf)
-{
-	int count;
-	int frac, fracstep;
-	byte *dest;
+void R_DrawSolidColumn(int color, byte* buf) {
+    int count;
+    byte* dest;
 
-	count = dc_yh - dc_yl + 1;
-	if (count < 0) return;
+    count = dc_yh - dc_yl + 1;
+    if (count < 0) return;
 
-	dest = buf + ylookup[dc_yl];
-
-	while (count--)
-	{
-		*dest = (byte)color;
-		dest += iGLOBAL_SCREENWIDTH;
-	}
+    dest = buf + ylookup[dc_yl];
+    while (count--) {
+        *dest = (byte)color;
+        dest += iGLOBAL_SCREENWIDTH;
+    }
 }
 
-#endif
+

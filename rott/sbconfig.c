@@ -83,24 +83,10 @@ fixed FIXED_MUL(fixed a,fixed b)
 
    return sgn * ( ((al*bl)>>16) + (ah*bl) + (al*bh) + ((ah*bh)<<16) );
 }
-
-#elif defined(__WATCOMC__)
-
-fixed FIXED_MUL(fixed a, fixed b);
-
-#pragma aux FIXED_MUL =     \
-   "imul    edx"            \
-   "shrd    eax,edx,16"     \
-   parm     [eax] [edx]     \
-   value    [eax]           \
-   modify   exact [eax]     ;
-
 #endif /* definition of inline FIXED_MUL */
 
 
-static
-fixed StrToFx1616(char *string, char **ret_string)
-{
+static fixed StrToFx1616(char *string, char **ret_string) {
 	long  whole;
 	long  fract;
 	fixed result;

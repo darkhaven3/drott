@@ -57,6 +57,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_floor.h"
 #include "rt_msg.h"
 #include "rt_scale.h"
+#include "rt_vh_a.h"
 #include "develop.h"
 //MED
 #include "memcheck.h"
@@ -1926,80 +1927,43 @@ void DrawBarAmmo
 //
 //******************************************************************************
 
-void SingleDrawPPic (int xpos, int ypos, int width, int height, byte *src, int num, boolean up)
+void SingleDrawPPic(int xpos, int ypos, int width, int height, byte* src, int num, boolean up)
 {
-   byte *olddest;
-   byte *dest;
-   int x;
-	int y;
-   int planes;
-   byte mask;
-   byte pixel;
-   int k;
-   int amt;
+    byte* olddest;
+    byte* dest;
+    int x;
+    int y;
+    int planes;
+    byte mask;
+    byte pixel;
+    int k;
+    int amt;
 
-#ifdef DOS
-   if (up)
-      amt = 2;
-   else
-      amt = -2;
-#else
-   if (up)
-      amt = 8;
-   else
-      amt = -8;
-#endif
+    if (up) amt = 8;
+    else amt = -8;
 
-   mask = 1;
+    mask = 1;
+    olddest = (byte*)(bufferofs - screenofs + ylookup[ypos] + xpos);
 
-#ifdef DOS
-   olddest = (byte *)(bufferofs - screenofs + ylookup[ypos] + (xpos>>2));
-#else
-   olddest = (byte *)(bufferofs - screenofs + ylookup[ypos] + xpos);
-#endif
+    for (planes = 0; planes < 4; planes++) {
+        dest = olddest;
+        dest += planes;
 
-   for (planes = 0; planes < 4; planes++)
-   {
-      VGAMAPMASK (mask);
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                pixel = *src++;
 
-      dest = olddest;
-
-#ifndef DOS
-      dest += planes;
-#endif
-
-      for (y = 0; y < height; y++)
-      {
-         for (x = 0; x < width; x++)
-         {
-            pixel = *src++;
-
-            if (pixel != 255)
-            {
-               for (k = 0; k < num; k++)
-               {
-                  *(dest+(amt*k)) = pixel;
-               }
+                if (pixel != 255) {
+                    for (k = 0; k < num; k++) *(dest + (amt * k)) = pixel;
+                }
+                dest += 4;
             }
+            dest += (linewidth - width * 4);
+        }
+        mask <<= 1;
 
-#ifdef DOS
-            dest++;
-#else
-            dest += 4;
-#endif
-         }
-
-#ifdef DOS
-         dest += (linewidth-width);
-#else
-         dest += (linewidth-width*4);
-#endif
-      }
-
-      mask <<= 1;
-   }
+    }
 }
-
 
 
 //****************************************************************************
@@ -2432,66 +2396,29 @@ void GM_UpdateBonus
 //
 //******************************************************************************
 
-void Drawpic (int xpos, int ypos, int width, int height, byte *src)
-{
-   byte *olddest;
-   byte *dest;
-   int x;
-   int y;
-   int planes;
-   byte mask;
-   byte pixel;
+void Drawpic(int xpos, int ypos, int width, int height, byte* src) {
+    byte* olddest;
+    byte* dest;
+    int x;
+    int y;
+    int planes;
+    byte mask;
+    byte pixel;
 
 
-   mask = 1 << (xpos&3);
-
-#ifdef DOS
-   olddest = (byte *)(bufferofs + ylookup[ypos] + (xpos>>2));
-#else
-   olddest = (byte *)(bufferofs + ylookup[ypos] + xpos);
-#endif
-   for (planes = 0; planes < 4; planes++)
-   {
-      VGAMAPMASK (mask);
-
-      dest = olddest;
-
-#ifdef DOS
-      dest += planes;
-#endif
-
-      for (y = 0; y < height; y++)
-      {
-         for (x = 0; x < width; x++)
-         {
-            pixel = *src++;
-
-            if (pixel != 255)
-               *(dest) = pixel;
-
-#ifdef DOS
-            dest++;
-#else
-            dest += 4;
-#endif
-         }
-
-#ifdef DOS
-         dest += (linewidth-width);
-#else
-         dest += (linewidth-width*4);
-#endif
-      }
-      
-#ifdef DOS
-      mask <<= 1;
-      if (mask == 16)
-		{
-         mask = 1;
-         olddest++;
-      }
-#endif
-   }
+    mask = 1 << (xpos & 3);
+    olddest = (byte*)(bufferofs + ylookup[ypos] + xpos);
+    for (planes = 0; planes < 4; planes++) {
+        dest = olddest;
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                pixel = *src++;
+                if (pixel != 255) *(dest) = pixel;
+                dest += 4;
+            }
+            dest += (linewidth - width * 4);
+        }
+    }
 }
 
 
@@ -2583,61 +2510,32 @@ void  DrawEpisodeLevel (int x, int y)
 //
 //******************************************************************************
 
-void GM_MemToScreen (byte *source, int width, int height, int x, int y)
-{
-   int dest;
-   byte *dest1, *dest2, *dest3, mask;
-   byte *screen1, *screen2, *screen3;
-   int  plane;
-   int w;
-   
-#ifdef DOS
-   dest = ylookup[y]+(x>>2);
-#else
-   dest = ylookup[y]+x;
-#endif
-   mask = 1 << (x&3);
+void GM_MemToScreen(byte* source, int width, int height, int x, int y) {
+    int dest;
+    byte* dest1, *dest2, *dest3, mask;
+    byte* screen1, *screen2, *screen3;
+    int  plane;
+    int w;
+    dest = ylookup[y] + x;
+    mask = 1 << (x & 3);
 
-   dest1 = (byte *)(dest+page1start);
-   dest2 = (byte *)(dest+page2start);
-   dest3 = (byte *)(dest+page3start);
+    dest1 = (byte*)(dest + page1start);
+    dest2 = (byte*)(dest + page2start);
+    dest3 = (byte*)(dest + page3start);
 
-   for (plane = 0; plane<4; plane++)
-   {
-      VGAMAPMASK (mask);
+    for (plane = 0; plane < 4; plane++) {
+        screen1 = dest1;
+        screen2 = dest2;
+        screen3 = dest3;
+        for (y = 0; y < height; y++, screen1 += linewidth, screen2 += linewidth, screen3 += linewidth, source += width) {
 
-      screen1 = dest1;
-      screen2 = dest2;
-      screen3 = dest3;
-      for (y = 0; y < height; y++, screen1 += linewidth,
-                                   screen2 += linewidth,
-                                   screen3 += linewidth, source+=width)
-      {
-#ifdef DOS
-         memcpy (screen1, source, width);
-         memcpy (screen2, source, width);
-         memcpy (screen3, source, width);
-#else
-	for (x = 0; x < width; x++) {
-		screen1[x*4+plane] = source[x];
-		screen2[x*4+plane] = source[x];
-		screen3[x*4+plane] = source[x];
-	}
-#endif
-      }
-
-#ifdef DOS
-      mask <<= 1;
-
-      if (mask == 16)
-      {
-         mask = 1;
-         dest1++;
-         dest2++;
-         dest3++;
-      }
-#endif
-   }
+            for (x = 0; x < width; x++) {
+                screen1[x * 4 + plane] = source[x];
+                screen2[x * 4 + plane] = source[x];
+                screen3[x * 4 + plane] = source[x];
+            }
+        }
+    }
 }
 
 
@@ -3061,7 +2959,7 @@ void DrawEOLHeader
    VWB_DrawPropString( str1 );
    }
 
-   VW_UpdateScreen ();
+   VH_UpdateScreen ();
    }
 
 boolean EndBonusFirst;
@@ -3141,15 +3039,12 @@ void DrawEndBonus
 
       case 2 :
          VL_FillPalette(255,255,255);
-         //bna--VW_UpdateScreen();
          VL_FadeIn(0,255,origpal,10);
          EndBonusVoice = SD_Play( SD_LIGHTNINGSND );
          break;
       }
 
    EndBonusStartY += 10;
-
-   //bna--VW_UpdateScreen();
    while( SD_SoundActive( EndBonusVoice ) && !EndBonusSkip )
       {
       if ( IN_CheckAck() )
@@ -3204,8 +3099,7 @@ void LevelCompleted
    EnableScreenStretch();
    tmpPic = ( pic_t * )W_CacheLumpName( "mmbk", PU_CACHE, Cvt_pic_t, 1 );
    VWB_DrawPic( 0, 0, tmpPic );
-   VW_UpdateScreen();
-//   DisableScreenStretch();
+   VH_UpdateScreen();
 
    IN_StartAck();
    EndBonusVoice = 0;
@@ -3305,35 +3199,12 @@ void LevelCompleted
       }
 
    DrawEOLHeader( playstate );
-/*
-	//bna section  store picture  because its written on again
-   // store screen first
-   picbuf = (byte *)SafeMalloc (64000);
-   memcpy(picbuf ,bufferofs ,64000);
-
-   EnableScreenStretch();
-   VW_UpdateScreen();//tmpPICbuf is destroyed here
-   DisableScreenStretch();
-   //copy it back
-
-   memcpy(bufferofs ,picbuf , 64000);
-	//bna section end
-*/
    
 EndBonusSkip = true;
 
-   while( SD_SoundActive( EndBonusVoice ) && !EndBonusSkip )
-      {
-
-      //bna--VW_UpdateScreen();
-
-      if ( IN_CheckAck() )
-         {
-         EndBonusSkip = true;
-         }
-      }
- //  tmpPic = ( pic_t * )W_CacheLumpName( "mmbk", PU_CACHE, Cvt_pic_t, 1 );
- //  VWB_DrawPic( 0, 0, tmpPic );
+while (SD_SoundActive(EndBonusVoice) && !EndBonusSkip) {
+    if (IN_CheckAck()) EndBonusSkip = true;
+}
     
    if ( GetNextMap(player->tilex,player->tiley) == -1)
       {
@@ -3534,21 +3405,13 @@ EndBonusSkip = true;
 
          }
       }
-    	  
-    
 
-	//bna section 
-//    EnableScreenStretch();//bna++
-    VW_UpdateScreen();//bna++
-//    DisableScreenStretch();//bna++
-	//bna section end
+    VH_UpdateScreen();
+
 
 
    IN_StartAck();
-   while( !IN_CheckAck() )
-      {
-      ;
-      }
+   while( !IN_CheckAck() ) {}
 
    EndLevelStuff = false;
    CurrentFont = smallfont;
@@ -4028,7 +3891,7 @@ void BattleLevelCompleted ( int localplayer )
          py = 192;
          px = ( 320 - w ) / 2;
          VWB_DrawPropString ( text );
-         VW_UpdateScreen ();
+         VH_UpdateScreen ();
 
          do
             {

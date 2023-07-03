@@ -19,12 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "rt_def.h"
 #include <string.h>
-
-#ifdef DOS
-#include <conio.h>
-#include <dos.h>
-#endif
-
 #include "sprites.h"
 #include "rt_map.h"
 #include "rt_dr_a.h"
@@ -54,6 +48,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_net.h"
 #include "rt_str.h"
 #include "watcom.h"
+#include "rt_vh_a.h"
 //MED
 #include "memcheck.h"
 
@@ -147,52 +142,26 @@ void FixMapSeen( void )
 =======================
 */
 
-void DrawMap_Wall (int x, int y, int tile)
-{
-   byte * buf;
-   int p;
-   byte * b;
-   byte * source;
-   byte * s;
-   int i;
+void DrawMap_Wall(int x, int y, int tile) {
+    byte* buf;
+    int p;
+    byte* b;
+    byte* source;
+    byte* s;
+    int i;
 
-   x*=tilesize;
-   y*=tilesize;
-   
-#ifdef DOS
-   buf=(byte *)bufferofs+ylookup[y]+(x>>2);
-#else
-   buf=(byte *)bufferofs+ylookup[y]+x;
-#endif
+    x *= tilesize;
+    y *= tilesize;
 
-   source=W_CacheLumpNum(tile,PU_CACHE, CvtNull, 1);
+    buf = (byte*)bufferofs + ylookup[y] + x;
+    source = W_CacheLumpNum(tile, PU_CACHE, CvtNull, 1);
+    s = source;
+    b = buf;
 
-#ifdef DOS
-   for (p=0;p<4;p++)
-#endif
-      {
-#ifdef DOS
-      VGAWRITEMAP(p);
-      s=source+((p*hp_srcstep)>>10);
-#else
-      s=source;
-#endif
-      b=buf;
-
-#ifdef DOS
-      for (i=p;i<tilesize;i+=4,b++)
-#else
-      for (i=0;i<tilesize;i++,b++)
-#endif
-         {
-         DrawMapPost(tilesize,s,b);
-#ifdef DOS
-         s+=(hp_srcstep>>8);
-#else
-         s+=(hp_srcstep>>10);
-#endif
-         }
-      }
+    for (i = 0; i < tilesize; i++, b++) {
+        DrawMapPost(tilesize, s, b);
+        s += (hp_srcstep >> 10);
+    }
 }
 
 /*
@@ -203,8 +172,7 @@ void DrawMap_Wall (int x, int y, int tile)
 =======================
 */
 
-void DrawMap_AnimatedWall (int x, int y, int tile)
-{
+inline void DrawMap_AnimatedWall (int x, int y, int tile) {
    DrawMap_Wall(x,y,animwalls[tile].texture);
 }
 
@@ -216,49 +184,24 @@ void DrawMap_AnimatedWall (int x, int y, int tile)
 =======================
 */
 
-void DrawMap_SkyTile (int x, int y)
-{
-   byte * buf;
-   int p;
-   byte * b;
-   byte * s;
-   int i;
+void DrawMap_SkyTile(int x, int y) {
+    byte* buf;
+    int p;
+    byte* b;
+    byte* s;
+    int i;
 
-   x*=tilesize;
-   y*=tilesize;
+    x *= tilesize;
+    y *= tilesize;
 
-#ifdef DOS
-   buf=(byte *)bufferofs+ylookup[y]+(x>>2);
-#else
-   buf=(byte *)bufferofs+ylookup[y]+x;
-#endif
+    buf = (byte*)bufferofs + ylookup[y] + x;
 
-#ifdef DOS
-   for (p=0;p<4;p++)
-#endif
-      {
-#ifdef DOS
-      VGAWRITEMAP(p);
-      s=skytile+((p*hp_srcstep)>>10);
-#else
-      s=skytile;
-#endif
-
-      b=buf;
-#ifdef DOS
-      for (i=p;i<tilesize;i+=4,b++)
-#else
-      for (i=0;i<tilesize;i++,b++)
-#endif
-         {
-         DrawMapPost(tilesize,s,b);
-#ifdef DOS
-         s+=(hp_srcstep>>8);
-#else
-         s+=(hp_srcstep>>10);
-#endif
-         }
-      }
+    s = skytile;
+    b = buf;
+    for (i = 0; i < tilesize; i++, b++) {
+        DrawMapPost(tilesize, s, b);
+        s += (hp_srcstep >> 10);
+    }
 }
 
 /*
@@ -269,21 +212,15 @@ void DrawMap_SkyTile (int x, int y)
 =======================
 */
 
-void DrawMap_MaskedWall (int x, int y, int tile)
-{
-   if (IsPlatform(maskobjlist[tile]->tilex,maskobjlist[tile]->tiley))
-      {
-      if (!(maskobjlist[tile]->flags&MW_ABOVEPASSABLE))
-         DrawMap_MaskedShape(x,y,maskobjlist[tile]->toptexture,0);
-      else if (!(maskobjlist[tile]->flags&MW_BOTTOMPASSABLE))
-         DrawMap_MaskedShape(x,y,maskobjlist[tile]->bottomtexture,1);
-      else
-         DrawMap_MaskedShape(x,y,maskobjlist[tile]->midtexture,0);
-      }
-   else
-      {
-      DrawMap_MaskedShape(x,y,maskobjlist[tile]->bottomtexture,1);
-      }
+void DrawMap_MaskedWall(int x, int y, int tile) {
+
+    if (IsPlatform(maskobjlist[tile]->tilex, maskobjlist[tile]->tiley)) {
+        if (!(maskobjlist[tile]->flags & MW_ABOVEPASSABLE)) DrawMap_MaskedShape(x, y, maskobjlist[tile]->toptexture, 0);
+        else if (!(maskobjlist[tile]->flags & MW_BOTTOMPASSABLE)) DrawMap_MaskedShape(x, y, maskobjlist[tile]->bottomtexture, 1);
+        else DrawMap_MaskedShape(x, y, maskobjlist[tile]->midtexture, 0);
+    }
+
+    else DrawMap_MaskedShape(x, y, maskobjlist[tile]->bottomtexture, 1);
 }
 
 /*
@@ -294,17 +231,10 @@ void DrawMap_MaskedWall (int x, int y, int tile)
 =======================
 */
 
-void DrawMap_Door (int x, int y, int tile)
-{
-   if (
-       (doorobjlist[tile]->lock > 0) &&
-       (doorobjlist[tile]->lock <= 4)
-      )
-      DrawMap_Wall(x,y,W_GetNumForName("lock1")+doorobjlist[tile]->lock-1);
-   else if (doorobjlist[tile]->texture==doorobjlist[tile]->basetexture)
-      DrawMap_Wall(x,y,doorobjlist[tile]->texture);
-   else
-      DrawMap_MaskedShape(x,y,doorobjlist[tile]->texture,0);
+void DrawMap_Door(int x, int y, int tile) {
+    if ((doorobjlist[tile]->lock > 0) && (doorobjlist[tile]->lock <= 4)) DrawMap_Wall(x, y, W_GetNumForName("lock1") + doorobjlist[tile]->lock - 1);
+    else if (doorobjlist[tile]->texture == doorobjlist[tile]->basetexture) DrawMap_Wall(x, y, doorobjlist[tile]->texture);
+    else DrawMap_MaskedShape(x, y, doorobjlist[tile]->texture, 0);
 }
 
 /*
@@ -315,12 +245,9 @@ void DrawMap_Door (int x, int y, int tile)
 =======================
 */
 
-void DrawMap_PushWall (int x, int y, pwallobj_t * pw)
-{
-   if (pw->texture&0x1000)
-      DrawMap_AnimatedWall(x,y,pw->texture&0x3ff);
-   else
-      DrawMap_Wall(x,y,pw->texture&0x3ff);
+void DrawMap_PushWall(int x, int y, pwallobj_t* pw) {
+    if (pw->texture & 0x1000) DrawMap_AnimatedWall(x, y, pw->texture & 0x3ff);
+    else DrawMap_Wall(x, y, pw->texture & 0x3ff);
 }
 
 /*
@@ -331,17 +258,12 @@ void DrawMap_PushWall (int x, int y, pwallobj_t * pw)
 =======================
 */
 
-void DrawMap_Actor (int x, int y, objtype * a)
-{
-   int translucent;
+void DrawMap_Actor(int x, int y, objtype* a) {
+    int translucent = 0;
 
-	if (!(a->flags&FL_SEEN))
-      return;
-
-   translucent=0;
-	if (a->flags&FL_TRANSLUCENT)
-      translucent=1;
-   DrawMap_MaskedShape(x,y,a->shapenum+shapestart,translucent);
+    if (!(a->flags & FL_SEEN)) return;
+    if (a->flags & FL_TRANSLUCENT) translucent = 1;
+    DrawMap_MaskedShape(x, y, a->shapenum + shapestart, translucent);
 }
 
 /*
@@ -352,17 +274,12 @@ void DrawMap_Actor (int x, int y, objtype * a)
 =======================
 */
 
-void DrawMap_Sprite (int x, int y, statobj_t * s)
-{
-   int translucent;
+void DrawMap_Sprite(int x, int y, statobj_t* s) {
+    int translucent = 0;
 
-	if (!(s->flags&FL_SEEN))
-      return;
-
-   translucent=0;
-	if (s->flags&FL_TRANSLUCENT)
-      translucent=1;
-   DrawMap_MaskedShape(x,y,s->shapenum+shapestart,translucent);
+    if (!(s->flags & FL_SEEN)) return;
+    if (s->flags & FL_TRANSLUCENT) translucent = 1;
+    DrawMap_MaskedShape(x, y, s->shapenum + shapestart, translucent);
 }
 
 /*
@@ -373,16 +290,13 @@ void DrawMap_Sprite (int x, int y, statobj_t * s)
 =======================
 */
 
-void DrawMap_MaskedShape (int x, int y, int lump, int type)
-{
-
-   // Calculate center coordinates for sprites
-
-   x*=tilesize;
-   y*=tilesize;
-   x+=tilesize>>1;
-   y+=tilesize>>1;
-   DrawPositionedScaledSprite(x,y,lump,tilesize,type);
+void DrawMap_MaskedShape(int x, int y, int lump, int type) {
+    // Calculate center coordinates for sprites
+    x *= tilesize;
+    y *= tilesize;
+    x += tilesize >> 1;
+    y += tilesize >> 1;
+    DrawPositionedScaledSprite(x, y, lump, tilesize, type);
 }
 
 /*
@@ -400,35 +314,24 @@ static const int arrowscale[4][5] =
  { 1, 5, 8,11,15},  /* Mapscale 2: 16 pixels/sprite */
  { 1, 3, 4, 5, 7}}; /* Mapscale 3:  8 pixels/sprite */
 
-void DrawMap_PlayerArrow (int x, int y, int dir)
-{
-   int i;
-   
-   x*=tilesize;
-   y*=tilesize;
+void DrawMap_PlayerArrow(int x, int y, int dir) {
+    int i;
 
-   /* You can't draw a 4x4 arrow */
-   if(mapscale == 4)
-   {
-     VL_Bar(x+1,y+1,2,2,244);
-     return;
-   }
+    x *= tilesize;
+    y *= tilesize;
 
-   for (i=0;i<6;i++)
-      {
-      VL_DrawLine (arrowscale[mapscale][arrows[dir][i].x]+x,
-                   arrowscale[mapscale][arrows[dir][i].y]+y,
-                   arrowscale[mapscale][arrows[dir][i+1].x]+x,
-                   arrowscale[mapscale][arrows[dir][i+1].y]+y,
-                   244
-                  );
-      }
-   VL_DrawLine (  arrowscale[mapscale][arrows[dir][6].x]+x,
-                  arrowscale[mapscale][arrows[dir][6].y]+y,
-                  arrowscale[mapscale][arrows[dir][0].x]+x,
-                  arrowscale[mapscale][arrows[dir][0].y]+y,
-                  244
-               );
+    /* You can't draw a 4x4 arrow */
+    if (mapscale == 4) {
+        VL_Bar(x + 1, y + 1, 2, 2, 244);
+        return;
+    }
+
+    for (i = 0; i < 6; i++)
+        VL_DrawLine(arrowscale[mapscale][arrows[dir][i].x] + x, arrowscale[mapscale][arrows[dir][i].y] + y,
+            arrowscale[mapscale][arrows[dir][i + 1].x] + x, arrowscale[mapscale][arrows[dir][i + 1].y] + y, 244);
+
+    VL_DrawLine(arrowscale[mapscale][arrows[dir][6].x] + x, arrowscale[mapscale][arrows[dir][6].y] + y,
+        arrowscale[mapscale][arrows[dir][0].x] + x, arrowscale[mapscale][arrows[dir][0].y] + y, 244);
 }
 
 /*
@@ -439,13 +342,10 @@ void DrawMap_PlayerArrow (int x, int y, int dir)
 =======================
 */
 
-void DrawMap_Player (int x, int y)
-{
-   if (player->flags&FL_SHROOMS)
-      DrawMap_PlayerArrow(x,y,( RandomNumber("DrawMap_PLAYER",0)>>5) );
-   else
-      DrawMap_PlayerArrow(x,y,( ( (player->angle+(FINEANGLES/16)) & (FINEANGLES-1) ) >>8) );
-   DrawMap_MaskedShape(x,y,player->shapenum+shapestart,0);
+void DrawMap_Player(int x, int y) {
+    if (player->flags & FL_SHROOMS) DrawMap_PlayerArrow(x, y, (RandomNumber("DrawMap_PLAYER", 0) >> 5));
+    else DrawMap_PlayerArrow(x, y, (((player->angle + (FINEANGLES / 16)) & (FINEANGLES - 1)) >> 8));
+    DrawMap_MaskedShape(x, y, player->shapenum + shapestart, 0);
 }
 
 /*
@@ -456,8 +356,7 @@ void DrawMap_Player (int x, int y)
 =======================
 */
 
-void DrawMap( int cx, int cy )
-{
+void DrawMap(int cx, int cy) {
    fixed x,y;
    statobj_t * s;
    objtype * a;
@@ -604,27 +503,17 @@ void DrawMap( int cx, int cy )
 =======================
 */
 
-void SetupFullMap( void )
-{
-   int ty;
-   pic_t *pic;
+void SetupFullMap(void) {
+    int ty;
+    pic_t* pic;
 
-   // Fill in backgrounds
+    // Fill in backgrounds
+    pic = (pic_t*)W_CacheLumpNum(W_GetNumForName("mmbk"), PU_CACHE, Cvt_pic_t, 1);
+    VWB_DrawPic(0, 0, pic);
+    CheckHolidays();
 
-   pic = (pic_t *) W_CacheLumpNum (W_GetNumForName ("mmbk"), PU_CACHE, Cvt_pic_t, 1);
-   VWB_DrawPic (0, 0, pic);
-   CheckHolidays();
-
-   // Clear area for map
-
-#ifdef DOS
-   VGAMAPMASK(15);
-   for (ty=37;ty<37+127;ty++)
-      memset((byte *)bufferofs+ylookup[ty]+24,0,32);
-#else
-   for (ty=37;ty<37+127;ty++)
-      memset((byte *)bufferofs+ylookup[ty]+96,0,128);
-#endif
+    // Clear area for map
+    for (ty = 37; ty < 37 + 127; ty++) memset((byte*)bufferofs + ylookup[ty] + 96, 0, 128);
 }
 
 /*
@@ -635,8 +524,7 @@ void SetupFullMap( void )
 =======================
 */
 
-void DrawFullMap( void )
-{
+void DrawFullMap(void) {
    statobj_t * s;
    objtype * a;
    int mapx,mapy;
@@ -649,18 +537,13 @@ void DrawFullMap( void )
 
    for (mapx=0;mapx<mapwidth;mapx++)
       {
-#ifdef DOS
-      VGAWRITEMAP(mapx&3);
-      buf=(byte *)bufferofs+ylookup[37]+((96+mapx)>>2);
-#else      
+    
       buf=(byte *)bufferofs+ylookup[37]+((96+mapx));
-#endif
 
-#ifdef DOS
-      for (mapy=0;mapy<mapheight;mapy++,buf+=iGLOBAL_SCREENBWIDE)
-#else
+
+
       for (mapy=0;mapy<mapheight;mapy++,buf+=iGLOBAL_SCREENWIDTH)
-#endif
+
          {
          if ((mapx==player->tilex ) && (mapy==player->tiley))
             {
@@ -1046,7 +929,7 @@ EnableScreenStretch();//bna++
 	   shape =  ( pic_t * )W_CacheLumpName( "backtile", PU_CACHE, Cvt_pic_t, 1 );
 	   DrawTiledRegion( 0, 16, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT - 32, 0, 16, shape );//bna++
 	   DisableScreenStretch();//dont strech when we go BACK TO GAME
-	   VW_UpdateScreen ();
+	   VH_UpdateScreen ();
 	   DrawPlayScreen(true);//repaint ammo and life stat
 
   }

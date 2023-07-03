@@ -154,11 +154,6 @@ void UL_UserMessage (int x, int y, char *str, ...) __attribute__((format(printf,
       US_CPrint (&buf[0]);
 
       displayofs=bufferofs;
-
-      OUTP(CRTC_INDEX, CRTC_STARTHIGH);
-      OUTP(CRTC_DATA,((displayofs&0x0000ffff)>>8));
-
-
       bufferofs += screensize;
       if (bufferofs > page3start)
          bufferofs = page1start;

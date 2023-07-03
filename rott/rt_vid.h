@@ -72,7 +72,6 @@ void VWB_Vlin (int y1, int y2, int x, int color);
 void VWB_THlin (int x1, int x2, int y, boolean up);
 void VWB_TVlin (int y1, int y2, int x, boolean up);
 int VW_MarkUpdateBlock (int x1, int y1, int x2, int y2);
-void VW_UpdateScreen (void);
 
 void VL_FadeOut (int start, int end, int red, int green, int blue, int steps);
 void VL_FadeIn (int start, int end, byte *palette, int steps);

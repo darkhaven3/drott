@@ -206,7 +206,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define TILESHIFT                         16l
 #define UNSIGNEDSHIFT                     8
 #define PLAYERSIZE                        0x5700l                       // player radius
-#define MAPSIZE                           128                         // maps are 64*64 max
+#define MAPSIZE                           128                         // maps are 128*128 max
 #define NUMAREAS                          47
 #define MAPSPOT(x,y,plane)                (mapplanes[plane][MAPSIZE*(y)+(x)])
 #define AREATILE                          107
@@ -270,32 +270,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define  ANGLEBITS      16
 #define  ANGLEFRACMAX   (FINEANGLES<<ANGLEBITS)
 
-
-//***************************************************************************
-//
-//    SWIFT Constants
-//
-//***************************************************************************
-
-//
-// device type codes, returned in deviceType field (SWIFT_StaticData)
-//
-#define SWIFT_DEV_NONE		0
-#define SWIFT_DEV_CYBERMAN	1
-
-//
-// Dynamic device data
-//
-#define SDD_EXTERNAL_POWER_CONNECTED	1
-#define SDD_EXTERNAL_POWER_TOO_HIGH	   2
-
-#define AX(r) ((r).x.eax)
-#define BX(r) ((r).x.ebx)
-#define CX(r) ((r).x.ecx)
-#define DX(r) ((r).x.edx)
-#define SI(r) ((r).x.esi)
-#define DI(r) ((r).x.edi)
-
 //***************************************************************************
 //
 //    Global Types
@@ -316,23 +290,13 @@ typedef int fixed;
 
 //////////////////      GLOBAL ENUMERATED TYPES    ///////////////////////
 
-#ifdef __WATCOMC__
-typedef enum
- {false,
-  true
- }
- boolean;
-#else
+
 /* boolean is serialized at the moment, and watcomc made it a byte. */
 
 typedef unsigned char boolean;
 enum {
   false, true
 };
-#endif
-
-
-
 
 typedef enum {
 		  east,

@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "isr.h"
 #include "develop.h"
 #include "rt_rand.h"
+#include "rt_vh_a.h"
 #include "engine.h"
 #include <stdlib.h>
 #include <string.h>
@@ -3909,7 +3910,7 @@ void WallMoving (int pwall)
 
             LBM = (lbm_t *) W_CacheLumpNum (W_GetNumForName ("imfree"), PU_CACHE, Cvt_lbm_t, 1);
             VL_DecompressLBM (LBM,true);
-            VW_UpdateScreen ();
+            VH_UpdateScreen ();
             I_Delay (2000);
             }
 			Error ("PushWall Attempting to escape off the edge of the map\nIt is located at x=%d y=%d\nI'm Free!!!!\n",

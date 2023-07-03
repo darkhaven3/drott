@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_sound.h"
 #include "rt_stat.h"
 #include "rt_map.h"
+#include "rt_vh_a.h"
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -413,7 +414,7 @@ void DoWarp (void)
 		DrawTiledRegion( 0, 16, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT - 32, 0, 16, shape );
 		DisableScreenStretch();//dont strech when we go BACK TO GAME
 		DrawPlayScreen(true);//repaint ammo and life stat
-		VW_UpdateScreen ();//update screen
+		VH_UpdateScreen ();//update screen
   }
    //bna section end
 
@@ -476,7 +477,7 @@ void DoJukeBox  (void)
 		DrawTiledRegion( 0, 16, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT - 32, 0, 16, shape );
 		DisableScreenStretch();//dont strech when we go BACK TO GAME
 		DrawPlayScreen(true);//repaint ammo and life stat
-		VW_UpdateScreen ();//update screen
+		VH_UpdateScreen ();//update screen
   }
    //bna section end
 
@@ -974,7 +975,7 @@ void EndDemo ( void )
    US_Print  ("\n");
 	US_CPrint ("Demo Number (1-4):");
 
-   VW_UpdateScreen();
+   VH_UpdateScreen();
 
    esc = !US_LineInput (px, py, str, NULL, true, 1, 25, 13);
 
@@ -1027,7 +1028,7 @@ void RecordDemoQuery ( void )
    US_CPrint ("Which level (1-8):");
 #endif
 
-   VW_UpdateScreen();
+   VH_UpdateScreen();
 
    esc = !US_LineInput (px, py, str, NULL, true, 2, 25, 13);
 
@@ -1075,7 +1076,7 @@ void PlaybackDemoQuery ( void )
    US_Print ("\n");
    US_CPrint ("Enter demo number (1-4):");
 
-   VW_UpdateScreen ();
+   VH_UpdateScreen ();
 
    esc = !US_LineInput (px, py, str, NULL, true, 1, 25, 13);
 
@@ -1153,7 +1154,7 @@ int DebugKeys (void)
 		US_Print (".");
 		US_PrintUnsigned (temp%100);
 
-		VW_UpdateScreen();
+		VH_UpdateScreen();
 		IN_Ack();
 
 		return 1;
