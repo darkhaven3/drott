@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //****************************************************************************
 
+#define MAXMACROLENGTH 32
+#define MAXMACROS      10
 
 //****************************************************************************
 //
@@ -46,13 +48,7 @@ extern int     threshold;
 extern int     NumVoices;
 extern int     NumChannels;
 extern int     NumBits;
-#ifdef DOS
-extern int     MidiAddress;
-#endif
 extern boolean stereoreversed;
-extern boolean cybermanenabled;
-extern boolean assassinenabled;
-extern boolean spaceballenabled;
 extern boolean AutoDetailOn;
 extern int     DoubleClickSpeed;
 extern int     fulllight;
@@ -62,11 +58,8 @@ extern int     DetailLevel;
 extern int     fandc;
 extern int     blanktime;
 extern char    CodeName[9];
-#ifdef DOS
-extern char   *ApogeePath;
-#else
 extern char   ApogeePath[256];
-#endif
+
 
 extern int     DefaultDifficulty;
 extern int     DefaultPlayerCharacter;
@@ -84,9 +77,6 @@ extern AlternateInformation RemoteSounds;
 extern AlternateInformation PlayerGraphics;
 extern AlternateInformation GameLevels;
 extern AlternateInformation BattleLevels;
-
-#define MAXMACROLENGTH 32
-#define MAXMACROS      10
 
 typedef struct {
    byte avail;

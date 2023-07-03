@@ -29,10 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "z_zone.h"
 #include <string.h>
 
-#ifdef DOS
-#include <conio.h>
-#endif
-
 #include "modexlib.h"
 #include "fli_glob.h"
 //MED
@@ -56,17 +52,10 @@ void DrawClearBuffer ( void );
 flicevent * SpawnCinematicFlic ( char * name, boolean loop, boolean usefile )
 {
    flicevent * flic;
-
    flic = SafeMalloc ( sizeof(flicevent) );
-
-   // copy name of flic
-
-   strcpy ( flic->name, name );
-
+   strcpy ( flic->name, name ); // copy name of flic
    flic->loop=loop;
-
    flic->usefile=usefile;
-
    return flic;
 }
 
@@ -275,46 +264,36 @@ void ScaleFilmPost (byte * src, byte * buf)
 =
 =================
 */
-void DrawFlic ( flicevent * flic )
-{
+void DrawFlic ( flicevent * flic ) {
    byte * curpal;
    byte * buf;
    char flicname[40];
 
    curpal = SafeMalloc (768);
-
    CinematicGetPalette (curpal);
 
-   DrawFadeout ( );
+   DrawFadeout();
 
-   if (flic->usefile==false)
-      {
-      buf=W_CacheLumpName(flic->name,PU_CACHE, CvtNull, 1);
-      strcpy(flicname,flic->name);
-      }
-   else
-      {
-      strcpy(flicname,flic->name);
-      strcat(flicname,".fli");
-      }
+        //[external flics] ?
+       if (flic->usefile==false) {
+          buf=W_CacheLumpName(flic->name,PU_CACHE, CvtNull, 1);
+          strcpy(flicname,flic->name);
+       }
 
-// med
-//   PlayFlic ( flicname, buf, flic->usefile, flic->loop);
+       else {
+          strcpy(flicname,flic->name);
+          strcat(flicname,".fli");
+       }
 
-   if (flic->loop==true)
-      ClearCinematicAbort();
+       if (flic->loop==true)
+          ClearCinematicAbort();
 
-   DrawFadeout ( );
-
-   DrawBlankScreen ( );
-
-#ifdef DOS
-   VL_SetVGAPlaneMode ();
-#endif
+   DrawFadeout();
+   DrawBlankScreen();
 
    CinematicSetPalette (curpal);
-
    SafeFree (curpal);
+
    GetCinematicTics ();
    GetCinematicTics ();
 }
@@ -327,12 +306,8 @@ void DrawFlic ( flicevent * flic )
 =================
 */
 
-void PrecacheFlic (flicevent * flic)
-{
-   if (flic->usefile==false)
-      {
-      W_CacheLumpName(flic->name,PU_CACHE, CvtNull, 1);
-      }
+void PrecacheFlic (flicevent * flic) {
+   if (flic->usefile==false) W_CacheLumpName(flic->name,PU_CACHE, CvtNull, 1);
 }
 
 /*
@@ -363,31 +338,22 @@ void DrawCinematicBackground ( backevent * back )
       DrawClearBuffer ();
 
    plane = 0;
-   
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
+
       buf=(byte *)bufferofs+ylookup[back->yoffset];
       offset=(back->currentoffset>>FRACTIONBITS)+plane;
 
       VGAWRITEMAP(plane);
 
-#ifdef DOS
-      for (i=plane;i<iGLOBAL_SCREENWIDTH;i+=4,offset+=4,buf++)
-#else
-      for (i=0;i<iGLOBAL_SCREENWIDTH;i++,offset++,buf++)
-#endif
-         {
-         if (offset>=back->backdropwidth)
-            src=&(pic->data) + ( (offset - back->backdropwidth) * (pic->height) );
-         else if (offset<0)
-            src=&(pic->data) + ( (offset + back->backdropwidth) * (pic->height) );
-         else
-            src=&(pic->data) + ( offset * (pic->height) );
-         DrawFilmPost(buf,src,height);
-         }
-      }
+          for (i=0;i<iGLOBAL_SCREENWIDTH;i++,offset++,buf++) {
+             if (offset>=back->backdropwidth)
+                src=&(pic->data) + ( (offset - back->backdropwidth) * (pic->height) );
+             else if (offset<0)
+                src=&(pic->data) + ( (offset + back->backdropwidth) * (pic->height) );
+             else src=&(pic->data) + ( offset * (pic->height) );
+
+             DrawFilmPost(buf,src,height);
+             }
+
 }
 
 /*
@@ -416,29 +382,16 @@ void DrawCinematicMultiBackground ( backevent * back )
 
    plane = 0;
    
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
+
       buf=(byte *)bufferofs+ylookup[back->yoffset];
       offset=(back->currentoffset>>FRACTIONBITS)+plane;
 
-      VGAWRITEMAP(plane);
+      for (i=0;i<iGLOBAL_SCREENWIDTH;i++,offset++,buf++) {
+         if (offset>=back->backdropwidth) src=back->data + ( (offset - back->backdropwidth) * (back->height) );
+         else if (offset<0) src=back->data + ( (offset + back->backdropwidth) * (back->height) );
+         else src=back->data + ( offset * (back->height) );
 
-#ifdef DOS
-      for (i=plane;i<iGLOBAL_SCREENWIDTH;i+=4,offset+=4,buf++)
-#else
-      for (i=0;i<iGLOBAL_SCREENWIDTH;i++,offset++,buf++)
-#endif
-         {
-         if (offset>=back->backdropwidth)
-            src=back->data + ( (offset - back->backdropwidth) * (back->height) );
-         else if (offset<0)
-            src=back->data + ( (offset + back->backdropwidth) * (back->height) );
-         else
-            src=back->data + ( offset * (back->height) );
          DrawFilmPost(buf,src,height);
-         }
       }
 }
 
@@ -470,21 +423,10 @@ void DrawCinematicBackdrop ( backevent * back )
 
    plane = 0;
 
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
       buf=(byte *)bufferofs;
       offset=(back->currentoffset>>FRACTIONBITS)+plane;
 
-      VGAWRITEMAP(plane);
-
-#ifdef DOS
-      for (i=plane;i<iGLOBAL_SCREENWIDTH;i+=4,offset+=4,buf++)
-#else
-      for (i=0;i<iGLOBAL_SCREENWIDTH;i++,offset++,buf++)
-#endif
-         {
+      for (i=0;i<iGLOBAL_SCREENWIDTH;i++,offset++,buf++) {
          if (offset>=back->backdropwidth)
             src = shape + p->collumnofs[offset - back->backdropwidth];
          else if (offset<0)
@@ -493,14 +435,13 @@ void DrawCinematicBackdrop ( backevent * back )
             src = shape + p->collumnofs[offset];
 
          postoffset=*(src++);
-         for (;postoffset!=255;)
-            {
-            postlength=*(src++);
-            DrawFilmPost(buf + ylookup[toppost+postoffset],src,postlength);
-            src+=postlength;
-            postoffset=*(src++);
-            }
-         }
+
+             for (;postoffset!=255;) {
+                postlength=*(src++);
+                DrawFilmPost(buf + ylookup[toppost+postoffset],src,postlength);
+                src+=postlength;
+                postoffset=*(src++);
+             }
       }
 }
 
@@ -563,27 +504,19 @@ void DrawCinematicSprite ( spriteevent * sprite )
 
    cin_iscale=(p->origsize<<FRACTIONBITS)/height;
 
-   if (x1<0)
-      {
+   if (x1<0) {
       frac=cin_iscale*(-x1);
       x1=0;
-      }
-   else
-      frac=0;
+   }
+
+   else frac=0;
+
    x2 = x2 >= iGLOBAL_SCREENWIDTH ? (iGLOBAL_SCREENWIDTH-1) : x2;
 
    cin_texturemid = (((p->origsize>>1)+p->topoffset)<<FRACTIONBITS)+(FRACTIONUNIT>>1);
    cin_sprtopoffset = (cin_ycenter<<16) - FixedMul(cin_texturemid,cin_invscale);
 
-   for (; x1<=x2 ; x1++, frac += cin_iscale)
-     {
-     VGAWRITEMAP(x1&3);
-#ifdef DOS
-     ScaleFilmPost(((p->collumnofs[frac>>FRACTIONBITS])+shape),buf+(x1>>2));
-#else
-     ScaleFilmPost(((p->collumnofs[frac>>FRACTIONBITS])+shape),buf+x1);
-#endif
-     }
+   for (; x1<=x2 ; x1++, frac += cin_iscale) ScaleFilmPost(((p->collumnofs[frac>>FRACTIONBITS])+shape),buf+x1);
 }
 
 /*
@@ -685,14 +618,8 @@ void DrawBlankScreen ( void )
 =
 =================
 */
-void DrawClearBuffer ( void )
-{
-#ifdef DOS
-  VGAMAPMASK(15);
-  memset((byte *)bufferofs,0,iGLOBAL_SCREENBWIDE*iGLOBAL_SCREENHEIGHT);
-#else
+void DrawClearBuffer(void) {
   memset((byte *)bufferofs,0,iGLOBAL_SCREENWIDTH*iGLOBAL_SCREENHEIGHT);
-#endif
 }
 
 /*
@@ -887,28 +814,15 @@ void ProfileDisplay ( void )
    int i;
    int plane;
    byte src[200];
-   int width = StretchScreen? 320:iGLOBAL_SCREENWIDTH;
+   int width = StretchScreen ? 320:iGLOBAL_SCREENWIDTH;
 
    DrawClearBuffer ();
 
    plane = 0;
-   
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
-      buf=(byte *)bufferofs;
-      VGAWRITEMAP(plane);
 
-#ifdef DOS
-      for (i=plane;i<width;i+=4,buf++)
-#else
-      for (i=0;i<width;i++,buf++)
-#endif
-         {
-         DrawFilmPost(buf,&src[0],200);
-         }
-      }
+   buf=(byte *)bufferofs;
+   for (i=0;i<width;i++,buf++) DrawFilmPost(buf,&src[0],200);
+
 }
 
 /*
@@ -932,26 +846,14 @@ void DrawPostPic ( int lumpnum )
    pic=(lpic_t *)W_CacheLumpNum(lumpnum,PU_CACHE, Cvt_lpic_t, 1);
 
    height = pic->height;
-
    plane = 0;
-   
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
-      buf=(byte *)bufferofs;
 
+      buf=(byte *)bufferofs;
       src=&(pic->data) + (plane*pic->height);
 
-      VGAWRITEMAP(plane);
-
-#ifdef DOS
-      for (i=plane;i<width;i+=4,src+=(pic->height<<2),buf++)
-#else
       for (i=0;i<width;i++,src+=pic->height,buf++)
-#endif
          {
          DrawFilmPost(buf,src,height);
          }
-      }
+
 }

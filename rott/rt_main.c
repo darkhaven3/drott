@@ -335,8 +335,6 @@ int main (int argc, char *argv[])
       printf("\n< Press any key to continue >\n");
       getch();
       }
-   I_StartupTimer();
-   I_StartupKeyboard();
 #if 0
 #if (SHAREWARE == 1)
    if ((!SOUNDSETUP) && (standalone==false))
@@ -377,9 +375,6 @@ int main (int argc, char *argv[])
 #endif
 
    playstate = ex_titles;
-
-//   I_SetKeyboardLEDs( caps_lock, 0 );
-
    gamestate.battlemode = battle_StandAloneGame;
 
    BATTLE_SetOptions( &BATTLE_Options[ battle_StandAloneGame ] );
@@ -1333,8 +1328,6 @@ void GameLoop (void)
                SetupGameLevel();
                }
 
-            IN_ClearKeyboardQueue();
-
 				SetupScreen (true);
 
             MenuFixup ();
@@ -1626,38 +1619,16 @@ boolean CheckForQuickLoad  (void )
 
 //===========================================================================
 
-void ShutDown ( void )
-{
-   if ( ( standalone == false )
-#ifdef DOS
-        || ( SOUNDSETUP ) 
-#endif
-   )
-      {
-      WriteConfig ();
-      }
-
-//   if (
-//       (networkgame==false) &&
-//       (modemgame==true)
-//      )
-//      {
-//      ShutdownModemGame ();
-//      }
+void ShutDown (void) {
+   if (!standalone) WriteConfig();
 
    ShutdownClientControls();
-   I_ShutdownKeyboard();
-#ifdef DOS /* the UL_ErrorStartup() call is commented out... */
-   UL_ErrorShutdown ();
-#endif
    ShutdownGameCommands();
    MU_Shutdown();
-   I_ShutdownTimer();
    SD_Shutdown();
    IN_Shutdown ();
    ShutdownSoftError ();
    Z_ShutDown();
-//   _settextcursor (0x0607);
 }
 
 //===========================================================================
@@ -1831,7 +1802,7 @@ void UpdateGameObjects ( void )
       waminot();
       }
 
-	atime=GetFastTics();
+	atime=0;
 
    UpdateClientControls ();
 
@@ -1913,7 +1884,7 @@ void UpdateGameObjects ( void )
       if (GamePaused==true)
          break;
 		}
-   actortime=GetFastTics()-atime;
+   actortime= 0 - atime;
 
    UpdateClientControls ();
 
@@ -1979,12 +1950,7 @@ void PauseLoop ( void )
 
 
 
-void PlayLoop
-   (
-   void
-   )
-
-   {
+void PlayLoop (void) {
    volatile int atime;
 
    boolean canquit = true;
@@ -2016,8 +1982,7 @@ fromloadedgame:
 
    drawtime  = 0;
    actortime = 0;
-	tics      = 0;
-	SetFastTics(0);
+   tics      = 0;
 
    if ( fizzlein == false )
       {
@@ -2051,7 +2016,7 @@ fromloadedgame:
          {
          PauseLoop();
 
-         atime = GetFastTics();
+         atime = 0;
 
          if ( RefreshPause )
             {
@@ -2067,14 +2032,14 @@ fromloadedgame:
          if (controlupdatestarted == 1)
             UpdateGameObjects();
 
-         atime = GetFastTics();
+         atime = 0;
 
          ThreeDRefresh();
          }
 
       SyncToServer();
 
-		drawtime = GetFastTics() - atime;
+		drawtime = 0 - atime;
 
       // Don't allow player to quit if entering message
       canquit = !MSG.messageon;
@@ -2287,17 +2252,6 @@ void CheckRemoteRidicule ( int scancode )
    waminot();
 }
 
-//******************************************************************************
-//
-// DoBossKey ()
-//
-//******************************************************************************
-
-void DoBossKey ( void )
-{
-	STUB_FUNCTION;
-}
-
 
 //******************************************************************************
 //
@@ -2305,12 +2259,7 @@ void DoBossKey ( void )
 //
 //******************************************************************************
 
-void PollKeyboard
-   (
-   void
-   )
-
-   {
+void PollKeyboard (void) {
    static char autopressed = false;
 
    wami(5);

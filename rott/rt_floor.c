@@ -19,10 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // RT_FLOOR.C
 
-#ifdef DOS
-#include <conio.h>
-#endif
-
 #include "rt_def.h"
 #include "watcom.h"
 #include "rt_floor.h"
@@ -44,16 +40,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_playr.h"
 #include "rt_sound.h"
 #include "rt_rand.h"
-//MED
-#include "memcheck.h"
+#include "memcheck.h"   //MED
 
-/*
-=============================================================================
-
-Global Variables                                                                                                                                 GLOBAL VARIABLES
-
-=============================================================================
-*/
+//
+// global variables
+//
 
 int      sky;
 int		mr_rowofs;
@@ -65,18 +56,13 @@ int		mr_yfrac;
 byte *   mr_dest;
 byte *   mr_src;
 
-/*
-==================
-=
-= Local Variables
-=
-==================
-*/
+//
+// local variables
+//
 
 static byte     *floor;
 static byte     *ceiling;
-//static int xstarts[MAXVIEWHEIGHT];
-static int xstarts[600];//set to max hight res
+static int xstarts[1440];           //[*** FREERES SUPPORT ***]
 static byte * skysegs[MAXSKYSEGS];
 static byte * skydata[MAXSKYDATA];
 static int      horizonheight;
@@ -86,94 +72,34 @@ static int      oldsky=-1;
 
 //bna fixit skyerror by 800x600 clouds not big enough
 
-void DrawSky( void )
-{
+void DrawSky(void) {
 
    byte * src;
    int dest;
-//   int plane;
    int height;
-//   int height2;
    int ang;
    int angle;
    int ofs;
 
    angle=viewangle;
 
-   if ((fog==0) && (lightning==true))
-      shadingtable=colormap+((basemaxshade-6-lightninglevel)<<8);
-   else
-      shadingtable=colormap+(1<<12);
+   if (!fog && lightning) shadingtable=colormap+((basemaxshade-6-lightninglevel)<<8);
+   else shadingtable=colormap+(1<<12);
 
    ofs=(((maxheight)-(player->z))>>3)+(centery*200/iGLOBAL_SCREENHEIGHT-((viewheight*200/iGLOBAL_SCREENHEIGHT)>>1));
 
-   if (ofs>centerskypost)
-      {
-      ofs=centerskypost;
-      }
+   if (ofs>centerskypost) ofs=centerskypost;
+
    else if (((centerskypost-ofs)+viewheight*200/iGLOBAL_SCREENHEIGHT)>1799)
-      {
       ofs=-(1799-(centerskypost+viewheight*200/iGLOBAL_SCREENHEIGHT));
-      }
-//ofs=centerskypost;
-#ifdef DOS
-   if (doublestep>0)
-      {
-#ifdef DOS
-      for (plane=0;plane<4;plane+=2)
-#endif
-         {
-#ifdef DOS
-         VGAMAPMASK((1<<plane)+(1<<(plane+1)));
-         for (dest=plane;dest<viewwidth;dest+=4)
-#else
-         for (dest=0;dest<viewwidth;dest+=2)
-#endif
-            {
-            height=posts[dest].ceilingclip;
-            height2=posts[dest+1].ceilingclip;
-            if (height<height2)
-               height=height2;
-            if (height<=0)
-               continue;
-            ang=(angle+pixelangle[dest])&(FINEANGLES-1);
-            src=skysegs[ang]-ofs;
-#ifdef DOS
-            DrawSkyPost((byte *)bufferofs + (dest>>2),src,height);
-#else
-	/* TODO: this isn't right since it's not really optimized */
-            DrawSkyPost((byte *)bufferofs + dest,src,height);
-            DrawSkyPost((byte *)bufferofs + dest + 1,src,height);
-#endif
-            }
-         }
-      }
-   else
-#endif
-      {
-#ifdef DOS
-      for (plane=0;plane<4;plane++)
-#endif
-         {
-#ifdef DOS
-         VGAWRITEMAP(plane);
-         for (dest=plane;dest<viewwidth;dest+=4)
-#else
-         for (dest=0;dest<viewwidth;dest++)
-#endif
-            {
-            if ((height=posts[dest].ceilingclip)<=0)
-               continue;
-            ang=(angle+pixelangle[dest])&(FINEANGLES-1);
-            src=skysegs[ang]-ofs;
-#ifdef DOS
-            DrawSkyPost((byte *)bufferofs + (dest>>2),src,height);
-#else
-            DrawSkyPost((byte *)bufferofs + dest,src,height);
-#endif
-            }
-         }
-      }
+
+              for (dest = 0; dest < viewwidth; dest++) {
+                  if ((height = posts[dest].ceilingclip) <= 0) continue;
+
+                  ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
+                  src = skysegs[ang] - ofs;
+                  DrawSkyPost((byte*)bufferofs + dest, src, height);
+              }
 }
 
 /*
@@ -183,8 +109,7 @@ void DrawSky( void )
 =
 ===================
 */
-void DrawFullSky( void )
-{
+void DrawFullSky(void) {
 
    byte * src;
    int dest;
@@ -195,43 +120,20 @@ void DrawFullSky( void )
 
    angle=viewangle;
 
-   if ((fog==0) && (lightning==true))
-      shadingtable=colormap+((basemaxshade-5-lightninglevel)<<8);
-   else
-      shadingtable=colormap+(1<<12);
+   if (!fog && lightning) shadingtable=colormap+((basemaxshade-5-lightninglevel)<<8);
+   else shadingtable=colormap+(1<<12);
 
    ofs=(((maxheight)-(player->z))>>3)+(centery-(viewheight>>1));
-   if (ofs>centerskypost)
-      {
-      ofs=centerskypost;
-      }
-   else if (((centerskypost-ofs)+viewheight)>599)
-      {
-      ofs=-(599-(centerskypost+viewheight));
-      }
+   if (ofs>centerskypost) ofs=centerskypost;
+   else if (((centerskypost-ofs)+viewheight)>599) ofs=-(599-(centerskypost+viewheight));
 
    bufferofs+=screenofs;
 
-#ifdef DOS
-   for (plane=0;plane<4;plane++)
-#endif
-      {
-#ifdef DOS
-      VGAWRITEMAP(plane);
-      for (dest=plane;dest<viewwidth;dest+=4)
-#else
-      for (dest=0;dest<viewwidth;dest++)
-#endif
-         {
-         ang=(angle+pixelangle[dest])&(FINEANGLES-1);
-         src=skysegs[ang]-ofs;
-#ifdef DOS
-         DrawSkyPost((byte *)bufferofs + (dest>>2),src,viewheight);
-#else
-         DrawSkyPost((byte *)bufferofs + dest,src,viewheight);
-#endif
-         }
-      }
+   for (dest = 0; dest < viewwidth; dest++) {
+       ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
+       src = skysegs[ang] - ofs;
+       DrawSkyPost((byte*)bufferofs + dest, src, viewheight);
+   }
 
    bufferofs-=screenofs;
 }
@@ -243,22 +145,19 @@ void DrawFullSky( void )
 =
 ===================
 */
-void MakeSkyTile (byte * tile)
-{
-   int i,j;
-   int srcstep;
+void MakeSkyTile (byte * tile) {
+   int srcstep=200<<10;
    int src;
 
-   srcstep=200<<10;
-   for (i=0;i<64;i++)
-      {
-      src=0;
-      for (j=0;j<64;j++)
-         {
-         *(tile + (i<<6) + j)=*(skysegs[(i<<2)]+(src>>16));
-         src+=srcstep;
-         }
-      }
+   for (int i = 0; i < 64; i++) {
+
+       src = 0;
+       for (int j = 0; j < 64; j++) {
+           *(tile + (i << 6) + j) = *(skysegs[(i << 2)] + (src >> 16));
+           src += srcstep;
+       }
+
+   }
 }
 
 /*
@@ -268,30 +167,19 @@ void MakeSkyTile (byte * tile)
 =
 ===================
 */
-void MakeSkyData ( void )
-{
-   byte * temp;
-   byte * ptr;
-   int c;
+void MakeSkyData (void) {
 
-   temp=SafeMalloc(256*800);
+   byte * temp=SafeMalloc(256*800);
+   byte * ptr=temp;
 
-   ptr=temp;
+   for (int c = 0; c < 256; c++) {
+       memcpy(ptr, skydata[1] + (c * 200), 200);
+       ptr += 200;
 
-   for (c=0;c<256;c++)
-      {
+       memcpy(ptr, skydata[0] + (c * 200), 200);
+       ptr += 200;
+   }
 
-      memcpy(ptr,skydata[1]+(c*200),200);
-      ptr+=200;
- 
-      memcpy(ptr,skydata[0]+(c*200),200);
-      ptr+=200;
-
-      //memcpy(ptr,skydata[1]+(c*200),200);
-      //ptr+=200;
-      //memcpy(ptr,skydata[0]+(c*200),200);
-      //ptr+=200;
-      }
    skydata[0]=temp;
 }
 
@@ -302,13 +190,32 @@ void MakeSkyData ( void )
 =
 ===================
 */
+int GetFloorCeilingLump(int num) {
 
-int GetFloorCeilingLump ( int num )
-{
    int lump;
 
-   switch (num)
-      {
+   //wip - generalize
+   /*
+   const char FlrCl[10] = "FLRCL";
+   const char ZeroTerm[1] = "\0";
+
+   static char FlatNumStr[3] = "1\0";
+   char FinalName[9];
+
+   sprintf(FlatNumStr, "%d", num);
+
+   strcat(FinalName, FlrCl);
+   strcat(FinalName, FlatNumStr);
+   strcat(FinalName, ZeroTerm);
+
+   char* FinalNamePtr = &FinalName[0];
+
+   lump = W_GetNumForName(FinalNamePtr);
+
+   FinalNamePtr = "\0"; //clear out this string so we can start again on map reload*/
+
+
+   switch (num) {
       case 1:
          lump=W_GetNumForName("FLRCL1\0");
          break;
@@ -372,17 +279,9 @@ int GetFloorCeilingLump ( int num )
 ===================
 */
 
-boolean SkyExists (void)
-{
-   if (MAPSPOT(1,0,0) >= 234)
-      {
-      return true;
-      }
-   else
-      {
-      return false;
-      }
-
+boolean SkyExists(void) {
+   if (MAPSPOT(1,0,0) >= 234) return true;
+   else return false;
 }
 
 /*
@@ -588,96 +487,19 @@ void DrawHLine (int xleft, int xright, int yp)
    dest=(byte *)bufferofs+ylookup[yp];
 
 /* TODO: horizontal isn't as easy as vertical in packed */
-#ifdef DOS
-   if (doublestep>0)
-      {
-      if (xleft&1)
-         xleft--;
-
-#ifdef DOS
-      for (plane=xleft;plane<xleft+4;plane+=2)
-#endif
-         {
-
-#ifdef DOS
-         mr_dest=dest+(plane>>2);
-#else
          mr_dest=dest+xleft;
-#endif
-
-         mr_xfrac = startxfrac;
-		   mr_yfrac = startyfrac;
-
-#ifdef DOS
-         startxfrac+=mr_xstep>>1;
-         startyfrac+=mr_ystep>>1;
-
-         mr_count=((xright-plane)>>2)+1;
-#else
-         mr_count = xright - xleft;
-#endif
-
-         if (mr_count)
-            {
-#ifdef DOS
-            int p;
-            ofs=((plane&3)<<3)+(plane&3)+1;
-//          VGAMAPMASK(*((byte *)mapmasks1+ofs));
-            p=plane&3;
-            VGAMAPMASK((1<<p) + (1<<(p+1)));
-#endif
-            DrawRow(mr_count,mr_dest,buf);
-
-#if 0
-            ofs=(byte)*((byte *)mapmasks2+ofs);
-            if (ofs!=0)
-               {
-               VGAMAPMASK(ofs);
-               DrawRow(mr_count,mr_dest+1,buf);
-               }
-#endif
-            }
-         }
-      }
-   else
-#endif
-      {
-#ifdef DOS
-      for (plane=xleft;plane<xleft+4;plane++)
-#endif
-         {
-#ifdef DOS
-         mr_dest=dest+(plane>>2);
-         VGAWRITEMAP(plane&3);
-#else
-         mr_dest=dest+xleft;
-#endif
-
          mr_xfrac = startxfrac;
          mr_yfrac = startyfrac;
 
-#ifdef DOS
-         startxfrac+=mr_xstep>>2;
-         startyfrac+=mr_ystep>>2;
-
-         mr_count=((xright-plane)>>2)+1;
-#else
         // back off the pixel increment (orig. is 4x)
         mr_xstep >>= 2;
         mr_ystep >>= 2;
-        
         mr_count = xright-xleft+1;
-#endif
-
-         if (mr_count)
-            DrawRow(mr_count,mr_dest,buf);
-         }
-      }
+        if (mr_count)  DrawRow(mr_count,mr_dest,buf);
 
 }
 
-void DrawPlanes( void )
-{
+void DrawPlanes(void) {
    int x,y;
    int twall;
    int bwall;

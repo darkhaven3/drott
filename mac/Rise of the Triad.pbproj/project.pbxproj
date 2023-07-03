@@ -792,12 +792,6 @@
 			path = /Users/overcode/Code/rott/rott/rt_sound.c;
 			refType = 0;
 		};
-		F5C71B9B03B6FF1D01000002 = {
-			isa = PBXFileReference;
-			name = rt_spbal.c;
-			path = /Users/overcode/Code/rott/rott/rt_spbal.c;
-			refType = 0;
-		};
 		F5C71B9C03B6FF1D01000002 = {
 			isa = PBXFileReference;
 			name = rt_sqrt.c;

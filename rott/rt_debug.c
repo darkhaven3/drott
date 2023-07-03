@@ -386,40 +386,6 @@ void DoGodMode (void)
 #include "byteordr.h"//bna++
 void DoWarp (void)
 {
-/*
-	char str[10];
-	boolean esc;
-	int level;
-
-   CurrentFont = smallfont;
-
-   US_CenterWindow(26,3);
-	PrintY+=6;
-
-   US_Print(" Warp to level(1-99):");
-
-   VW_UpdateScreen();
-
-   ShutdownClientControls();
-
-   esc = !US_LineInput (px, py, str, NULL, true, 2, 25, 13);
-
-   if (!esc)
-   {
-      level = ParseNum (str);
-      if (level>0 && level<=99)
-      {
-         gamestate.mapon = level-1;
-         playstate = ex_warped;
-         gamestate.episode = GetEpisode (gamestate.mapon);
-      }
-   }
-
-   while (Keyboard[sc_Escape])
-		IN_UpdateKeyboard ();
-   IN_ClearKeyboardQueue ();
-
-*/
 
    int level;
 
@@ -452,11 +418,7 @@ void DoWarp (void)
    //bna section end
 
 	EnableScreenStretch();//bna++ shut on streech mode
-   while( Keyboard[ sc_Escape ] )
-      {
-		IN_UpdateKeyboard();
-      }
-   IN_ClearKeyboardQueue();
+   while( Keyboard[ sc_Escape ] ) IN_UpdateKeyboard();
 
    if ((level == -1) || (level == gamestate.mapon))
       {
@@ -520,13 +482,10 @@ void DoJukeBox  (void)
 
    SetupScreen(true);
 
-   while( Keyboard[ sc_Escape ] )
-      {
-		IN_UpdateKeyboard();
-      }
-   IN_ClearKeyboardQueue();
+   while( Keyboard[ sc_Escape ] ) IN_UpdateKeyboard();
 
    StartupClientControls();
+
    }
 
 
@@ -1034,7 +993,6 @@ void EndDemo ( void )
       IN_UpdateKeyboard ();
    while (Keyboard[sc_Escape])
       IN_UpdateKeyboard ();
-	IN_ClearKeyboardQueue ();
 
    StartupClientControls();
    DisableScreenStretch();
@@ -1092,7 +1050,6 @@ void RecordDemoQuery ( void )
       IN_UpdateKeyboard ();
    while (Keyboard[sc_Escape])
       IN_UpdateKeyboard ();
-   IN_ClearKeyboardQueue ();
 
    StartupClientControls();
 }
@@ -1136,7 +1093,6 @@ void PlaybackDemoQuery ( void )
       IN_UpdateKeyboard ();
    while (Keyboard[sc_Escape])
       IN_UpdateKeyboard ();
-   IN_ClearKeyboardQueue ();
 
    StartupClientControls();
 

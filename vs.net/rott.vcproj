@@ -218,9 +218,6 @@
 				RelativePath="..\rott\rt_sound.c">
 			</File>
 			<File
-				RelativePath="..\rott\rt_spbal.c">
-			</File>
-			<File
 				RelativePath="..\rott\rt_sqrt.c">
 			</File>
 			<File
@@ -532,9 +529,6 @@
 			</File>
 			<File
 				RelativePath="..\rott\rt_sound.h">
-			</File>
-			<File
-				RelativePath="..\rott\rt_spbal.h">
 			</File>
 			<File
 				RelativePath="..\rott\rt_sqrt.h">

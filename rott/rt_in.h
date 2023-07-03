@@ -151,9 +151,6 @@ extern volatile int LastScan;
 extern JoystickDef JoyDefs[];
 extern ControlType Controls[MAXPLAYERS]; */
 
-extern boolean  SpaceBallPresent;
-extern boolean  CybermanPresent;
-extern boolean  AssassinPresent;
 extern char LastASCII;
 extern volatile int LastScan;
 
@@ -206,7 +203,6 @@ boolean INL_StartJoy (word joy);
 void INL_ShutJoy (word joy);
 byte IN_JoyButtons (void);
 void IN_UpdateKeyboard (void);
-void IN_ClearKeyboardQueue (void);
 int IN_InputUpdateKeyboard (void);
 void IN_PumpEvents (void);
 void QueueLetterInput (void);

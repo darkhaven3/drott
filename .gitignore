@@ -1,10 +1,2 @@
 ./.vs
 ./vs.net
-*.vsidx
-*.lock
-*.ipch
-*.json
-*.sqlite
-*.bin
-*.db
-.vs/drott-staging/v17/.wsuo

@@ -47,21 +47,22 @@ extern int mouse_ry_input_scale;
 
 #define MAXCODENAMELENGTH 9
 
+#define SMALLANGLE 90	//for angle clipping against walls
+
 #define ARMED(x)   ( \
                      (gamestate.PlayerHasGun[x]) || \
                      (!BATTLEMODE) \
                    )
 
 
-typedef struct
-    {
+typedef struct {
     statetype *state;
     int       speed;
     classtype obclass;
     int       offset;
     int       flags;
 
-    }missile_stats;
+}	missile_stats;
 
 extern missile_stats PlayerMissileData[13];
 
@@ -69,8 +70,8 @@ extern int GetWeaponForItem(int itemnumber);
 extern int GetItemForWeapon(int weapon);
 
 
-typedef enum
-  {reset,
+typedef enum {
+	reset,
 	reset2,
 	done,
 	at_knife,
@@ -78,7 +79,7 @@ typedef enum
 	at_automatic,
 	at_dryheaving,
 	at_missileweapon
-  } attack_action;
+ } attack_action;
 
 
 typedef struct atkinf
@@ -97,31 +98,6 @@ typedef struct weaptype
  attack_t attackinfo[14];
 }williamdidthis;
 
-//
-// Interactive input status of device, returned by SWIFT_Get3DStatus
-//
-typedef struct {
-   short	x;
-   short	y;
-   short	z;
-   short	pitch;
-   short	roll;
-   short	yaw;
-   short	buttons;
-} SWIFT_3DStatus;
-
-
-//
-// Static data about device, returned by SWIFT_GetStaticDeviceInfo
-//
-typedef struct
-{
-   unsigned char	deviceType;
-   unsigned char	majorVersion;
-	unsigned char	minorVersion;
-   unsigned char	coordDescriptor[6];
-   unsigned char	reserved[1];
-} SWIFT_StaticData;
 
 typedef struct
 {
@@ -201,10 +177,6 @@ extern ROTTCHARS  characters[5];
 extern williamdidthis FREE;
 extern statetype s_player;
 extern williamdidthis WEAPONS[MAXWEAPONS];
-extern boolean cybermanenabled;
-extern boolean spaceballenabled;
-extern boolean SpaceBallPresent;
-extern boolean CybermanPresent;
 extern boolean mouseenabled;
 extern boolean joystickenabled;
 extern boolean joypadenabled;
@@ -243,7 +215,6 @@ void     PollKeyboardButtons (void);
 void     PollMouseButtons (void);
 void     PollJoystickButtons (void);
 void     PollKeyboardMove (void);
-void     PollCyberman (void);
 void     PollMouseMove (void);
 void     PollJoystickMove (void);
 void     PollControls (void);

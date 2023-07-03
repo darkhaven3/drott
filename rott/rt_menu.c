@@ -72,7 +72,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "modexlib.h"
 #include "rt_msg.h"
 #include "rt_net.h"
-#include "rt_spbal.h"
 #include "rt_scale.h"
 
 #include "rt_battl.h"
@@ -1657,9 +1656,6 @@ void CleanUpControlPanel (void)
 
    if (mouseenabled)
       PollMouseMove ();    // Trying to kill movement
-
-   if (cybermanenabled)
-      PollCyberman ();
 
    RefreshPause = true;
 }
@@ -3698,13 +3694,13 @@ void CP_Control (void)
                }
          break;
 
+         //remove
          case SPACEBALLENABLE:
-            spaceballenabled ^= 1;
             DrawCtlButtons ();
          break;
 
+         //remove
          case CYBERMANENABLE:
-            cybermanenabled ^= 1;
             DrawCtlButtons ();
          break;
 
@@ -4635,12 +4631,6 @@ void DrawCtlButtons (void)
          mouseenabled = 0;
       }
 
-      if (SpaceBallPresent)
-         CtlMenu[SPACEBALLENABLE].active = CP_Active;
-
-      if (CybermanPresent)
-         CtlMenu[CYBERMANENABLE].active = CP_Active;
-
       for (x = 0; x < CtlItems.amount; x++)
       {
          if (CtlMenu[x].active)
@@ -4690,23 +4680,16 @@ void DrawCtlButtons (void)
       DrawMenuBufItem (x, y, button_off);
    }
 
+    //unused spaceball menu item
    y += 14;
-   if (spaceballenabled)
-      DrawMenuBufItem (x, y, button_on);
-   else
-   {
-      EraseMenuBufRegion (x, y, 16, 16);
-      DrawMenuBufItem (x, y, button_off);
-   }
 
-   y += 14;
-   if (cybermanenabled)
       DrawMenuBufItem (x, y, button_on);
-   else
-   {
-      EraseMenuBufRegion (x, y, 16, 16);
-      DrawMenuBufItem (x, y, button_off);
-   }
+
+    //unused cyberman menu ite
+   y += 14;
+
+      DrawMenuBufItem (x, y, button_on);
+
 
 
    if ((CtlItems.curpos < 0) || (!CtlMenu[CtlItems.curpos].active))
@@ -4772,7 +4755,7 @@ void ReadAnyControl (ControlInfo *ci)
       int mousey,
           mousex;
 
-#if USE_SDL
+
       INL_GetMouseDelta(&mousex, &mousey);
       if (mousex >= SENSITIVE)
       {
@@ -4795,76 +4778,6 @@ void ReadAnyControl (ControlInfo *ci)
          ci->dir = dir_North;
          mouseactive = 1;
       }
-
-#elif PLATFORM_DOS
-		// READ MOUSE MOTION COUNTERS
-      // RETURN DIRECTION
-      // HOME MOUSE
-      // CHECK MOUSE BUTTONS
-
-      inregs.w.ax = PMOUSE;
-      int386 (MouseInt, &inregs, &outregs);
-
-      mousex = outregs.w.cx;
-      mousey = outregs.w.dx;
-
-
-      if (mousey < (CENTER-SENSITIVE))
-      {
-         ci->dir = dir_North;
-
-         inregs.w.cx = CENTER;
-         inregs.w.dx = CENTER;
-
-         inregs.w.ax = SMOUSE;
-         int386 (MouseInt, &inregs, &outregs);
-
-         mouseactive = 1;
-
-      }
-      else
-      if (mousey > (CENTER+SENSITIVE))
-      {
-         ci->dir = dir_South;
-
-         inregs.w.cx = CENTER;
-         inregs.w.dx = CENTER;
-
-         inregs.w.ax = SMOUSE;
-         int386 (MouseInt, &inregs, &outregs);
-
-         mouseactive = 1;
-      }
-
-      if (mousex < (CENTER-SENSITIVE))
-      {
-         ci->dir = dir_West;
-
-			inregs.w.cx = CENTER;
-         inregs.w.dx = CENTER;
-
-         inregs.w.ax = SMOUSE;
-         int386 (MouseInt, &inregs, &outregs);
-
-
-         mouseactive = 1;
-      }
-      else
-      if (mousex > (CENTER+SENSITIVE))
-      {
-         ci->dir = dir_East;
-
-         inregs.w.cx = CENTER;
-         inregs.w.dx = CENTER;
-
-         inregs.w.ax = SMOUSE;
-         int386 (MouseInt, &inregs, &outregs);
-
-         mouseactive = 1;
-      }
-#else
-#error please define your platform.  /* or maybe just nuke the DOS section? */
-#endif
 
       buttons = IN_GetMouseButtons();
       if ( buttons )
@@ -4910,35 +4823,6 @@ void ReadAnyControl (ControlInfo *ci)
             ci->button2=ci->button3=false;
       }
    }
-
-
-#if 0
-   if (SpaceBallPresent && spaceballenabled)
-   {
-		SP_Get(&packet);
-
-      if (packet.button)
-      {
-         if (packet.button & SP_BTN_1)
-            ci->button0 = true;
-
-         if (packet.button & SP_BTN_2)
-            ci->button1 = true;
-      }
-
-		if (packet.ty >  MENU_AMT)
-         ci->dir = dir_North;
-      else
-         if (packet.ty < -MENU_AMT)
-            ci->dir = dir_South;
-
-		if (packet.tx < (-MENU_AMT* 6))
-         ci->dir = dir_West;
-      else
-         if (packet.tx > (MENU_AMT * 6))
-            ci->dir = dir_East;
-   }
-#endif
 }
 
 

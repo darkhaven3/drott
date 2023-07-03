@@ -26,8 +26,8 @@ rott-rt_map.o: rt_map.c rt_def.h C:/msys64/mingw32/include/stdio.h \
  WinRott.h rt_draw.h rt_stat.h rt_ted.h rottnet.h z_zone.h w_wad.h \
  byteordr.h rt_main.h rt_battl.h rt_playr.h rt_actor.h states.h lumpy.h \
  rt_door.h rt_scale.h rt_vid.h rt_in.h rt_game.h rt_cfg.h rt_rand.h \
- rt_view.h rt_floor.h engine.h rt_spbal.h rt_menu.h rt_net.h rt_str.h \
- myprint.h watcom.h memcheck.h
+ rt_view.h rt_floor.h engine.h rt_menu.h rt_net.h rt_str.h myprint.h \
+ watcom.h memcheck.h
 rt_def.h:
 C:/msys64/mingw32/include/stdio.h:
 C:/msys64/mingw32/include/corecrt_stdio_config.h:
@@ -92,7 +92,6 @@ rt_rand.h:
 rt_view.h:
 rt_floor.h:
 engine.h:
-rt_spbal.h:
 rt_menu.h:
 rt_net.h:
 rt_str.h:

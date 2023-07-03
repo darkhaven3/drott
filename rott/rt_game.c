@@ -18,16 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#ifdef DOS
-#include <dos.h>
-#include <io.h>
-#include <conio.h>
-#endif
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #include "rt_def.h"
 #include "rt_main.h"
@@ -82,8 +77,7 @@ int PlayerSnds[5] = {SD_PLAYERTCSND, SD_PLAYERTBSND, SD_PLAYERDWSND,
                      SD_PLAYERLNSND, SD_PLAYERIPFSND};
 
 
-unsigned short SHAKETICS = 0xFFFF;//bna++
-//int SHAKETICS   = 0xFFFF;
+uint16_t SHAKETICS = 0xFFFF;//bna++
 int damagecount = 0;
 HighScore   Scores[MaxScores] =
 				{
@@ -104,15 +98,13 @@ HighScore   Scores[MaxScores] =
 
 static int KeyX[4]  = {KEY1_X, KEY2_X, KEY3_X, KEY4_X};
 
-static const char *Names[ 5 ] =
-   {
-   "Taradino", "Thi",     "Doug",  "Lorelei", "Ian Paul"
-   };
+static const char *Names[5] = { 
+    "Taradino","Thi","Doug","Lorelei","Ian Paul"
+};
 
-static const char *LastNames[ 5 ] =
-   {
-   "Cassatt",  "Barrett", "Wendt", "Ni",      "Freeley"
-   };
+static const char *LastNames[5] = {
+   "Cassatt","Barrett","Wendt","Ni","Freeley"
+};
 
 static STR ScoreStr;
 static STR LivesStr;
@@ -174,88 +166,49 @@ extern void    MoveScreenDownRight();
 //
 //******************************************************************************
 
-void V_ReDrawBkgnd (int x, int y, int width, int height, boolean shade)
-{
-   byte *src;
-   byte *dest;
-   byte *origdest;
-   int j,
-       k,
-       planes,
-       mask,
-       m;
+void V_ReDrawBkgnd(int x, int y, int width, int height, boolean shade) {
+    byte* src;
+    byte* dest;
+    byte* origdest;
+    int m = (x & 3);
+    int mask = (1 << m);
+    int planes;
 
-   m = (x&3);
-   mask = (1 << m);
+    origdest = (byte*)(bufferofs + ylookup[y] + x);
 
-#ifdef DOS
-   origdest = (byte *)(bufferofs+ylookup[y]+(x>>2));
-#else
-   origdest = (byte *)(bufferofs+ylookup[y]+x);
-#endif
+    if (VW_MarkUpdateBlock(x, y, x + width - 1, y + height - 1)) {
+        for (planes = 0; planes < 4; planes++) {
+            src = (&(BkPic->data) + ((80 * 200) * m) + (80 * y) + (x >> 2));
+            dest = origdest;
+            dest += planes;
 
-   if (VW_MarkUpdateBlock (x, y, x+width-1, y+height-1))
-   {
-      for (planes = 0; planes < 4; planes++)
-      {
-         src = (&(BkPic->data)+((80*200)*m)+(80*y)+(x>>2));
-         dest = origdest;
+            for (int j = 0; j < height; j++) {
+                for (int k = 0; k < (width / 4); k++) {
+                    if (shade) *dest = *(colormap + ((MENUSHADELEVEL >> 2) << 8) + *src++);
+                    else *dest = *src++;
+                    dest += 4;
+                }
 
-#ifdef DOS
-         VGAMAPMASK (mask);
-#else
-         dest += planes;
-#endif
 
-         for (j = 0; j < height; j++)
-         {
-            for (k = 0; k < (width/4); k++) {
-               if (shade) {
-                  *dest = *(colormap + ((MENUSHADELEVEL>>2)<<8) + *src++);
-               } else {
-                  *dest = *src++;
-               }
-#ifdef DOS
-               dest++;
-#else
-               dest += 4;
-#endif
+                // draw the remainder.  did the DOS version even bother? - SBF
+                if ((width & 3) > planes) {
+                    if (shade) *dest = *(colormap + ((MENUSHADELEVEL >> 2) << 8) + *src);
+                    else *dest = *src;
+                }
+                src += (80 - (width / 4));
+                dest += (linewidth - (width & ~3));
             }
 
-#ifndef DOS            
-            // draw the remainder.  did the DOS version even bother? - SBF
-            if ((width & 3) > planes) {
-               if (shade) {
-                  *dest = *(colormap + ((MENUSHADELEVEL>>2)<<8) + *src);
-               } else {
-                  *dest = *src;
-               }
-            }  
-#endif
+            m++;
+            mask <<= 1;
 
-	    src += (80-(width/4));
-#ifdef DOS            
-            dest += (linewidth-(width/4));
-#else
-            dest += (linewidth-(width&~3));
-#endif
-         }
-
-         m++;
-         
-         mask <<= 1;
-
-         if (mask == 16)
-         {
-            x+=4;
-            mask = 1;
-            m = 0;
-#ifdef DOS
-            origdest++;
-#endif
-         }
-      }
-   }
+            if (mask == 16) {
+                x += 4;
+                mask = 1;
+                m = 0;
+            }
+        }
+    }
 }
 
 
@@ -1088,38 +1041,27 @@ void StatusDrawColoredPic (unsigned x, unsigned y, pic_t *nums, boolean bufferof
 
 //******************************************************************************
 //
-// DrawGameString ()
+// DrawGameString()
 //
 // draw string to game screen at x,y
 //
 //******************************************************************************
 
-void DrawGameString (int x, int y, const char * str, boolean bufferofsonly)
+void DrawGameString(int x, int y, const char* str, boolean bufferofsonly)
 {
-   byte *tempbuf;
+    byte* tempbuf;
 
-   px=x;
-   py=y;
+    px = x;
+    py = y;
 
-   if (bufferofsonly==true)
-      VW_DrawPropString (str);
-   else
-      {
-      tempbuf=bufferofs;
-      bufferofs=page1start;
-      VW_DrawPropString (str);
-#ifdef DOS
-      px=x;
-      py=y;
-      bufferofs=page2start;
-      VW_DrawPropString (str);
-      px=x;
-      py=y;
-      bufferofs=page3start;
-      VW_DrawPropString (str);
-#endif
-      bufferofs=tempbuf;
-      }
+    if (bufferofsonly == true) VW_DrawPropString(str);
+
+    else {
+        tempbuf = bufferofs;
+        bufferofs = page1start;
+        VW_DrawPropString(str);
+        bufferofs = tempbuf;
+    }
 }
 
 
@@ -1641,78 +1583,44 @@ void DrawTime
 //
 //******************************************************************************
 
-void DrawMPPic (int xpos, int ypos, int width, int height, int heightmod, byte *src, boolean bufferofsonly)
+void DrawMPPic(int xpos, int ypos, int width, int height, int heightmod, byte* src, boolean bufferofsonly)
 {
-   int olddest;
-   int dest;
-   int x;
-   int y;
-   int planes;
-   byte mask;
-   byte pixel;
+    int olddest;
+    int dest;
+    int x;
+    int y;
+    int planes;
+    byte mask;
+    byte pixel;
 
-   mask = 1 << (xpos&3);
+    mask = 1 << (xpos & 3);
 
-#ifdef DOS
-   olddest = ylookup[ypos] + (xpos>>2);
-#else
-   olddest = ylookup[ypos] + xpos;
-#endif
 
-   for (planes = 0; planes < 4; planes++)
-   {
-      VGAMAPMASK (mask);
+    olddest = ylookup[ypos] + xpos;
 
-      dest = olddest;
 
-#ifndef DOS
-      dest += planes;
-#endif
+    for (planes = 0; planes < 4; planes++) {
+        dest = olddest;
+        dest += planes;
 
-      for (y = 0; y < height; y++)
-      {
-         for (x = 0; x < width; x++)
-         {
-            pixel = *src++;
-
-            if (pixel != 255)
-            {
-               if (bufferofsonly)
-                  *(dest+bufferofs) = pixel;
-               else
-               {
-                  *(dest+page1start) = pixel;
-                  *(dest+page2start) = pixel;
-                  *(dest+page3start) = pixel;
-               }
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                pixel = *src++;
+                if (pixel != 255) {
+                    if (bufferofsonly) *(dest + bufferofs) = pixel;
+                    else {
+                        *(dest + page1start) = pixel;
+                        *(dest + page2start) = pixel;
+                        *(dest + page3start) = pixel;
+                    }
+                }
+                dest += 4;
             }
+            dest += (linewidth - width * 4);
+        }
 
-#ifdef DOS
-            dest++;
-#else
-            dest += 4;
-#endif
-         }
-
-#ifdef DOS
-         dest += (linewidth-width);
-#else
-         dest += (linewidth-width*4);
-#endif
-      }
-
-      if (heightmod)
-         src += (heightmod*width);
-
-#ifdef DOS
-      mask <<= 1;
-      if (mask == 16)
-      {
-         mask = 1;
-         olddest++;
-      }
-#endif
-   }
+        if (heightmod) src += (heightmod * width);
+    }
 }
 
 
@@ -1735,83 +1643,43 @@ void DrawMPPic (int xpos, int ypos, int width, int height, int heightmod, byte *
 //
 //******************************************************************************
 
-void DrawColoredMPPic (int xpos, int ypos, int width, int height, int heightmod, byte *src, boolean bufferofsonly, int color)
+void DrawColoredMPPic(int xpos, int ypos, int width, int height, int heightmod, byte* src, boolean bufferofsonly, int color)
 {
-   int olddest;
-   int dest;
-   int x;
-   int y;
-   int planes;
-   byte mask;
-   byte pixel;
-   byte * cmap;
+    int olddest;
+    int dest;
+    int x;
+    int y;
+    int planes;
+    byte mask;
+    byte pixel;
+    byte* cmap;
 
-   cmap=playermaps[color]+(1<<12);
+    cmap = playermaps[color] + (1 << 12);
+    mask = 1 << (xpos & 3);
+    olddest = ylookup[ypos] + xpos;
 
-   mask = 1 << (xpos&3);
+    for (planes = 0; planes < 4; planes++) {
+        dest = olddest;
+        dest += planes;
 
-#ifdef DOS
-   olddest = ylookup[ypos] + (xpos>>2);
-#else
-   olddest = ylookup[ypos] + xpos;
-#endif
-
-   for (planes = 0; planes < 4; planes++)
-   {
-      VGAMAPMASK (mask);
-
-      dest = olddest;
-
-#ifndef DOS
-      dest += planes;
-#endif
-
-      for (y = 0; y < height; y++)
-      {
-         for (x = 0; x < width; x++)
-         {
-            pixel = *src++;
-
-            pixel = *(cmap+pixel);
-
-            if (pixel != 255)
-            {
-               if (bufferofsonly)
-                  *(dest+bufferofs) = pixel;
-               else
-               {
-                  *(dest+page1start) = pixel;
-                  *(dest+page2start) = pixel;
-                  *(dest+page3start) = pixel;
-               }
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                pixel = *src++;
+                pixel = *(cmap + pixel);
+                if (pixel != 255) {
+                    if (bufferofsonly) *(dest + bufferofs) = pixel;
+                    else {
+                        *(dest + page1start) = pixel;
+                        *(dest + page2start) = pixel;
+                        *(dest + page3start) = pixel;
+                    }
+                }
+                dest += 4;
             }
-
-#ifdef DOS
-            dest++;
-#else
-            dest += 4;
-#endif
-         }
-
-#ifdef DOS
-         dest += (linewidth-width);
-#else
-         dest += (linewidth-width*4);
-#endif
-      }
-
-      if (heightmod)
-         src += (heightmod*width);
-
-#ifdef DOS
-      mask <<= 1;
-      if (mask == 16)
-      {
-         mask = 1;
-         olddest++;
-      }
-#endif
-   }
+            dest += (linewidth - width * 4);
+        }
+        if (heightmod) src += (heightmod * width);
+    }
 }
 
 
@@ -1821,16 +1689,14 @@ void DrawColoredMPPic (int xpos, int ypos, int width, int height, int heightmod,
 //
 //******************************************************************************
 
-void UpdateScore (unsigned int num)
-{
-   if (num > 999999999)
-   {
-      num = 999999999;
-      gamestate.score = 999999999;
-   }
+void UpdateScore (unsigned int num) {
+    if (num > 999999999) {
+        num = 999999999;
+        gamestate.score = 999999999;
+    }
 
-   ltoa (num, ScoreStr.str, 10);
-   ScoreStr.length = strlen (ScoreStr.str);
+    ltoa (num, ScoreStr.str, 10);
+    ScoreStr.length = strlen (ScoreStr.str);
 }
 
 
@@ -1840,8 +1706,7 @@ void UpdateScore (unsigned int num)
 //
 //******************************************************************************
 
-void UpdateLives (int num)
-{
+void UpdateLives (int num) {
    ltoa (num, LivesStr.str, 10);
    LivesStr.length = strlen (LivesStr.str);
 }
@@ -1851,8 +1716,7 @@ void UpdateLives (int num)
 // ClearTriads ()
 //
 //****************************************************************************
-void ClearTriads (playertype * pstate)
-{
+void ClearTriads (playertype * pstate) {
    pstate->triads = 0;
    ltoa (pstate->triads, TriadStr.str, 10);
    TriadStr.length = strlen (TriadStr.str);
@@ -1864,8 +1728,7 @@ void ClearTriads (playertype * pstate)
 //
 //****************************************************************************
 
-void UpdateTriads (objtype * ob, int num)
-{
+void UpdateTriads (objtype * ob, int num) {
    playertype * pstate;
 
 	M_LINKSTATE(ob,pstate);
@@ -1920,85 +1783,50 @@ void DrawTriads
 //
 //******************************************************************************
 
-void DrawPPic (int xpos, int ypos, int width, int height, byte *src, int num, boolean up, boolean bufferofsonly)
+void DrawPPic(int xpos, int ypos, int width, int height, byte* src, int num, boolean up, boolean bufferofsonly)
 {
-   int olddest;
-   int dest;
-   int x;
-   int y;
-   int planes;
-   byte mask;
-   byte pixel;
-   int k;
-   int amt;
+    int olddest;
+    int dest;
+    int x;
+    int y;
+    int planes;
+    byte mask;
+    byte pixel;
+    int k;
+    int amt;
 
-#ifdef DOS
-   if (up)
-      amt = 2;
-   else
-      amt = -2;
-#else
-   if (up)
-      amt = 8;
-   else
-      amt = -8;
-#endif
+    if (up)
+        amt = 8;
+    else
+        amt = -8;
 
-   mask = 1;
+    mask = 1;
 
-#ifdef DOS
-   olddest = ylookup[ypos] + (xpos>>2);
-#else
-   olddest = ylookup[ypos] + xpos;
-#endif
+    olddest = ylookup[ypos] + xpos;
 
-   for (planes = 0; planes < 4; planes++)
-   {
-      VGAMAPMASK (mask);
+    for (planes = 0; planes < 4; planes++) {
+        dest = olddest;
+        dest += planes;
 
-      dest = olddest;
-
-#ifndef DOS
-      dest += planes;
-#endif
-
-      for (y = 0; y < height; y++)
-      {
-         for (x = 0; x < width; x++)
-         {
-            pixel = *src++;
-
-            if (pixel != 255)
-            {
-               for (k = 0; k < num; k++)
-               {
-                  if (bufferofsonly)
-                     *(dest+bufferofs+(amt*k)) = pixel;
-                  else
-                  {
-                     *(dest+page1start+(amt*k)) = pixel;
-                     *(dest+page2start+(amt*k)) = pixel;
-                     *(dest+page3start+(amt*k)) = pixel;
-                  }
-               }
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                pixel = *src++;
+                if (pixel != 255) {
+                    for (k = 0; k < num; k++) {
+                        if (bufferofsonly) *(dest + bufferofs + (amt * k)) = pixel;
+                        else {
+                            *(dest + page1start + (amt * k)) = pixel;
+                            *(dest + page2start + (amt * k)) = pixel;
+                            *(dest + page3start + (amt * k)) = pixel;
+                        }
+                    }
+                }
+                dest += 4;
             }
-
-#ifdef DOS
-            dest++;
-#else
-            dest += 4;
-#endif
-         }
-
-#ifdef DOS
-         dest += (linewidth-width);
-#else
-         dest += (linewidth-width*4);
-#endif
-      }
-
-      mask <<= 1;
-   }
+            dest += (linewidth - width * 4);
+        }
+        mask <<= 1;
+    }
 }
 
 
@@ -2008,75 +1836,26 @@ void DrawPPic (int xpos, int ypos, int width, int height, byte *src, int num, bo
 //
 //****************************************************************************
 
-void DrawBarHealth
-   (
-   boolean bufferofsonly
-   )
+void DrawBarHealth(boolean bufferofsonly) {
+    int percenthealth = (locplayerstate->health * 10) / MaxHitpointsForCharacter(locplayerstate);
+    int health_y = iGLOBAL_HEALTH_Y;
 
-   {
-   int percenthealth;
-   int health_y;
+    if (!SHOW_BOTTOM_STATUS_BAR()) return;
+    if (SHOW_KILLS()) health_y -= KILLS_HEIGHT;
 
-   if ( !SHOW_BOTTOM_STATUS_BAR() )
-      {
-      return;
-      }
+    oldpercenthealth = percenthealth + 1;
+    if (playstate == ex_died) {
+        DrawPPic(iGLOBAL_HEALTH_X, health_y, 8 >> 2, 16, (byte*)&erase->data, 10, true, bufferofsonly);
+        return;
+    }
 
-   health_y = iGLOBAL_HEALTH_Y;
-   if ( SHOW_KILLS() )
-      {
-      health_y -= KILLS_HEIGHT;
-      }
-
-   percenthealth = ( locplayerstate->health * 10 ) /
-      MaxHitpointsForCharacter( locplayerstate );
-
-   oldpercenthealth = percenthealth + 1;
-
-   if ( playstate == ex_died )
-      {
-      DrawPPic( iGLOBAL_HEALTH_X, health_y, 8 >> 2, 16, ( byte * )&erase->data,
-         10, true, bufferofsonly );
-
-      return;
-      }
-
-   if ( locplayerstate->health <= 0 )
-      {
-      oldpercenthealth = 0;
-      }
-
-   if ( oldpercenthealth >= 11 )
-      {
-      oldpercenthealth = 10;
-      }
-
-   if ( oldpercenthealth < 4 )
-      {
-      DrawPPic( iGLOBAL_HEALTH_X, health_y, 8 >> 2, 16,
-         ( byte * )&health[ 0 ]->data, oldpercenthealth,
-         true, bufferofsonly );
-      }
-   else if ( oldpercenthealth < 5 )
-      {
-      DrawPPic( iGLOBAL_HEALTH_X, health_y, 8 >> 2, 16,
-         (byte *)&health[ 1 ]->data, oldpercenthealth,
-         true, bufferofsonly );
-      }
-   else
-      {
-      DrawPPic( iGLOBAL_HEALTH_X, health_y, 8 >> 2, 16,
-         ( byte * )&health[ 2 ]->data, oldpercenthealth,
-         true, bufferofsonly );
-      }
-
-   if ( oldpercenthealth < 10 )
-      {
-      DrawPPic( iGLOBAL_HEALTH_X + ( 8 * oldpercenthealth ), health_y,
-         8 >> 2, 16, ( byte * )&erase->data, 10 - oldpercenthealth,
-         true, bufferofsonly );
-      }
-   }
+    if (locplayerstate->health <= 0) oldpercenthealth = 0;
+    if (oldpercenthealth >= 11) oldpercenthealth = 10;
+    if (oldpercenthealth < 4) DrawPPic(iGLOBAL_HEALTH_X, health_y, 8 >> 2, 16, (byte*)&health[0]->data, oldpercenthealth, true, bufferofsonly);
+    else if (oldpercenthealth < 5) DrawPPic(iGLOBAL_HEALTH_X, health_y, 8 >> 2, 16, (byte*)&health[1]->data, oldpercenthealth, true, bufferofsonly);
+    else DrawPPic(iGLOBAL_HEALTH_X, health_y, 8 >> 2, 16, (byte*)&health[2]->data, oldpercenthealth, true, bufferofsonly);
+    if (oldpercenthealth < 10) DrawPPic(iGLOBAL_HEALTH_X + (8 * oldpercenthealth), health_y, 8 >> 2, 16, (byte*)&erase->data, 10 - oldpercenthealth, true, bufferofsonly);
+}
 
 
 //****************************************************************************
