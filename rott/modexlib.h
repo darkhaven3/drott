@@ -52,8 +52,6 @@ void  SetTextMode ( void );
 void  VL_SetVGAPlaneMode ( void );
 void  VL_ClearBuffer (byte *buf, byte color);
 void  VL_ClearVideo (byte color);
-void  VL_CopyDisplayToHidden ( void );
-void  VL_CopyBufferToAll ( byte *buffer );
 void  VL_CopyPlanarPage ( byte * src, byte * dest );
 void  VL_CopyPlanarPageToMemory ( byte * src, byte * dest );
 void  XFlipPage ( void );

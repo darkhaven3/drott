@@ -104,6 +104,7 @@ void InterpolateWall(visobj_t* plane);
 
 int iG_masked;
 int whereami=-1;
+int playerview = 0;
 
 byte * shadingtable;
 
@@ -2666,127 +2667,70 @@ void DrawPlayerLocation ( void )
 ========================
 */
 
+void ThreeDRefresh(void) {
+    objtype* tempptr;
 
-int playerview=0;
-void      ThreeDRefresh (void)
-{
-   objtype * tempptr;
+    whereami = 21;
+    tempptr = player;
 
-   whereami=21;
-   tempptr=player;
+    // Erase old messages
+    RestoreMessageBackground();
+    bufferofs += screenofs;
+    RefreshClear();
+    UpdateClientControls();
 
-//[netplay] network dev mode might be useful, but i'm not supporting multiplayer yet
-#if (DEVELOPMENT == 1)
-   if (Keyboard[sc_9])
-      {
-      while (Keyboard[sc_9])
-         {
-         IN_UpdateKeyboard();
-         }
-      playerview++;
-      if (playerview>numplayers)
-         playerview=1;
-      }
-   if (playerview!=0)
-      {
-      player=PLAYER[playerview-1];
-      }
-#endif
-
-//
-// Erase old messages
-//
-
-  RestoreMessageBackground();
-
-  bufferofs += screenofs;
-
-  RefreshClear();
-
-  UpdateClientControls ();
-
-//
-// follow the walls from there to the right, drawwing as we go
-//
-
-	visptr = &vislist[0];
-	WallRefresh ();
-
-   UpdateClientControls ();
-
-	if (fandc)
-		DrawPlanes();
-
-   UpdateClientControls ();
-
-//
-// draw all the scaled images
-//
+    visptr = &vislist[0];   // follow the walls from there to the right, drawing as we go
+    WallRefresh();
+    UpdateClientControls();
+    if (fandc) DrawPlanes();
+    UpdateClientControls();
     DrawScaleds();                                         // draw scaled stuff
+    UpdateClientControls();
 
-   UpdateClientControls ();
+    if (!missobj) {
+        if (locplayerstate->NETCAPTURED && (locplayerstate->NETCAPTURED != -2)) {
+            int value;
 
-	if (!missobj)
-		{
-		if (locplayerstate->NETCAPTURED && (locplayerstate->NETCAPTURED != -2))
-			{
-			int value;
+            if (locplayerstate->NETCAPTURED < 0) value = -locplayerstate->NETCAPTURED;
+            else value = locplayerstate->NETCAPTURED;
 
-			if (locplayerstate->NETCAPTURED < 0)
-			  value = -locplayerstate->NETCAPTURED;
-			else
-			  value = locplayerstate->NETCAPTURED;
-			DrawScreenSizedSprite(netlump+value-1);
-			}
-		DrawPlayerWeapon ();    // draw player's hand'
+            DrawScreenSizedSprite(netlump + value - 1);
+        }
 
-		if (SCREENEYE)
-		  DrawScreenSprite(SCREENEYE->targettilex,SCREENEYE->targettiley,SCREENEYE->state->condition + GIBEYE1 + shapestart);
-      UpdateClientControls ();
+        DrawPlayerWeapon();    // draw player's hand
+        if (SCREENEYE) DrawScreenSprite(SCREENEYE->targettilex, SCREENEYE->targettiley, SCREENEYE->state->condition + GIBEYE1 + shapestart);
+        UpdateClientControls();
+        if (player->flags & FL_GASMASK) DrawScreenSizedSprite(gmasklump);
+        if (SHOW_PLAYER_STATS()) DrawStats();
 
-	   if (player->flags&FL_GASMASK)
-		   DrawScreenSizedSprite(gmasklump);
+        DoBorderShifts();
+        UpdateClientControls();
+    }
 
+    bufferofs -= screenofs;
+    DrawMessages();
+    bufferofs += screenofs;
 
-      if ( SHOW_PLAYER_STATS() ) DrawStats ();
+    if ((GamePaused && !Keyboard[sc_LShift]) || !controlupdatestarted) DrawPause();
 
-      DoBorderShifts ();
-      UpdateClientControls ();
-      }
+    // show screen and time last cycle
+    if (fizzlein && !modemgame) {
+        if (newlevel) ShutdownClientControls();
+        bufferofs -= screenofs;
+        DrawPlayScreen(true);
+        RotateBuffer(0, FINEANGLES, FINEANGLES * 8, FINEANGLES, (VBLCOUNTER * 3) / 4);
+        bufferofs += screenofs;
+        fizzlein = false;
+        StartupClientControls();
+    }
 
-   bufferofs -= screenofs;
-   DrawMessages();
-   bufferofs += screenofs;
+    bufferofs -= screenofs;
+    UpdateClientControls();
+    if (HUD) DrawPlayerLocation();
 
-   if ( ((GamePaused==true) && (!Keyboard[sc_LShift])) ||
-        (controlupdatestarted==0)
-      )
-      DrawPause ();
-
-//
-// show screen and time last cycle
-//
-   if (fizzlein && !modemgame)
-   {
-      if (newlevel==true) ShutdownClientControls();
-      bufferofs-=screenofs;
-      DrawPlayScreen (true);
-      RotateBuffer(0,FINEANGLES,FINEANGLES*8,FINEANGLES,(VBLCOUNTER*3)/4);
-      bufferofs+=screenofs;
-      fizzlein = false;
-      StartupClientControls();
-   }
-
-   bufferofs -= screenofs;
-
-   UpdateClientControls ();
-
-   if (HUD == true) DrawPlayerLocation();
-
-   FlipPage();
-   gamestate.frame++;
-
-   player=tempptr;
+    FlipPage();
+    gamestate.frame++;
+    player = tempptr;
 }
 
 
@@ -2796,15 +2740,10 @@ void      ThreeDRefresh (void)
 //
 //******************************************************************************
 
-void FlipPage ( void )
-{
-
+void FlipPage(void) {
    whereami=22;
-
    if ( (SHAKETICS != 0xFFFF) && !inmenu && !GamePaused && !fizzlein ) ScreenShake();
-
    XFlipPage();
-
 }
 
 
@@ -2823,38 +2762,34 @@ inline void TurnShakeOff (void) {
 // draw sreen after reentering fro restore game
 //******************************************************************************
 
-void DrawScaledScreen(int x, int y, int step, byte * src)
-{
+void DrawScaledScreen(int x, int y, int step, byte* src) {
     int     xfrac;
     int     yfrac;
-//    int     plane;
-    int     i,j;
-    byte    * p;
-    byte    * buf;
+    int     i, j;
+    byte* p;
+    byte* buf;
     int     xsize;
     int     ysize;
 
-    xsize=(iGLOBAL_SCREENWIDTH<<16)/step;
-    if (xsize>iGLOBAL_SCREENWIDTH) xsize=iGLOBAL_SCREENWIDTH;
-    ysize=(iGLOBAL_SCREENHEIGHT<<16)/step;
-    if (ysize>iGLOBAL_SCREENHEIGHT) ysize=iGLOBAL_SCREENHEIGHT;
+    xsize = (iGLOBAL_SCREENWIDTH << 16) / step;
+    if (xsize > iGLOBAL_SCREENWIDTH) xsize = iGLOBAL_SCREENWIDTH;
+    ysize = (iGLOBAL_SCREENHEIGHT << 16) / step;
+    if (ysize > iGLOBAL_SCREENHEIGHT) ysize = iGLOBAL_SCREENHEIGHT;
 
+    yfrac = 0;
+    for (j = y; j < y + ysize; j++) {
 
-       yfrac=0;
-       for (j=y;j<y+ysize;j++) {
+        p = src + (iGLOBAL_SCREENWIDTH * (yfrac >> 16));
+        buf = (byte*)bufferofs + ylookup[j] + x;
+        xfrac = 0;
+        yfrac += step;
 
-          p=src+(iGLOBAL_SCREENWIDTH*(yfrac>>16));
-          buf=(byte *)bufferofs+ylookup[j]+x;
-          xfrac=0;
-          yfrac+=step;
-
-          for (i=x;i<x+xsize;i++) {
-                 *buf=*(p+(xfrac>>16));
-                 buf++;
-                 xfrac+=step;
-             }
-       }
-
+        for (i = x; i < x + xsize; i++) {
+            *buf = *(p + (xfrac >> 16));
+            buf++;
+            xfrac += step;
+        }
+    }
 }
 
 
@@ -2864,69 +2799,61 @@ void DrawScaledScreen(int x, int y, int step, byte * src)
 //
 //******************************************************************************
 
-void DoLoadGameSequence ( void )
-{
-   int x;
-   int y;
-   int dx;
-   int dy;
-   int s;
-   int ds;
-   int time;
-   int i;
-   byte * destscreen;
-   pic_t *shape;//bna++
-   
-   
+void DoLoadGameSequence(void) {
+    int x;
+    int y;
+    int dx;
+    int dy;
+    int s;
+    int ds;
+    int time;
+    int i;
+    byte* destscreen;
+    pic_t* shape;//bna++
 
-   
-   
-   fizzlein=false;
-   x=(18+SaveGamePicX)<<16;
-   y=(30+SaveGamePicY)<<16;
-   time=VBLCOUNTER;
-   s=0x2000000;
-   dx=(-x)/time;
-   dy=(-y)/time;
-   ds=-((s-0x1000000)/time);
+    fizzlein = false;
+    x = (18 + SaveGamePicX) << 16;
+    y = (30 + SaveGamePicY) << 16;
+    time = VBLCOUNTER;
+    s = 0x2000000;
+    dx = (-x) / time;
+    dy = (-y) / time;
+    ds = -((s - 0x1000000) / time);
 
-   destscreen=SafeMalloc(65536*8);  //:grimace:
+    destscreen = SafeMalloc(65536 * 8);  //:grimace:
 
-   SetupScreen(false);
-   ThreeDRefresh();
+    SetupScreen(false);
+    ThreeDRefresh();
 
-   FlipPage();
-   FlipPage();
+    FlipPage();
+    FlipPage();
 
-   VL_CopyPlanarPageToMemory ( (byte *)bufferofs,  destscreen );
-   VL_CopyDisplayToHidden ();
+    VL_CopyPlanarPageToMemory((byte*)bufferofs, destscreen);
 
-   CalcTics();
-   for (i=0;i<time;i+=tics)
-      {
-      CalcTics();
-      DrawScaledScreen((x>>16),(y>>16),(s>>8),destscreen);
-      FlipPage();
-      x+=(dx*tics);
-      if (x<0) x=0;
-      y+=(dy*tics);
-      if (y<0) y=0;
-      s+=(ds*tics);
-      }
+    CalcTics();
+    for (i = 0; i < time; i += tics) {
+        CalcTics();
+        DrawScaledScreen((x >> 16), (y >> 16), (s >> 8), destscreen);
+        FlipPage();
+        x += (dx * tics);
+        if (x < 0) x = 0;
+        y += (dy * tics);
+        if (y < 0) y = 0;
+        s += (ds * tics);
+    }
 
-   DrawScaledScreen(0,0,0x10000,destscreen);
-   FlipPage();
-   VL_CopyDisplayToHidden ();
-   SafeFree(destscreen);
-   CalcTics();
-   CalcTics();
-   	//bna++ section
-   shape =  ( pic_t * )W_CacheLumpName( "backtile", PU_CACHE, Cvt_pic_t, 1 );
-   DrawTiledRegion( 0, 16, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT - 32, 0, 16, shape );//bna++
-   DrawPlayScreen(false);
-   DisableScreenStretch();
-   SHAKETICS = 0xFFFF;
-   //bna section end
+    DrawScaledScreen(0, 0, 0x10000, destscreen);
+    FlipPage();
+    SafeFree(destscreen);
+    CalcTics();
+    CalcTics();
+    //bna++ section
+    shape = (pic_t*)W_CacheLumpName("backtile", PU_CACHE, Cvt_pic_t, 1);
+    DrawTiledRegion(0, 16, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT - 32, 0, 16, shape);//bna++
+    DrawPlayScreen(false);
+    DisableScreenStretch();
+    SHAKETICS = 0xFFFF;
+    //bna section end
 }
 
 //******************************************************************************

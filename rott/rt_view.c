@@ -490,24 +490,14 @@ void SetupScreen ( boolean flip )
 
    SetViewSize(viewsize);
 
-   if ( viewsize < 8 )
-      {
-      shape =  ( pic_t * )W_CacheLumpName( "backtile", PU_CACHE, Cvt_pic_t, 1 );
-      //DrawTiledRegion( 0, 16, 320, 200 - 32, 0, 16, shape );
-      DrawTiledRegion( 0, 16, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT - 32, 0, 16, shape );//bna++
-      }
+   if (viewsize < 8) {
+       shape = (pic_t*)W_CacheLumpName("backtile", PU_CACHE, Cvt_pic_t, 1);
+       DrawTiledRegion(0, 16, iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT - 32, 0, 16, shape);//bna++
+   }
 
-   if ( viewsize == 0 )
-      {
-      DrawCPUJape();
-      }
-
+   if ( viewsize == 0 ) DrawCPUJape();
    DrawPlayScreen (true);
-   if (flip==true)
-      {
-      ThreeDRefresh();
-      VL_CopyDisplayToHidden();
-      }
+   if (flip) ThreeDRefresh();
 }
 
 

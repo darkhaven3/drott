@@ -17,6 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
+#if PLATFORM_UNIX
+#include <unistd.h>
+#endif
+
 #include "rt_def.h"
 #include "rt_sound.h"
 #include "_rt_soun.h"
@@ -33,28 +38,82 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "watcom.h"
 #include <stdio.h>
 #include <stdlib.h>
-
-#if PLATFORM_DOS
-#include <mem.h>
-#include <io.h>
-#elif PLATFORM_UNIX
-#include <unistd.h>
-#endif
-
 #include "rt_cfg.h"
 #include "isr.h"
 #include "develop.h"
 #include "rt_net.h"
-
 #include "rt_str.h"
+#include "memcheck.h"   //MED
 
-#if (SHAREWARE==0)
-#include "snd_reg.h"
-#else
+#if (SHAREWARE == 1)
+
 #include "snd_shar.h"
+
+#define MAXSONGS 18
+
+static song_t rottsongs[MAXSONGS] = {
+      { loop_no,  song_apogee  ,"FANFARE2","Apogee Fanfare"},
+      { loop_yes, song_title   ,"RISE",    "Rise"},
+      { loop_yes, song_menu    ,"MMMENU",  "MMMenu"},
+      { loop_yes, song_christmas,"DEADLY", "Deadly Gentlemen"},
+      { loop_yes, song_elevator,"GOINGUP", "Going up?"},
+      { loop_yes, song_endlevel,"HOWDIDO", "How'd I do?"},
+      { loop_yes, song_secretmenu,"FISHPOLK","Fish Polka"},
+      { loop_yes, song_gameover,"YOUSUCK", "You Suck"},
+      { loop_yes, song_youwin  ,"WATZNEXT","Watz Next?"},
+      { loop_no,  song_gason   ,"GAZZ!",   "Gazz!"},
+      { loop_yes, song_level   ,"FASTWAY", "Goin' Down The Fast Way"},
+      { loop_yes, song_level   ,"MISTACHE","Mist Ache"},
+      { loop_yes, song_level   ,"OWW",     "Oww!!!"},
+      { loop_yes, song_level   ,"SMOKE",   "Smoke And Mirrors"},
+      { loop_yes, song_level   ,"SPRAY",   "Spray"},
+      { loop_yes, song_level   ,"RUNLIKE", "Run Like Smeg"},
+      { loop_yes, song_level   ,"SMOOTH",  "Havana Smooth"},
+      { loop_yes, song_level   ,"CHANT",   "Chant"},
+      };
+#else
+
+#include "snd_reg.h"
+
+#define MAXSONGS 34
+
+static song_t rottsongs[MAXSONGS] = {
+      { loop_no,  song_apogee  ,"FANFARE2","Apogee Fanfare"},
+      { loop_yes, song_title   ,"RISE",    "Rise"},
+      { loop_yes, song_menu    ,"MMMENU",  "MMMenu"},
+      { loop_yes, song_christmas,"DEADLY", "Deadly Gentlemen"},
+      { loop_yes, song_elevator,"GOINGUP", "Going up?"},
+      { loop_yes, song_secretmenu,"FISHPOLK","Fish Polka"},
+      { loop_yes, song_endlevel,"HOWDIDO", "How'd I do?"},
+      { loop_yes, song_gameover,"YOUSUCK", "You Suck"},
+      { loop_yes, song_cinematic2,"WATZNEXT","Watz Next?"},
+      { loop_no,  song_gason   ,"GAZZ!",   "Gazz!"},
+      { loop_yes, song_level   ,"FASTWAY", "Goin' Down The Fast Way"},
+      { loop_yes, song_level   ,"MISTACHE","Mist Ache"},
+      { loop_yes, song_level   ,"OWW",     "Oww!!!"},
+      { loop_yes, song_level   ,"SMOKE",   "Smoke And Mirrors"},
+      { loop_yes, song_level   ,"SPRAY",   "Spray"},
+      { loop_yes, song_level   ,"RUNLIKE", "Run Like Smeg"},
+      { loop_yes, song_level   ,"SMOOTH",  "Havana Smooth"},
+      { loop_yes, song_level   ,"CHANT",   "Chant"},
+      { loop_yes, song_level   ,"MEDIEV1A","Funeral of Queen Mary"},
+      { loop_yes, song_level   ,"TASKFORC","Task Force"},
+      { loop_yes, song_level   ,"KISSOFF", "KISS Off"},
+      { loop_yes, song_level   ,"RADAGIO", "Adagio For Strings"},
+      { loop_yes, song_level   ,"SHARDS",  "Shards"},
+      { loop_yes, song_level   ,"STAIRS",  "I Choose the Stairs"},
+      { loop_yes, song_level   ,"SUCKTHIS","Suck This"},
+      { loop_yes, song_level   ,"EXCALIBR","Excalibur"},
+      { loop_yes, song_level   ,"CCCOOL",   "CCCool"},
+      { loop_yes, song_level   ,"WORK_DAY","Work Day"},
+      { loop_yes, song_level   ,"WHERIZIT","Where Iz It?"},
+      { loop_no,  song_bossdie,"BOSSBLOW", "Boss Blow"},
+      { loop_yes, song_bosssee ,"HELLERO", "Hellero"},
+      { loop_yes, song_cinematic1,"EVINRUDE","Evin Rude"},
+      { loop_yes, song_youwin  ,"VICTORY", "Victory!"},
+      { loop_yes, song_dogend  ,"HERE_BOY","Here Boy"}
+};
 #endif
-//MED
-#include "memcheck.h"
 
 // Local Variables
 
@@ -76,13 +135,12 @@ int fxnums[ 11 ] = {
 
 int MUSIC_GetPosition( void ) {
    songposition pos;
-
    MUSIC_GetSongPosition( &pos );
    return pos.milliseconds;
 }
 
 void MUSIC_SetPosition( int time ) {
-   MUSIC_SetSongTime( ( unsigned long )time );
+   MUSIC_SetSongTime((unsigned long) time);
 }
 
 
@@ -92,37 +150,26 @@ void MUSIC_SetPosition( int time ) {
 //
 //***************************************************************************
 
-int SoundNumber (int x) {
-   if ((x>=SD_REMOTEM1SND) && (x<=SD_REMOTEM10SND))
-      return remotestart + x - SD_REMOTEM1SND;
-//      sounds[x].snds[soundtype]+remotestart;
-   else
-      return sounds[x].snds[soundtype]+soundstart;
+int SoundNumber(int x) {
+    if ((x >= SD_REMOTEM1SND) && (x <= SD_REMOTEM10SND)) return remotestart + x - SD_REMOTEM1SND;
+    else return sounds[x].snds[soundtype] + soundstart;
 }
-
 
 //***************************************************************************
 //
 // SD_MakeCacheable - Make a sound that has just finished playing cacheable again
 //
 //***************************************************************************
-void SD_MakeCacheable( unsigned long sndnum )
-{
-   if (sndnum == (unsigned long) -1)
-      {
-      return;
-      }
+void SD_MakeCacheable(unsigned long sndnum) {
+    if (sndnum == (unsigned long)-1) return;
 
-   if (sndnum>=MAXSOUNDS)
-      {
-      SoftError ("Illegal sound value in SD_MakeCacheable value=%ld\n",sndnum);
-      return;
-      }
-   sounds[sndnum].count--;
-   if (sounds[sndnum].count>0)
-      return;
-   else
-      W_CacheLumpNum(SoundNumber(sndnum),PU_CACHE, CvtNull, 1);
+    if (sndnum >= MAXSOUNDS) {
+        SoftError("Illegal sound value in SD_MakeCacheable value=%ld\n", sndnum);
+        return;
+    }
+    sounds[sndnum].count--;
+    if (sounds[sndnum].count > 0) return;
+    else W_CacheLumpNum(SoundNumber(sndnum), PU_CACHE, CvtNull, 1);
 }
 
 //***************************************************************************
@@ -157,27 +204,15 @@ int SD_SetupFXCard(int* numvoices, int* numbits, int* numchannels) {
 //
 //***************************************************************************
 
-int SD_Startup(boolean bombonerror)
-{
-    int status;
-    int card;
-    int voices;
-    int channels;
-    int bits;
-    int i;
-
+int SD_Startup(boolean bombonerror) {
     if (SD_Started == true) SD_Shutdown();
-    if (FXMode < 0 || FXMode >= 11) return 0;
-
-    card = fxnums[FXMode];
-
-    if (card == -1) return 0;   // Check if it is off
+    if (fxnums[FXMode] == -1) return 0;   // Check if it is off
 
     soundstart = W_GetNumForName("digistrt") + 1;
     soundtype = fx_digital;
 
     if (SoundsRemapped == false) {
-        for (i = 0; i < SD_LASTSOUND; i++) {
+        for (int i = 0; i < SD_LASTSOUND; i++) {
             int snd = sounds[i].snds[fx_digital];
             if (snd >= 0) sounds[i].snds[fx_digital] = W_GetNumForName(W_GetNameForNum(snd + soundstart));
         }
@@ -185,20 +220,7 @@ int SD_Startup(boolean bombonerror)
     }
 
     soundstart = 0;
-    voices = NumVoices;
-    channels = NumChannels;
-    bits = NumBits;
-    status = FX_Init(card, voices, channels, bits, 11025);
-
-    if (status != FX_Ok) {
-        if (bombonerror) {
-            DeleteSoundFile();
-            Error("%s\n", FX_ErrorString(status));
-        }
-
-        return status;
-    }
-
+    FX_Init(6, 8, 2, 16, 11025);
     if (stereoreversed) FX_SetReverseStereo(!FX_GetReverseStereo());
     FX_SetCallBack(SD_MakeCacheable);
     remotestart = W_GetNumForName("remostrt") + 1;
@@ -213,23 +235,11 @@ int SD_Startup(boolean bombonerror)
 //
 //***************************************************************************
 
-boolean SD_SoundOkay ( int sndnum )
-{
-   if (SD_Started==false)
-      return false;
-
-   if (sndnum>=MAXSOUNDS)
-      Error ("Illegal sound number, sound number = %d\n",sndnum);
-
-   if (SoundOffset(sndnum)==-1)
-      return false;
-
-   if ( ( sounds[ sndnum ].flags & SD_PLAYONCE ) &&
-      ( SD_SoundActive( sounds[ sndnum ].prevhandle ) ) )
-      {
-      return false;
-      }
-
+boolean SD_SoundOkay(int sndnum) {
+   if (!SD_Started) return false;
+   if (sndnum>=MAXSOUNDS) Error ("Illegal sound number, sound number = %d\n",sndnum);
+   if (SoundOffset(sndnum)==-1) return false;
+   if ( (sounds[ sndnum ].flags & SD_PLAYONCE) &&  SD_SoundActive(sounds[sndnum].prevhandle) ) return false;
    return true;
 }
 
@@ -239,74 +249,36 @@ boolean SD_SoundOkay ( int sndnum )
 //
 //***************************************************************************
 
-int SD_PlayIt ( int sndnum, int angle, int distance, int pitch )
-{
-   int voice;
-   byte * snd;
+int SD_PlayIt(int sndnum, int angle, int distance, int pitch) {
+    int voice;
+    byte* snd;
 
-#if (DEVELOPMENT == 1)
-#if (SOUNDTEST == 1)
-   SoftError("SOUND =%d \n",sndnum);
-#endif
-#endif
+    if (!(sounds[sndnum].flags & SD_WRITE)) {
+        if (sounds[sndnum].count) {
+            if (distance <= sounds[sndnum].prevdistance) FX_StopSound(sounds[sndnum].prevhandle);
+            else return 0;
+        }
+    }
 
-   if (!(sounds[sndnum].flags & SD_WRITE))
-      {
-      if (sounds[sndnum].count)
-         {
-         if (distance<=sounds[sndnum].prevdistance)
-            FX_StopSound(sounds[sndnum].prevhandle);
-         else
-            return 0;
-         }
-      }
+    if (!FX_VoiceAvailable(sounds[sndnum].priority)) return 0;
 
-   if ( !FX_VoiceAvailable( sounds[sndnum].priority ) )
-      {
-      return( 0 );
-      }
+    sounds[sndnum].count++;
+    snd = W_CacheLumpNum(SoundNumber(sndnum), PU_STATIC, CvtNull, 1);
+    if (*snd == 'C') voice = FX_PlayVOC3D(snd, pitch, angle, distance, sounds[sndnum].priority, (unsigned long)sndnum);
+    else voice = FX_PlayWAV3D(snd, pitch, angle, distance, sounds[sndnum].priority, (unsigned long)sndnum);
 
-   sounds[sndnum].count++;
+    if (voice < FX_Ok) {
+        SD_MakeCacheable(sndnum);
+        return 0;
+    }
 
-   snd=W_CacheLumpNum(SoundNumber(sndnum),PU_STATIC, CvtNull, 1);
+    NumBadSounds = 0;
+    if (!(sounds[sndnum].flags & SD_WRITE)) {
+        sounds[sndnum].prevhandle = voice;
+        sounds[sndnum].prevdistance = distance;
+    }
 
-   if ( *snd == 'C' )
-      {
-      voice = FX_PlayVOC3D( snd, pitch, angle, distance,
-         sounds[sndnum].priority, (unsigned long) sndnum );
-      }
-   else
-      {
-      voice = FX_PlayWAV3D( snd, pitch, angle, distance,
-         sounds[sndnum].priority, (unsigned long) sndnum );
-      }
-
-   if ( voice < FX_Ok )
-      {
-#if (DEVELOPMENT == 1)
-/*
-      if (MV_ErrorCode == MV_InvalidVOCFile)
-         {
-         Error("SD_PlayIt: Invalid VOC File snd=%p sndnum=%ld lump=%ld\n",snd,sndnum,SoundNumber(sndnum));
-         }
-*/
-      NumBadSounds++;
-      SoftError("SD_PlayIt: Error/Warning %s\n",FX_ErrorString( FX_Error ));
-      SoftError("BadSoundNumber %ld time %ld\n",NumBadSounds,GetTicCount());
-#endif
-      SD_MakeCacheable( sndnum );
-
-      return 0;
-      }
-
-   NumBadSounds=0;
-
-   if (!(sounds[sndnum].flags & SD_WRITE))
-      {
-      sounds[sndnum].prevhandle=voice;
-      sounds[sndnum].prevdistance=distance;
-      }
-   return voice;
+    return voice;
 }
 
 
@@ -316,25 +288,15 @@ int SD_PlayIt ( int sndnum, int angle, int distance, int pitch )
 //
 //***************************************************************************
 
-int SD_Play ( int sndnum )
-{
+int SD_Play(int sndnum) {
    int voice;
-   int pitch;
+   int pitch = 0;
 
-   if ( SD_SoundOkay ( sndnum ) == false )
-      return 0;
-
-   pitch = 0;
-
-   if ( !( sounds[ sndnum ].flags & SD_PITCHSHIFTOFF ) )
-      {
-      pitch = PitchOffset();
-      }
+   if (!SD_SoundOkay (sndnum)) return 0;
+   if ( !(sounds[sndnum].flags & SD_PITCHSHIFTOFF) ) pitch = PitchOffset();
 
    voice = SD_PlayIt ( sndnum, 0, 0, pitch );
-
    return voice;
-
 }
 
 //***************************************************************************
@@ -497,12 +459,6 @@ void SD_SetSoundPitch ( int sndnum, int pitch )
       return;
 
    status=FX_SetPitch( sndnum, pitch );
-   if (status != FX_Ok)
-      {
-#if (DEVELOPMENT == 1)
-      SoftError("SD_SetSoundPitch : %s\n",FX_ErrorString( status ));
-#endif
-      }
 }
 
 //***************************************************************************
@@ -511,45 +467,23 @@ void SD_SetSoundPitch ( int sndnum, int pitch )
 //
 //***************************************************************************
 
-void SD_PanRTP ( int handle, int x, int y )
+void SD_PanRTP(int handle, int x, int y)
 {
-   int angle;
-   int distance;
-   int dx;
-   int dy;
-   int status;
+    int angle;
+    int status;
 
-   if (SD_Started==false)
-      return;
+    if (!SD_Started) return;
+    if (!FX_SoundActive(handle)) return;
 
-   if (!FX_SoundActive(handle))
-      return;
+    int dx = (x - player->x);
+    int dy = (player->y - y);
+    int distance = FindDistance(dx, dy) >> SD_DISTANCESHIFT;
 
-   dx=(x-player->x);
-   dy=(player->y-y);
+    if (distance > 255) return;
+    if (distance != 0) angle = ((player->angle - atan2_appx(dx, dy)) & (FINEANGLES - 1)) >> 6;
+    else angle = 0;
 
-   distance=FindDistance(dx,dy) >> SD_DISTANCESHIFT;
-
-   if (distance>255)
-      return;
-
-   if (distance!=0)
-      {
-      angle = ( (player->angle - atan2_appx(dx,dy)) & (FINEANGLES-1) ) >> 6;
-      }
-   else
-      {
-      angle = 0;
-      }
-
-   status = FX_Pan3D ( handle, angle, distance );
-
-   if (status != FX_Ok)
-      {
-#if (DEVELOPMENT == 1)
-      SoftError("SD_PanPositionedSound: %s\n",FX_ErrorString( status ));
-#endif
-      }
+    status = FX_Pan3D(handle, angle, distance);
 }
 
 //***************************************************************************
@@ -562,20 +496,10 @@ void SD_SetPan ( int handle, int vol, int left, int right )
 {
    int status;
 
-   if (SD_Started==false)
-      return;
-
-   if (!FX_SoundActive(handle))
-      return;
+   if (!SD_Started) return;
+   if (!FX_SoundActive(handle)) return;
 
    status=FX_SetPan( handle, vol, left, right );
-
-   if (status != FX_Ok)
-      {
-#if (DEVELOPMENT == 1)
-      SoftError("SD_SetPan: %s\n",FX_ErrorString( status ));
-#endif
-      }
 }
 
 //***************************************************************************
@@ -587,42 +511,19 @@ void SD_SetPan ( int handle, int vol, int left, int right )
 void SD_PanPositionedSound ( int handle, int px, int py, int x, int y )
 {
    int angle;
-   int distance;
-   int dx;
-   int dy;
-   int status;
 
-   if (SD_Started==false)
-      return;
+   if (!SD_Started) return;
+   if (!FX_SoundActive(handle)) return;
 
-   if (!FX_SoundActive(handle))
-      return;
+   int dx=(x-px);
+   int dy=(py-y);
+   int distance=FindDistance(dx,dy) >> SD_DISTANCESHIFT;
 
-   dx=(x-px);
-   dy=(py-y);
+   if (distance>255) return;
+   if (distance!=0) angle = ( atan2_appx(dx,dy) & (FINEANGLES-1) ) >> 6;
+   else angle = 0;
 
-   distance=FindDistance(dx,dy) >> SD_DISTANCESHIFT;
-
-   if (distance>255)
-      return;
-
-   if (distance!=0)
-      {
-      angle = ( atan2_appx(dx,dy) & (FINEANGLES-1) ) >> 6;
-      }
-   else
-      {
-      angle = 0;
-      }
-
-   status=FX_Pan3D( handle, angle, distance );
-
-   if (status != FX_Ok)
-      {
-#if (DEVELOPMENT == 1)
-      SoftError("SD_PanPositionedSound: %s\n",FX_ErrorString( status ));
-#endif
-      }
+   FX_Pan3D( handle, angle, distance );
 }
 
 
@@ -632,21 +533,9 @@ void SD_PanPositionedSound ( int handle, int px, int py, int x, int y )
 //
 //***************************************************************************
 
-void SD_StopSound ( int handle )
-{
-   int status;
-
-   if (SD_Started==false)
-      return;
-
-   status=FX_StopSound( handle);
-
-   if (status != FX_Ok)
-      {
-#if (DEVELOPMENT == 1)
-      SoftError("SD_StopSound: %s\n",FX_ErrorString( status ));
-#endif
-      }
+void SD_StopSound(int handle) {
+   if (!SD_Started) return;
+   FX_StopSound(handle);
 }
 
 //***************************************************************************
@@ -655,21 +544,9 @@ void SD_StopSound ( int handle )
 //
 //***************************************************************************
 
-void  SD_StopAllSounds ( void )
-{
-   int status;
-
-   if (SD_Started==false)
-      return;
-
-   status=FX_StopAllSounds();
-
-   if (status != FX_Ok)
-      {
-#if (DEVELOPMENT == 1)
-      SoftError("SD_StopAllSounds: %s\n",FX_ErrorString( status ));
-#endif
-      }
+void SD_StopAllSounds(void) {
+   if (!SD_Started) return;
+   FX_StopAllSounds();
 }
 
 //***************************************************************************
@@ -678,16 +555,9 @@ void  SD_StopAllSounds ( void )
 //
 //***************************************************************************
 
-int SD_SoundActive ( int handle )
-{
-   if (SD_Started==false)
-      {
-      return false;
-      }
-   else
-      {
-      return (FX_SoundActive(handle));
-      }
+int SD_SoundActive(int handle) {
+   if (!SD_Started) return false;
+   else return FX_SoundActive(handle);
 }
 
 //***************************************************************************
@@ -757,69 +627,6 @@ void SD_PreCacheSoundGroup ( int lo, int hi )
    for (i=lo;i<=hi;i++)
       SD_PreCacheSound(i);
 }
-
-
-#if (SHAREWARE == 1)
-#define MAXSONGS 18
-static song_t rottsongs[MAXSONGS] = {
-      { loop_no,  song_apogee  ,"FANFARE2","Apogee Fanfare"},
-      { loop_yes, song_title   ,"RISE",    "Rise"},
-      { loop_yes, song_menu    ,"MMMENU",  "MMMenu"},
-      { loop_yes, song_christmas,"DEADLY", "Deadly Gentlemen"},
-      { loop_yes, song_elevator,"GOINGUP", "Going up?"},
-      { loop_yes, song_endlevel,"HOWDIDO", "How'd I do?"},
-      { loop_yes, song_secretmenu,"FISHPOLK","Fish Polka"},
-      { loop_yes, song_gameover,"YOUSUCK", "You Suck"},
-      { loop_yes, song_youwin  ,"WATZNEXT","Watz Next?"},
-      { loop_no,  song_gason   ,"GAZZ!",   "Gazz!"},
-      { loop_yes, song_level   ,"FASTWAY", "Goin' Down The Fast Way"},
-      { loop_yes, song_level   ,"MISTACHE","Mist Ache"},
-      { loop_yes, song_level   ,"OWW",     "Oww!!!"},
-      { loop_yes, song_level   ,"SMOKE",   "Smoke And Mirrors"},
-      { loop_yes, song_level   ,"SPRAY",   "Spray"},
-      { loop_yes, song_level   ,"RUNLIKE", "Run Like Smeg"},
-      { loop_yes, song_level   ,"SMOOTH",  "Havana Smooth"},
-      { loop_yes, song_level   ,"CHANT",   "Chant"},
-      };
-#else
-#define MAXSONGS 34
-static song_t rottsongs[MAXSONGS] = {
-      { loop_no,  song_apogee  ,"FANFARE2","Apogee Fanfare"},
-      { loop_yes, song_title   ,"RISE",    "Rise"},
-      { loop_yes, song_menu    ,"MMMENU",  "MMMenu"},
-      { loop_yes, song_christmas,"DEADLY", "Deadly Gentlemen"},
-      { loop_yes, song_elevator,"GOINGUP", "Going up?"},
-      { loop_yes, song_secretmenu,"FISHPOLK","Fish Polka"},
-      { loop_yes, song_endlevel,"HOWDIDO", "How'd I do?"},
-      { loop_yes, song_gameover,"YOUSUCK", "You Suck"},
-      { loop_yes, song_cinematic2,"WATZNEXT","Watz Next?"},
-      { loop_no,  song_gason   ,"GAZZ!",   "Gazz!"},
-      { loop_yes, song_level   ,"FASTWAY", "Goin' Down The Fast Way"},
-      { loop_yes, song_level   ,"MISTACHE","Mist Ache"},
-      { loop_yes, song_level   ,"OWW",     "Oww!!!"},
-      { loop_yes, song_level   ,"SMOKE",   "Smoke And Mirrors"},
-      { loop_yes, song_level   ,"SPRAY",   "Spray"},
-      { loop_yes, song_level   ,"RUNLIKE", "Run Like Smeg"},
-      { loop_yes, song_level   ,"SMOOTH",  "Havana Smooth"},
-      { loop_yes, song_level   ,"CHANT",   "Chant"},
-      { loop_yes, song_level   ,"MEDIEV1A","Funeral of Queen Mary"},
-      { loop_yes, song_level   ,"TASKFORC","Task Force"},
-      { loop_yes, song_level   ,"KISSOFF", "KISS Off"},
-      { loop_yes, song_level   ,"RADAGIO", "Adagio For Strings"},
-      { loop_yes, song_level   ,"SHARDS",  "Shards"},
-      { loop_yes, song_level   ,"STAIRS",  "I Choose the Stairs"},
-      { loop_yes, song_level   ,"SUCKTHIS","Suck This"},
-      { loop_yes, song_level   ,"EXCALIBR","Excalibur"},
-      { loop_yes, song_level   ,"CCCOOL",   "CCCool"},
-      { loop_yes, song_level   ,"WORK_DAY","Work Day"},
-      { loop_yes, song_level   ,"WHERIZIT","Where Iz It?"},
-      { loop_no,  song_bossdie,"BOSSBLOW", "Boss Blow"},
-      { loop_yes, song_bosssee ,"HELLERO", "Hellero"},
-      { loop_yes, song_cinematic1,"EVINRUDE","Evin Rude"},
-      { loop_yes, song_youwin  ,"VICTORY", "Victory!"},
-      { loop_yes, song_dogend  ,"HERE_BOY","Here Boy"}
-      };
-#endif
 
 static byte * currentsong;
 static int MU_Started=false;

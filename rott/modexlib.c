@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "memcheck.h"
 #include "rt_util.h"
 #include "rt_net.h" // for GamePaused
-#include "myprint.h"
 
 #include "SDL.h"
 
@@ -60,14 +59,7 @@ char        *bufofsTopLimit;		//[*** FREERES SUPPORT? ***]
 char        *bufofsBottomLimit;
 
 #ifndef STUB_FUNCTION
-
-/* rt_def.h isn't included, so I just put this here... */
-#if !defined(ANSIESC)
-#define STUB_FUNCTION fprintf(stderr,"STUB: %s at " __FILE__ ", line %d, thread %d\n",__FUNCTION__,__LINE__,getpid())
-#else
 #define STUB_FUNCTION
-#endif
-
 #endif
 
 /*
@@ -293,30 +285,6 @@ void VL_CopyPlanarPage ( byte * src, byte * dest ) {
 void VL_CopyPlanarPageToMemory ( byte * src, byte * dest ) {
       memcpy(dest,src,screensize);
 	  //[stub] replace with VL_CopyPlanarPage or equivalent
-}
-
-/*
-=======================
-=
-= VL_CopyBufferToAll
-=
-=======================
-*/
-void VL_CopyBufferToAll ( byte *buffer )
-{
-	//[stub]
-}
-
-/*
-=======================
-=
-= VL_CopyDisplayToHidden
-=
-=======================
-*/
-void VL_CopyDisplayToHidden ( void )
-{
-   VL_CopyBufferToAll ( displayofs );
 }
 
 /*

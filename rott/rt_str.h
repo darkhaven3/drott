@@ -27,38 +27,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define _rt_str_public
 
 #include "lumpy.h"
+#include "myprint.h"
 
-
-//***************************************************************************
 //
 // GLOBALS
 //
-//***************************************************************************
 
 extern int fontcolor;
 
-
-//***************************************************************************
 //
 // TYPEDEFS
 //
-//***************************************************************************
 
-typedef  struct
-{
-   int   x,y;
+typedef struct {
+    int x, y;
 } Point;
 
-typedef  struct
-{
-   int   x, y,
-         w, h,
-         px, py;
+typedef  struct {
+    int   x, y, w, h, px, py;
 } WindowRec;            // Record used to save & restore screen windows
 
-typedef  struct
-{
-	Point ul,lr;
+typedef  struct {
+    Point ul, lr;
 } Rect;
 
 
@@ -74,16 +64,11 @@ typedef  struct
 
 void VW_DrawClippedString (int x, int y, const char *string);
 void US_ClippedPrint (int x, int y, const char *s);
-
 void VWB_DrawPropString  (const char *string);
 void VW_MeasurePropString (const char *string, int *width, int *height);
-
 void US_MeasureStr (int *width, int *height, const char * s, ...) __attribute__((format(printf,3,4)));
-
 void VW_DrawPropString (const char *string);
-
-void US_SetPrintRoutines (void (*measure)(const char *, int *, int *, font_t *),
-                          void (*print)(const char *));
+void US_SetPrintRoutines (void (*measure)(const char *, int *, int *, font_t *), void (*print)(const char *));
 void US_Print (const char *s);
 void US_BufPrint (const char *s);
 void US_PrintUnsigned (unsigned long int n);
@@ -98,10 +83,8 @@ void US_CPrint (const char *s);
 // Input rtns
 //
 
-boolean US_LineInput (int x, int y, char *buf, const char *def, boolean escok,
-                      int maxchars, int maxwidth, int color);
-boolean US_lineinput (int x, int y, char *buf, const char *def, boolean escok,
-                      int maxchars, int maxwidth, int color);
+boolean US_LineInput (int x, int y, char *buf, const char *def, boolean escok, int maxchars, int maxwidth, int color);
+boolean US_lineinput (int x, int y, char *buf, const char *def, boolean escok, int maxchars, int maxwidth, int color);
 int CalibrateJoystick(void);
 
 //
@@ -119,7 +102,5 @@ void DrawIString (unsigned short int x, unsigned short int y, const char *string
 void DrawIntensityString (unsigned short int x, unsigned short int y, const char *string, int color);
 void VW_MeasureIntensityPropString (const char *string, int *width, int *height);
 byte GetIntensityColor (byte pix);
-
-#include "myprint.h"
 
 #endif

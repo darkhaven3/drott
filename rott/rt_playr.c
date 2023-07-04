@@ -46,7 +46,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_game.h"
 #include "rt_rand.h"
 #include "z_zone.h"
-#include "rt_swift.h"
 #include "engine.h"
 #include "_rt_play.h"
 #include "rt_cfg.h"
@@ -62,6 +61,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #define FLYINGZMOM  350000
+#define MF_SINGULAR 0x01        //missileflag
 
 
 #if (DEVELOPMENT == 1)
@@ -238,7 +238,6 @@ williamdidthis WEAPONS[MAXWEAPONS] =
 
 void     CheckPlayerSpecials(objtype * ob);
 void     CheckWeaponStates(objtype * ob);
-boolean  CheckSprite (statobj_t* ,int *);
 void     T_Tag (objtype *ob);
 void     T_Player (objtype *ob);
 void     T_BatBlast(objtype*ob);
@@ -250,8 +249,11 @@ void     Thrust (objtype * ob);
 void     CheckWeaponChange (objtype * ob);
 void     PlayerMissileAttack(objtype* );
 void     Cmd_Use(objtype*);
-//void     ComError (char *error, ...);
 int      FinddTopYZANGLELIMITvalue(objtype *ob);
+
+void Move_Player_From_Exit_To_Start(objtype* ob);
+void CheckTagGame(objtype* actor1, objtype* actor2);
+void CheckFlying(objtype* ob, playertype* pstate);
 
 statetype s_free = {false,0,0,T_Free,0,&s_free};
 statetype s_inelevator = {false,0,420,T_Player,0,&s_player};
@@ -288,10 +290,6 @@ static byte JoyDblClickPressed[ 4 ] = { false };
 static int PlayerRecording=-1;
 static int nettics;
 
-void Move_Player_From_Exit_To_Start(objtype *ob);
-void CheckTagGame(objtype *actor1,objtype*actor2);
-void CheckFlying(objtype*ob,playertype *pstate);
-
 /*
 ===============
 =
@@ -299,94 +297,83 @@ void CheckFlying(objtype*ob,playertype *pstate);
 =
 ===============
 */
-void LoadPlayer ( void )
-{
-	memset (locplayerstate->buttonstate, 0, sizeof(locplayerstate->buttonstate));
-   locplayerstate->anglefrac=player->angle<<ANGLEBITS;
-   areabyplayer[player->areanumber]=true;
-	ConnectAreas();
+
+void LoadPlayer(void) {
+    memset(locplayerstate->buttonstate, 0, sizeof(locplayerstate->buttonstate));
+    locplayerstate->anglefrac = player->angle << ANGLEBITS;
+    areabyplayer[player->areanumber] = true;
+    ConnectAreas();
 }
 
 
-int MaxHitpointsForCharacter(playertype*pstate)
-{
-   if (BATTLEMODE && (gamestate.BattleOptions.HitPoints != bo_character_hitpoints))
-      {
-      return( gamestate.BattleOptions.HitPoints );
-      }
+int MaxHitpointsForCharacter(playertype*pstate) {
+   if (BATTLEMODE && (gamestate.BattleOptions.HitPoints != bo_character_hitpoints)) return gamestate.BattleOptions.HitPoints;
    return characters[pstate->player].hitpoints;
 }
 
-void InitializeWeapons(playertype*pstate)
+void InitializeWeapons(playertype* pstate)
 {
 
-//[SHAR]
+    //[SHAR]
 #if (SHAREWARE == 0)
- if (gamestate.SpawnEluder)
-	{pstate->new_weapon = pstate->weapon = pstate->missileweapon = wp_dog;
-	 pstate->oldweapon = pstate->oldmissileweapon = wp_dog;
-	 pstate->bulletweapon = -1;
-	 pstate->HASBULLETWEAPON[wp_pistol] = 0;
-	 pstate->HASBULLETWEAPON[wp_twopistol] = 0;
-	 pstate->HASBULLETWEAPON[wp_mp40] = 0;
-	}
- else
+    if (gamestate.SpawnEluder)
+    {
+        pstate->new_weapon = pstate->weapon = pstate->missileweapon = wp_dog;
+        pstate->oldweapon = pstate->oldmissileweapon = wp_dog;
+        pstate->bulletweapon = -1;
+        pstate->HASBULLETWEAPON[wp_pistol] = 0;
+        pstate->HASBULLETWEAPON[wp_twopistol] = 0;
+        pstate->HASBULLETWEAPON[wp_mp40] = 0;
+    }
+    else
 #endif
-	{if (gamestate.PlayerHasGun[pstate-&PLAYERSTATE[0]])
-		 {pstate->new_weapon = pstate->weapon = pstate->oldweapon =
-		  pstate->bulletweapon = wp_pistol;
-		  pstate->HASBULLETWEAPON[wp_pistol] = 1;
-		  pstate->HASBULLETWEAPON[wp_twopistol] = 0;
-		  pstate->HASBULLETWEAPON[wp_mp40] = 0;
-		  pstate->missileweapon = pstate->oldmissileweapon = -1;
-		 }
-	 else
-		 {pstate->new_weapon = pstate->weapon = pstate->oldweapon =
-		  pstate->bulletweapon = -1;
-		  pstate->HASBULLETWEAPON[wp_pistol] = 0;
-		  pstate->HASBULLETWEAPON[wp_twopistol] = 0;
-		  pstate->HASBULLETWEAPON[wp_mp40] = 0;
-		  pstate->missileweapon = pstate->oldmissileweapon = -1;
-		 }
-	}
-
-
- pstate->ammo = -1;
+    {
+        if (gamestate.PlayerHasGun[pstate - &PLAYERSTATE[0]]) {
+            pstate->new_weapon = pstate->weapon = pstate->oldweapon =
+                pstate->bulletweapon = wp_pistol;
+            pstate->HASBULLETWEAPON[wp_pistol] = 1;
+            pstate->HASBULLETWEAPON[wp_twopistol] = 0;
+            pstate->HASBULLETWEAPON[wp_mp40] = 0;
+            pstate->missileweapon = pstate->oldmissileweapon = -1;
+        }
+        else {
+            pstate->new_weapon = pstate->weapon = pstate->oldweapon =
+            pstate->bulletweapon = -1;
+            pstate->HASBULLETWEAPON[wp_pistol] = 0;
+            pstate->HASBULLETWEAPON[wp_twopistol] = 0;
+            pstate->HASBULLETWEAPON[wp_mp40] = 0;
+            pstate->missileweapon = pstate->oldmissileweapon = -1;
+        }
+    }
+    pstate->ammo = -1;
 }
 
-void ResetPlayerstate(playertype*pstate)
-{
+void ResetPlayerstate(playertype* pstate) {
 
- pstate->batblast = 0;
- pstate->poweruptime = pstate->protectiontime = 0;
- pstate->NETCAPTURED = 0;
- MISCVARS->NET_IN_FLIGHT = 0;
- pstate->weaponuptics = 0;
- pstate->weapondowntics = 0;
- if ((insetupgame==false) || NewGame)
-	 pstate->health = MaxHitpointsForCharacter(pstate);
- pstate->keys = 0;
+    pstate->batblast = 0;
+    pstate->poweruptime = pstate->protectiontime = 0;
+    pstate->NETCAPTURED = 0;
+    MISCVARS->NET_IN_FLIGHT = 0;
+    pstate->weaponuptics = 0;
+    pstate->weapondowntics = 0;
+    if (!insetupgame || NewGame) pstate->health = MaxHitpointsForCharacter(pstate);
+    pstate->keys = 0;
 
- // Give players all the keys in battle game
+    if (BATTLEMODE) pstate->keys = 0x0f;    // Give players all the keys in battle game
 
- if ( BATTLEMODE )
-    {
-    pstate->keys = 0x0f;
-    }
- pstate->attackframe = pstate->attackcount =
- pstate->weaponframe = 0;
- if (gamestate.battlemode == battle_Tag)
-	pstate->weaponheight = TAGHANDHEIGHT;
- else
-	pstate->weaponheight = 0;
- pstate->heightoffset = pstate->oldheightoffset = 0;
- if (gamestate.SpawnEluder)
-	pstate->playerheight = 40;
- else
-	pstate->playerheight = characters[pstate->player].height;
- pstate->falling = false;
- memset (pstate->buttonstate, 0, sizeof(pstate->buttonstate));
- SetPlayerHorizon(pstate,NORMALYZANGLE);
+    pstate->attackframe = pstate->attackcount = pstate->weaponframe = 0;
+
+    if (gamestate.battlemode == battle_Tag) pstate->weaponheight = TAGHANDHEIGHT;
+    else pstate->weaponheight = 0;
+
+    pstate->heightoffset = pstate->oldheightoffset = 0;
+
+    if (gamestate.SpawnEluder) pstate->playerheight = 40;
+    else pstate->playerheight = characters[pstate->player].height;
+
+    pstate->falling = false;
+    memset(pstate->buttonstate, 0, sizeof(pstate->buttonstate));
+    SetPlayerHorizon(pstate, NORMALYZANGLE);
 }
 
 
@@ -399,64 +386,55 @@ void ResetPlayerstate(playertype*pstate)
 =
 ===============
 */
-void SetupPlayerobj (int tilex, int tiley, int dir, objtype * ob)
-{
-	playertype *pstate;
+void SetupPlayerobj(int tilex, int tiley, int dir, objtype* ob) {
+    playertype* pstate;
 
-	M_LINKSTATE(ob,pstate);
+    M_LINKSTATE(ob, pstate);
+    ob->obclass = playerobj;
+    ob->tilex = tilex;
+    ob->tiley = tiley;
+    actorat[tilex][tiley] = ob;
+    ob->areanumber = MAPSPOT(tilex, tiley, 0) - AREATILE;
+    MakeLastInArea(ob);
+    ob->x = ((long)tilex << TILESHIFT) + TILEGLOBAL / 2;
+    ob->y = ((long)tiley << TILESHIFT) + TILEGLOBAL / 2;
+    ob->z = PlatformHeight(tilex, tiley);
 
-	ob->obclass = playerobj;
-	ob->tilex = tilex;
-	ob->tiley = tiley;
-	actorat[tilex][tiley] = ob;
-	ob->areanumber = MAPSPOT(tilex,tiley,0)-AREATILE;
-	MakeLastInArea(ob);
-	ob->x = ((long)tilex<<TILESHIFT)+TILEGLOBAL/2;
-	ob->y = ((long)tiley<<TILESHIFT)+TILEGLOBAL/2;
-	ob->z = PlatformHeight(tilex,tiley);
-   if ((ob->z == -10) || DiskAt(tilex,tiley))
-     ob->z = 0;
+    if ((ob->z == -10) || DiskAt(tilex, tiley)) ob->z = 0;
 
-	ob->angle = (1-dir)*ANG90;
-	ob->which = ACTOR;
-	Fix(ob->angle);
-   ob->yzangle = 0;
+    ob->angle = (1 - dir) * ANG90;
+    ob->which = ACTOR;
+    Fix(ob->angle);
+    ob->yzangle = 0;
 
-	ob->dir   = angletodir[ob->angle];
-	ob->flags = (FL_SHOOTABLE|FL_ABP|FL_BLOCK|FL_COLORED);
-	ob->drawx=ob->x;
-	ob->drawy=ob->y;
-	ob->hitpoints = pstate->health;
-	pstate->anglefrac= (ob->angle<<ANGLEBITS);
-	pstate->angle=0;
-	areabyplayer[ob->areanumber]=true;
+    ob->dir = angletodir[ob->angle];
+    ob->flags = (FL_SHOOTABLE | FL_ABP | FL_BLOCK | FL_COLORED);
+    ob->drawx = ob->x;
+    ob->drawy = ob->y;
+    ob->hitpoints = pstate->health;
+    pstate->anglefrac = (ob->angle << ANGLEBITS);
+    pstate->angle = 0;
+    areabyplayer[ob->areanumber] = true;
 
+    if (ob == player) playerdead = false; // local player dead flag
+    if (!gamestate.SpawnEluder) ob->shapeoffset = pstate->player * REMOTEOFFSET;
 
-	if (ob == player)
-		{
-		playerdead=false; // local player dead flag
-		}
-	if (!gamestate.SpawnEluder)
-	  ob->shapeoffset = pstate->player*REMOTEOFFSET;
-
-	memset (pstate->buttonstate, 0, sizeof(pstate->buttonstate));
-   if (SCREENEYE != NULL)
-      {
-      NewState(SCREENEYE,&s_megaremove);
-      SCREENEYE = NULL;
-      }
+    memset(pstate->buttonstate, 0, sizeof(pstate->buttonstate));
+    if (SCREENEYE != NULL) {
+        NewState(SCREENEYE, &s_megaremove);
+        SCREENEYE = NULL;
+    }
 }
 
 
 
-void SetShapeoffset(objtype*ob)
-{playertype *pstate;
+void SetShapeoffset(objtype* ob) {
+    playertype* pstate;
 
- M_LINKSTATE(ob,pstate);
- ob->shapeoffset = pstate->player*REMOTEOFFSET;
- ob->flags |= FL_COLORED;
- ob->flags &= ~FL_DYING;
-
+    M_LINKSTATE(ob, pstate);
+    ob->shapeoffset = pstate->player * REMOTEOFFSET;
+    ob->flags |= FL_COLORED;
+    ob->flags &= ~FL_DYING;
 }
 
 
@@ -467,65 +445,53 @@ void SetShapeoffset(objtype*ob)
 =
 ===============
 */
-void RevivePlayerobj (int tilex, int tiley, int dir, objtype*ob)
-{
-	playertype *pstate;
-	statetype *tstate;
+void RevivePlayerobj(int tilex, int tiley, int dir, objtype* ob) {
+    playertype* pstate;
+    statetype* tstate;
 
-	M_LINKSTATE(ob,pstate);
-	tstate = ob->state;
-	RemoveFromArea(ob);
-	TurnActorIntoSprite(ob);
-	if ((LASTSTAT->z < nominalheight) && (!IsPlatform(LASTSTAT->tilex,LASTSTAT->tiley)))
-      {
-      SpawnParticles(ob,GUTS,10 + gamestate.difficulty);
-		RemoveStatic(LASTSTAT);
-      }
-	else
-	  {if (DEADPLAYER[NUMDEAD])
-			RemoveStatic(DEADPLAYER[NUMDEAD]);
-		DEADPLAYER[NUMDEAD] = LASTSTAT;
-		LASTSTAT->linked_to = NUMDEAD;
-		NUMDEAD = (NUMDEAD+1)&(MAXDEAD-1);
-	  }
+    M_LINKSTATE(ob, pstate);
+    tstate = ob->state;
+    RemoveFromArea(ob);
+    TurnActorIntoSprite(ob);
 
-	ob->state = tstate;
+    if ((LASTSTAT->z < nominalheight) && (!IsPlatform(LASTSTAT->tilex, LASTSTAT->tiley))) {
+        SpawnParticles(ob, GUTS, 10 + gamestate.difficulty);
+        RemoveStatic(LASTSTAT);
+    }
+    else {
+        if (DEADPLAYER[NUMDEAD]) RemoveStatic(DEADPLAYER[NUMDEAD]);
+        DEADPLAYER[NUMDEAD] = LASTSTAT;
+        LASTSTAT->linked_to = NUMDEAD;
+        NUMDEAD = (NUMDEAD + 1) & (MAXDEAD - 1);
+    }
 
-	SetupPlayerobj (tilex, tiley, dir, ob);
-	ConnectAreas();
+    ob->state = tstate;
 
-	ResetPlayerstate(pstate);
-	InitializeWeapons(pstate);
-   SD_PlaySoundRTP(SD_PLAYERSPAWNSND,ob->x,ob->y);
-	if (!gamestate.SpawnEluder)
-      {
-      ob->shapeoffset = 0;
-      ob->flags &= ~FL_COLORED;
-      ob->flags |= FL_DYING;
-      NewState(ob,&s_respawn1);
-      if (gamestate.battlemode == battle_Tag)
-         {
-         if (BATTLE_Team[ob->dirchoosetime] == BATTLE_It)
+    SetupPlayerobj(tilex, tiley, dir, ob);
+    ConnectAreas();
+    ResetPlayerstate(pstate);
+    InitializeWeapons(pstate);
+    SD_PlaySoundRTP(SD_PLAYERSPAWNSND, ob->x, ob->y);
 
-            {
-            pstate->missileweapon = pstate->oldweapon = pstate->new_weapon =
-            pstate->oldmissileweapon = pstate->weapon = wp_godhand;
-            pstate->bulletweapon = -1;
-            ob->flags |= FL_DESIGNATED;
+    if (!gamestate.SpawnEluder) {
+        ob->shapeoffset = 0;
+        ob->flags &= ~FL_COLORED;
+        ob->flags |= FL_DYING;
+        NewState(ob, &s_respawn1);
+        if (gamestate.battlemode == battle_Tag) {
+            if (BATTLE_Team[ob->dirchoosetime] == BATTLE_It) {
+                pstate->missileweapon = pstate->oldweapon = pstate->new_weapon = pstate->oldmissileweapon = pstate->weapon = wp_godhand;
+                pstate->bulletweapon = -1;
+                ob->flags |= FL_DESIGNATED;
             }
-         else
-            {
-            pstate->weaponheight = 0;
-            }
-         }
-		}
+            else pstate->weaponheight = 0;
+        }
+    }
 #if (SHAREWARE == 0)
-	else
-      NewState(ob,&s_serialdog);
+    else NewState(ob, &s_serialdog);
 #endif
-	if (ob==player)
-		DrawPlayScreen(false);
-   ob->momentumx = ob->momentumy = ob->momentumz = 0;
+    if (ob == player) DrawPlayScreen(false);
+    ob->momentumx = ob->momentumy = ob->momentumz = 0;
 }
 
 
@@ -536,36 +502,22 @@ void RevivePlayerobj (int tilex, int tiley, int dir, objtype*ob)
 =
 ===============
 */
-void SpawnPlayerobj (int tilex, int tiley, int dir, int playerindex)
-{
- playertype *pstate;
+void SpawnPlayerobj(int tilex, int tiley, int dir, int playerindex) {
+    playertype* pstate = &PLAYERSTATE[playerindex];
+    GetNewActor();
+    MakeActive(new);
+    new->dirchoosetime = playerindex;                   // Set player number
 
-	pstate = &PLAYERSTATE[playerindex];
+    if (playerindex == consoleplayer) player = new;     // Save off if local player
 
-	GetNewActor();
-	MakeActive(new);
+    PLAYER[playerindex] = new;
+    SetupPlayerobj(tilex, tiley, dir, new);
 
-	// Set player number
+    if (!gamestate.SpawnEluder) NewState(new, &s_player);
 
-	new->dirchoosetime = playerindex;
-
-	// Save off if local player
-
-	if (playerindex==consoleplayer)
-		player=new;
-
-	PLAYER[playerindex] = new;
-
-	SetupPlayerobj (tilex, tiley, dir, new);
-
-	if (!gamestate.SpawnEluder)
-		NewState(new,&s_player);
 #if (SHAREWARE == 0)
-   else
-      NewState(new,&s_serialdog);
+    else NewState(new, &s_serialdog);
 #endif
-
-
 }
 
 /*
@@ -575,8 +527,7 @@ void SpawnPlayerobj (int tilex, int tiley, int dir, int playerindex)
 =
 ===============
 */
-void SetupBulletHoleLink (int num, statobj_t * item)
-{
+inline void SetupBulletHoleLink(int num, statobj_t * item) {
    BulletHoles[num] = item;
 }
 
@@ -587,137 +538,103 @@ void SetupBulletHoleLink (int num, statobj_t * item)
 =
 ===============
 */
-void SpawnBulletHole (int x, int y, int z)
-{
-   if (M_ISDOOR(x>>16,y>>16))
-      return;
-   if (BulletHoles[MISCVARS->BulletHoleNum])
-      RemoveStatic(BulletHoles[MISCVARS->BulletHoleNum]);
-   SpawnInertStatic(x,y,z,stat_bullethole);
-	BulletHoles[MISCVARS->BulletHoleNum]=LASTSTAT;
-   LASTSTAT->linked_to=MISCVARS->BulletHoleNum;
-	MISCVARS->BulletHoleNum = (MISCVARS->BulletHoleNum+1)&(MAXBULLETS-1);
+void SpawnBulletHole(int x, int y, int z) {
+    if (M_ISDOOR(x >> 16, y >> 16)) return;
+    if (BulletHoles[MISCVARS->BulletHoleNum]) RemoveStatic(BulletHoles[MISCVARS->BulletHoleNum]);
+
+    SpawnInertStatic(x, y, z, stat_bullethole);
+    BulletHoles[MISCVARS->BulletHoleNum] = LASTSTAT;
+    LASTSTAT->linked_to = MISCVARS->BulletHoleNum;
+    MISCVARS->BulletHoleNum = (MISCVARS->BulletHoleNum + 1) & (MAXBULLETS - 1);
 }
 
 
 
 
-void SpawnGunSmoke(int x, int y, int z, int angle, int bullethole)
+void SpawnGunSmoke(int x, int y, int z, int angle, int bullethole) {
+    int chance;
 
-{
-	int chance;
+    if (x <= 0 || y <= 0) {
+        SoftError("SpawnGunSmoke: xy below angle=%d\n", angle);
+        return;
+    }
 
-	if ((x<=0) || (y<=0))
-      {
-      SoftError("SpawnGunSmoke: xy below angle=%d\n",angle);
-      return;
-      }
-
-   if ((bullethole!=0) && (z>=-32) && (z<=maxheight))
-      switch (bullethole)
-         {
-         case 1:
-            SpawnBulletHole(x-BULLETHOLEOFFSET,y,z);
+    if ((bullethole != 0) && (z >= -32) && (z <= maxheight))
+        switch (bullethole) {
+        case 1:
+            SpawnBulletHole(x - BULLETHOLEOFFSET, y, z);
             break;
-         case 2:
-            SpawnBulletHole(x+BULLETHOLEOFFSET,y,z);
+        case 2:
+            SpawnBulletHole(x + BULLETHOLEOFFSET, y, z);
             break;
-         case 3:
-            SpawnBulletHole(x,y-BULLETHOLEOFFSET,z);
+        case 3:
+            SpawnBulletHole(x, y - BULLETHOLEOFFSET, z);
             break;
-         case 4:
-            SpawnBulletHole(x,y+BULLETHOLEOFFSET,z);
+        case 4:
+            SpawnBulletHole(x, y + BULLETHOLEOFFSET, z);
             break;
-         case 5:
-            SpawnBulletHole(x,y,z);
+        case 5:
+            SpawnBulletHole(x, y, z);
             break;
-         default:
+        default:
             Error("Invalid bullethole value\n");
             break;
-         }
+        }
 
-   SpawnInertActor(x,y,z);
+    SpawnInertActor(x, y, z);
+    NewState(new, &s_gunsmoke1);
 
-   NewState(new,&s_gunsmoke1);
+    if (angle < ANGLES / 4) {
+        if ((angle < (3 * ANGLES / 16)) && (angle > (ANGLES / 16))) chance = 128;
+        else chance = 20;
+    }
+    else if (angle < ANGLES / 2) {
+        if ((angle < (7 * ANGLES / 16)) && (angle > (5 * ANGLES / 16))) chance = 128;
+        else chance = 20;
+    }
+    else if (angle < 3 * ANGLES / 4) {
+        if ((angle < (11 * ANGLES / 16)) && (angle > (9 * ANGLES / 16))) chance = 128;
+        else chance = 20;
+    }
+    else {
+        if ((angle < (15 * ANGLES / 16)) && (angle > (13 * ANGLES / 16))) chance = 128;
+        else chance = 20;
+    }
 
-   if (angle < ANGLES/4)
-	 {if ((angle < (3*ANGLES/16)) && (angle > (ANGLES/16)))
-		chance = 128;
-	  else
-		chance = 20;
-	 }
-	else if (angle < ANGLES/2)
-	 {if ((angle < (7*ANGLES/16)) && (angle > (5*ANGLES/16)))
-		chance = 128;
-	  else
-		chance = 20;
-	 }
-	else if (angle < 3*ANGLES/4)
-	 {if ((angle < (11*ANGLES/16)) && (angle > (9*ANGLES/16)))
-		chance = 128;
-	  else
-		chance = 20;
-	 }
-	else
-	 {if ((angle < (15*ANGLES/16)) && (angle > (13*ANGLES/16)))
-		chance = 128;
-	  else
-		chance = 20;
-	 }
-
-	if (RandomNumber("Wall ricochet check",0)<chance)
-	 {int rand;
-
-	  rand = RandomNumber("Spawn Ricochet Sound in SpawnGunSmoke",0);
-	  if (rand < 80)
-		 SD_PlaySoundRTP(SD_RICOCHET1SND,new->x,new->y);
-	  else if (rand < 160)
-		 SD_PlaySoundRTP(SD_RICOCHET2SND,new->x,new->y);
-	  else
-		 SD_PlaySoundRTP(SD_RICOCHET3SND,new->x,new->y);
-	 }
+    if (RandomNumber("Wall ricochet check", 0) < chance) {
+        int rand = RandomNumber("Spawn Ricochet Sound in SpawnGunSmoke", 0);
+        if (rand < 80) SD_PlaySoundRTP(SD_RICOCHET1SND, new->x, new->y);
+        else if (rand < 160) SD_PlaySoundRTP(SD_RICOCHET2SND, new->x, new->y);
+        else SD_PlaySoundRTP(SD_RICOCHET3SND, new->x, new->y);
+    }
 }
 
-void  SpawnBlood(objtype * ob, int angle)
-   {
+void  SpawnBlood(objtype* ob, int angle) {
+    SpawnInertActor(ob->x - (costable[angle] >> 5), ob->y + (sintable[angle] >> 5), ob->z);
+    NewState(new, &s_bloodspurt1);
 
-   SpawnInertActor(ob->x-(costable[angle]>>5),
-                   ob->y+(sintable[angle]>>5),ob->z);
+    if (new->x <= 0 || new->y <= 0) Error("SpawnBlood: bad x,y obj->obclass=%d\n", ob->obclass);
+}
 
-   NewState(new,&s_bloodspurt1);
+void  SpawnMetalSparks(objtype* ob, int angle) {
+    int rand = RandomNumber("Spawn Ricochet Sound", 0);
+    int dispx = 0, dispy = 0;
 
-   if ((new->x<=0) || (new->y<=0))
-	   Error("SpawnBlood: bad x,y obj->obclass=%d\n",ob->obclass);
-   }
+    if (ob->which == ACTOR) {
+        dispx = ob->momentumx;
+        dispy = ob->momentumy;
+    }
 
-void  SpawnMetalSparks(objtype * ob, int angle)
-   {
-   int rand,dispx=0,dispy=0;
+    SpawnInertActor(ob->x - (costable[angle] >> 3) + dispx, ob->y + (sintable[angle] >> 3) + dispy, ob->z);
 
+    if (GameRandomNumber("Spawn Metal Sparks", 0) < 128) NewState(new, &s_hitmetalactor1);
+    else NewState(new, &s_hitmetalwall1);
 
-   if (ob->which == ACTOR)
-      {
-      dispx = ob->momentumx;
-      dispy = ob->momentumy;
-      }
+    if (rand < 80) SD_PlaySoundRTP(SD_RICOCHET1SND, new->x, new->y);
+    else if (rand < 160) SD_PlaySoundRTP(SD_RICOCHET2SND, new->x, new->y);
+    else SD_PlaySoundRTP(SD_RICOCHET3SND, new->x, new->y);
 
-   SpawnInertActor(ob->x-(costable[angle]>>3)+dispx,
-                   ob->y+(sintable[angle]>>3)+dispy,ob->z);
-
-   if (GameRandomNumber("Spawn Metal Sparks",0)<128)
-	  NewState(new,&s_hitmetalactor1);
-	else
-	  NewState(new,&s_hitmetalwall1);
-
-	rand = RandomNumber("Spawn Ricochet Sound",0);
-	if (rand < 80)
-	 SD_PlaySoundRTP(SD_RICOCHET1SND,new->x,new->y);
-	else if (rand < 160)
-	 SD_PlaySoundRTP(SD_RICOCHET2SND,new->x,new->y);
-	else
-	 SD_PlaySoundRTP(SD_RICOCHET3SND,new->x,new->y);
-	if ((new->x<=0) || (new->y<=0))
-	   Error("SpawnMetalSparks: bad x,y obj->obclass=%d\n",ob->obclass);
+    if (new->x <= 0 || new->y <= 0) Error("SpawnMetalSparks: bad x,y obj->obclass=%d\n", ob->obclass);
 }
 
 /*
@@ -727,126 +644,100 @@ void  SpawnMetalSparks(objtype * ob, int angle)
 =
 ===============
 */
-void UnTargetActor ( objtype * target )
-{
-   int i;
-
-   for (i=0;i<numplayers;i++)
-      {
-      if (PLAYERSTATE[i].guntarget==target)
-         {
-         PLAYERSTATE[i].guntarget=NULL;
-         SetNormalHorizon(PLAYER[i]);
-         }
-      }
+void UnTargetActor(objtype* target) {
+    for (int i = 0; i < numplayers; i++) {
+        if (PLAYERSTATE[i].guntarget == target) {
+            PLAYERSTATE[i].guntarget = NULL;
+            SetNormalHorizon(PLAYER[i]);
+        }
+    }
 }
 
 
 
 //=============================================================
 
-int GetWeaponForItem(int itemnumber)
-   {
-   switch (itemnumber)
-      {
+int GetWeaponForItem(int itemnumber) {
+    switch (itemnumber) {
 
+    case  stat_twopistol:
+        return wp_twopistol;
 
-      case  stat_twopistol:
-         return wp_twopistol;
+    case  stat_mp40:
+        return wp_mp40;
 
-      case  stat_mp40:
-         return wp_mp40;
+    case  stat_bazooka:
+        return wp_bazooka;
 
-      case  stat_bazooka:
-         return wp_bazooka;
+    case  stat_heatseeker:
+        return wp_heatseeker;
 
-      case  stat_heatseeker:
-         return wp_heatseeker;
+    case  stat_drunkmissile:
+        return wp_drunk;
 
-      case  stat_drunkmissile:
-         return wp_drunk;
+    case  stat_firebomb:
+        return wp_firebomb;
 
-      case  stat_firebomb:
-         return wp_firebomb;
+    case  stat_firewall:
+        return wp_firewall;
 
-      case  stat_firewall:
-         return wp_firewall;
-
-      case  stat_godmode:
-         return wp_godhand;
+    case  stat_godmode:
+        return wp_godhand;
 
 #if (SHAREWARE == 0)
 
 
-      case  stat_splitmissile:
-         return wp_split;
+    case  stat_splitmissile:
+        return wp_split;
 
-      case  stat_kes:
-         return wp_kes;
+    case  stat_kes:
+        return wp_kes;
 
-      case  stat_bat:
-         return wp_bat;
+    case  stat_bat:
+        return wp_bat;
 
 
-      case  stat_dogmode:
-         return wp_dog;
+    case  stat_dogmode:
+        return wp_dog;
 #endif
-      }
+    }
     return 0;
-   }
+}
 
 
-int GetItemForWeapon(int weapon)
-   {
-   switch (weapon)
-      {
-
-      case wp_twopistol:
-         return stat_twopistol;
-
-      case  wp_mp40:
-         return stat_mp40;
-
-      case  wp_bazooka:
-         return stat_bazooka;
-
-      case  wp_heatseeker:
-         return stat_heatseeker;
-
-      case  wp_drunk:
-         return stat_drunkmissile;
-
-      case  wp_firebomb:
-         return stat_firebomb;
-
-      case  wp_firewall:
-         return stat_firewall;
-
-      case  wp_godhand:
-         return stat_godmode;
+int GetItemForWeapon(int weapon) {
+    switch (weapon) {
+    case wp_twopistol:
+        return stat_twopistol;
+    case  wp_mp40:
+        return stat_mp40;
+    case  wp_bazooka:
+        return stat_bazooka;
+    case  wp_heatseeker:
+        return stat_heatseeker;
+    case  wp_drunk:
+        return stat_drunkmissile;
+    case  wp_firebomb:
+        return stat_firebomb;
+    case  wp_firewall:
+        return stat_firewall;
+    case  wp_godhand:
+        return stat_godmode;
 
 #if (SHAREWARE == 0)
 
-      case  wp_split:
-         return stat_splitmissile;
-
-      case  wp_kes:
-         return stat_kes;
-
-      case  wp_bat:
-         return stat_bat;
-
-
-      case  wp_dog:
-         return stat_dogmode;
+    case  wp_split:
+        return stat_splitmissile;
+    case  wp_kes:
+        return stat_kes;
+    case  wp_bat:
+        return stat_bat;
+    case  wp_dog:
+        return stat_dogmode;
 #endif
-      }
+    }
     return -1;
-   }
-
-
-
-#define MF_SINGULAR 0x01
+}
 
 missile_stats PlayerMissileData[13] =
 

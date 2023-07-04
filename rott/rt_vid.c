@@ -247,8 +247,9 @@ void DrawTiledRegion
 //
 //******************************************************************************
 
-void VWB_DrawPic (int x, int y, pic_t *pic) {
-   if (((iGLOBAL_SCREENWIDTH > 320) && !StretchScreen) || VW_MarkUpdateBlock (x, y, x+(pic->width<<2)-1, y+(pic->height)-1)) VL_MemToScreen ((byte *)&pic->data, pic->width, pic->height, x, y);
+void VWB_DrawPic(int x, int y, pic_t* pic) {
+    if ( (iGLOBAL_SCREENWIDTH > 320 && !StretchScreen) || VW_MarkUpdateBlock(x, y, x + (pic->width << 2) - 1, y + (pic->height) - 1))
+        VL_MemToScreen((byte*)&pic->data, pic->width, pic->height, x, y);
 }
 
 
@@ -879,9 +880,7 @@ void DrawXYPic(int x, int y, int shapenum) {
     int xx, yy;
     int plane;
     byte* src;
-    pic_t* p;
-
-    p = (pic_t*)W_CacheLumpNum(shapenum, PU_CACHE, Cvt_pic_t, 1);
+    pic_t* p = (pic_t*)W_CacheLumpNum(shapenum, PU_CACHE, Cvt_pic_t, 1);
 
     if ((x < 0) || ((x + (p->width << 2)) >= 320)) Error("DrawXYPic: x is out of range\n");
     if ((y < 0) || ((y + p->height) >= 200)) Error("DrawXYPic: y is out of range\n");

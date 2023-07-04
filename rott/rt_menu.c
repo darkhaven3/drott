@@ -76,20 +76,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //MED
 #include "memcheck.h"
 
+#define DELAYAMT  2
+#define SNDCARDS  12
+#define CP_NO     0
+#define CP_ESC    -1
+#define CP_YES    1
+#define MAXCURSORNUM 24
+#define KEYNAMEINDEX 21
+#define NORMALKEY_X  74
+#define NORMALKEY_Y  16
+#define MOUSEBTNINDEX 17
+#define JOYBTNINDEX 17
+#define NUMCONTROLNAMES 21
+#define CONTROLSELECT_X  106
+#define COLORX 113
+#define COLORY 43
+#define COLORW 60
+#define COLORH 96
 
 //******************************************************************************
 //
 // GLOBALS
 //
 //******************************************************************************
-
-#define DELAYAMT  2
-
-#define SNDCARDS  12
-
-#define CP_NO     0
-#define CP_ESC    -1
-#define CP_YES    1
 
 int CP_Acknowledge;
 
@@ -142,15 +151,10 @@ char order[ 21 ] = {
    bt_turnaround, bt_autorun, bt_message, bt_directmsg
    };
 
-// bt_pistol, bt_dualpistol, bt_mp40, bt_missileweapon, bt_recordsound,
-
-#define RETURNVAL    100
-
 static boolean loadsavesound = false;
 static int numdone;
 
-static char *endStrings[ 7 ] =
-   {
+static char* endStrings[7] = {
    "Press Y to reformat \nand install Windows.\0\0",
    "Press Y to activate \nguillotine.\0\0",
    "Press Y to release \nthe cyanide gas.\0\0",
@@ -158,7 +162,7 @@ static char *endStrings[ 7 ] =
    "Press Y to drive your \ncar off the cliff.\0\0",
    "Press Y to pull \nyour plug.\0\0",
    "Press Y to activate \nelectric chair.\0\0"
-   };
+};
 
 static char *BattleModeDescriptions[ battle_NumBattleModes - 1 ] =
    {
@@ -320,8 +324,6 @@ static int MaxChannels;
 //
 // MENU CURSOR SHAPES
 //
-
-#define MAXCURSORNUM 24
 
 static int cursorwidth;
 static int cursorheight;
@@ -517,8 +519,6 @@ CP_itemtype CustomMenu[] =
   {1, "custom3\0", 'C', (menuptr)CP_Joystick}
 };
 
-#define KEYNAMEINDEX 21
-
 CP_MenuNames NormalKeyNames[] =
    {
    "LEFT               \x9      ",
@@ -544,8 +544,6 @@ CP_MenuNames NormalKeyNames[] =
    "DIRECT MESSAGE     \x9      "
    };
 
-#define NORMALKEY_X  74
-#define NORMALKEY_Y  16
 CP_iteminfo NormalKeyItems = { NORMALKEY_X, 17, 21, 0, 16, NormalKeyNames, mn_tinyfont };
 
 CP_itemtype NormalKeyMenu[] =
@@ -572,8 +570,6 @@ CP_itemtype NormalKeyMenu[] =
       { 1, "\0", 'S', (menuptr)DefineKey },
       { 1, "\0", 'D', (menuptr)DefineKey }
    };
-
-#define NUMCONTROLNAMES 21
 
 CP_MenuNames ControlNames[] =
    {
@@ -607,7 +603,6 @@ int controlorder[ NUMCONTROLNAMES ] = {
    bt_swapweapon, bt_dropweapon, bt_turnaround, bt_autorun, bt_map
    };
 
-#define CONTROLSELECT_X  106
 CP_iteminfo ControlSelectItems = { CONTROLSELECT_X, 17, NUMCONTROLNAMES, 0, 16, ControlNames, mn_tinyfont };
 
 CP_itemtype ControlSelectMenu[] =
@@ -635,8 +630,6 @@ CP_itemtype ControlSelectMenu[] =
       { 1, "\0", 'M', NULL }
    };
 
-#define MOUSEBTNINDEX 17
-
 CP_MenuNames MouseBtnNames[] =
    {
    "           LEFT  \x9             ",
@@ -658,9 +651,6 @@ CP_itemtype MouseBtnMenu[] =
       { 1, "\0", 'D', (menuptr)DefineMouseBtn },
       { 1, "\0", 'D', (menuptr)DefineMouseBtn }
    };
-
-
-#define JOYBTNINDEX 17
 
 CP_MenuNames JoyBtnNames[] =
    {
@@ -1112,11 +1102,6 @@ CP_itemtype MultiPageCustomMenu[] =
    {1, "", 'a', NULL},
 };
 
-#define COLORX 113
-#define COLORY 43
-#define COLORW 60
-#define COLORH 96
-
 // Custom menu stuff
 static int CUSTOM_y[ 7 ] = { 31, 0, 63, 0, 94, 0, 126 };
 
@@ -1164,39 +1149,18 @@ int ColorMenu(void);
 //
 //******************************************************************************
 
-void MN_DrawButtons
-   (
-   CP_iteminfo *item_i,
-   CP_itemtype *items,
-   int check,
-   int *nums
-   )
+void MN_DrawButtons(CP_iteminfo* item_i, CP_itemtype* items, int check, int* nums) {
+    int i;
+    int button_on = W_GetNumForName("snd_on");
+    int button_off = W_GetNumForName("snd_off");
 
-   {
-   int i;
-   int button_on;
-   int button_off;
-
-   button_on  = W_GetNumForName( "snd_on" );
-   button_off = W_GetNumForName( "snd_off" );
-
-   for( i = 0; i < item_i->amount; i++ )
-      {
-      if ( items[ i ].active != CP_Active3 )
-         {
-         if ( nums[ i ] == check )
-            {
-            DrawMenuBufItem( item_i->x + 27, item_i->y + i *
-               FontSize[ item_i->fontsize ] - 1, button_on);
-            }
-         else
-            {
-            DrawMenuBufItem( item_i->x + 27, item_i->y + i *
-               FontSize[ item_i->fontsize ] - 1, button_off);
-            }
-         }
-      }
-   }
+    for (i = 0; i < item_i->amount; i++) {
+        if (items[i].active != CP_Active3) {
+            if (nums[i] == check) DrawMenuBufItem(item_i->x + 27, item_i->y + i * FontSize[item_i->fontsize] - 1, button_on);
+            else  DrawMenuBufItem(item_i->x + 27, item_i->y + i * FontSize[item_i->fontsize] - 1, button_off);
+        }
+    }
+}
 
 
 //****************************************************************************
@@ -1205,37 +1169,23 @@ void MN_DrawButtons
 //
 //****************************************************************************
 
-void MN_GetCursorLocation
-   (
-   CP_iteminfo *item_i,
-   CP_itemtype *items
-   )
+void MN_GetCursorLocation(CP_iteminfo* item_i, CP_itemtype* items) {
+    int position = -1;
 
-   {
-   int i;
-   int position;
+    for (int i = 0; i < item_i->amount; i++) {
+        if (items[i].active == CP_CursorLocation) {
+            position = i;
+            break;
+        }
 
-   position = -1;
-   for( i = 0; i < item_i->amount; i++ )
-      {
-      if ( items[ i ].active == CP_CursorLocation )
-         {
-         position = i;
-         break;
-         }
+        if (items[i].active == CP_Active && position == -1) position = i;
+    }
 
-      if ( ( items[ i ].active == CP_Active ) && ( position == -1 ) )
-         {
-         position = i;
-         }
-      }
-
-   if ( position != -1 )
-      {
-      item_i->curpos = position;
-      items[ position ].active = CP_CursorLocation;
-      }
-   }
+    if (position != -1) {
+        item_i->curpos = position;
+        items[position].active = CP_CursorLocation;
+    }
+}
 
 
 //****************************************************************************
@@ -1244,32 +1194,21 @@ void MN_GetCursorLocation
 //
 //****************************************************************************
 
-int MN_GetActive
-   (
-   CP_iteminfo *item_i,
-   CP_itemtype *items,
-   int check,
-   int *nums
-   )
+int MN_GetActive(CP_iteminfo* item_i, CP_itemtype* items, int check, int* nums) {
+    int returnval;
 
-   {
-   int i;
-   int returnval;
+    returnval = 0;
+    for (int i = 0; i < item_i->amount; i++) {
+        items[i].active = CP_Active;
 
-   returnval = 0;
-   for( i = 0; i < item_i->amount; i++ )
-      {
-      items[ i ].active = CP_Active;
-      if ( nums[ i ] == check )
-         {
-         item_i->curpos    = i;
-         items[ i ].active = CP_CursorLocation;
-         returnval = i;
-         }
-      }
-
-   return( returnval );
-   }
+        if (nums[i] == check) {
+            item_i->curpos = i;
+            items[i].active = CP_CursorLocation;
+            returnval = i;
+        }
+    }
+    return returnval;
+}
 
 
 //****************************************************************************
@@ -1278,24 +1217,14 @@ int MN_GetActive
 //
 //****************************************************************************
 
-void MN_MakeActive
-   (
-   CP_iteminfo *item_i,
-   CP_itemtype *items,
-   int which
-   )
+void MN_MakeActive(CP_iteminfo* item_i, CP_itemtype* items, int which) {
 
-   {
-   int i;
-
-   for( i = 0; i < item_i->amount; i++ )
-      if (i == which)
-      {
-         items[i].active = CP_CursorLocation;
-         item_i->curpos    = i;
-      }
-      else
-         items[i].active = CP_Active;
+    for (int i = 0; i < item_i->amount; i++)
+        if (i == which) {
+            items[i].active = CP_CursorLocation;
+            item_i->curpos = i;
+        }
+        else items[i].active = CP_Active;
 }
 
 
@@ -4552,118 +4481,100 @@ void DrawCtlScreen (void)
 //
 //******************************************************************************
 
-void DrawCtlButtons (void)
+void DrawCtlButtons(void)
 {
-   int i,
-       x,
-       y;
-   static boolean first = true;
-   int button_on;
-   int button_off;
+    int i,
+        x,
+        y;
+    static boolean first = true;
+    int button_on;
+    int button_off;
 
-   button_on  = W_GetNumForName ("snd_on");
-   button_off = W_GetNumForName ("snd_off");
+    button_on = W_GetNumForName("snd_on");
+    button_off = W_GetNumForName("snd_off");
 
-   WindowX = 0;
-   WindowW = 320;
+    WindowX = 0;
+    WindowW = 320;
 
-   if (first)
-   {
-      if (JoysPresent[0] || JoysPresent[1])
-         {
-         CtlMenu[JOYENABLE].active = CP_Active;
-         CtlMenu[USEPORT2].active  = CP_Active;
-         CtlMenu[PADENABLE].active = CP_Active;
-         CtlMenu[THRESSENS].active = CP_Active;
-         }
-      else
-      {
-         joystickenabled = 0;
-         joypadenabled   = 0;
-         joystickport    = 0;
-      }
+    if (first) {
+        if (JoysPresent[0] || JoysPresent[1]) {
+            CtlMenu[JOYENABLE].active = CP_Active;
+            CtlMenu[USEPORT2].active = CP_Active;
+            CtlMenu[PADENABLE].active = CP_Active;
+            CtlMenu[THRESSENS].active = CP_Active;
+        }
+        else {
+            joystickenabled = 0;
+            joypadenabled = 0;
+            joystickport = 0;
+        }
 
-      if (MousePresent)
-      {
-			CtlMenu[THRESSENS].active = CP_Active;
-         CtlMenu[MOUSESENS].active = CP_Active;
-         CtlMenu[MOUSEENABLE].active = CP_Active;
-      }
-      else
-      {
-         CtlMenu[0].active = CP_Inactive;
-         mouseenabled = 0;
-      }
+        if (MousePresent) {
+            CtlMenu[THRESSENS].active = CP_Active;
+            CtlMenu[MOUSESENS].active = CP_Active;
+            CtlMenu[MOUSEENABLE].active = CP_Active;
+        }
+        else {
+            CtlMenu[0].active = CP_Inactive;
+            mouseenabled = 0;
+        }
 
-      for (x = 0; x < CtlItems.amount; x++)
-      {
-         if (CtlMenu[x].active)
-         {
-            CtlMenu[x].active = CP_CursorLocation;
-            break;
-         }
-      }
-      first = false;
-   }
+        for (x = 0; x < CtlItems.amount; x++) {
+            if (CtlMenu[x].active) {
+                CtlMenu[x].active = CP_CursorLocation;
+                break;
+            }
+        }
+        first = false;
+    }
 
-   x = CTL_X+CtlItems.indent-18;
-   y = MENU_Y-1;
+    x = CTL_X + CtlItems.indent - 18;
+    y = MENU_Y - 1;
 
-   if (mouseenabled)
-      DrawMenuBufItem (x, y, button_on);
-   else
-   {
-      EraseMenuBufRegion (x, y, 16, 16);
-      DrawMenuBufItem  (x, y, button_off);
-   }
+    if (mouseenabled) DrawMenuBufItem(x, y, button_on);
+    else {
+        EraseMenuBufRegion(x, y, 16, 16);
+        DrawMenuBufItem(x, y, button_off);
+    }
 
-   y += 14;
-   if (joystickenabled)
-      DrawMenuBufItem (x, y, button_on);
-   else
-   {
-		EraseMenuBufRegion (x, y, 16, 16);
-      DrawMenuBufItem (x, y, button_off);
-   }
+    y += 14;
+    if (joystickenabled) DrawMenuBufItem(x, y, button_on);
+    else {
+        EraseMenuBufRegion(x, y, 16, 16);
+        DrawMenuBufItem(x, y, button_off);
+    }
 
-   y += 14;
-   if (joystickport)
-      DrawMenuBufItem (x, y, button_on);
-   else
-   {
-      EraseMenuBufRegion (x, y, 16, 16);
-      DrawMenuBufItem (x, y, button_off);
-   }
+    y += 14;
+    if (joystickport) DrawMenuBufItem(x, y, button_on);
+    else {
+        EraseMenuBufRegion(x, y, 16, 16);
+        DrawMenuBufItem(x, y, button_off);
+    }
 
-   y += 14;
-   if (joypadenabled)
-      DrawMenuBufItem (x, y, button_on);
-   else
-   {
-      EraseMenuBufRegion (x, y, 16, 16);
-      DrawMenuBufItem (x, y, button_off);
-   }
+    y += 14;
+    if (joypadenabled) DrawMenuBufItem(x, y, button_on);
+    else {
+        EraseMenuBufRegion(x, y, 16, 16);
+        DrawMenuBufItem(x, y, button_off);
+    }
 
     //unused spaceball menu item
-   y += 14;
+    y += 14;
+    DrawMenuBufItem(x, y, button_on);
 
-      DrawMenuBufItem (x, y, button_on);
-
-    //unused cyberman menu ite
-   y += 14;
-
-      DrawMenuBufItem (x, y, button_on);
+    //unused cyberman menu item
+    y += 14;
+    DrawMenuBufItem(x, y, button_on);
 
 
 
-   if ((CtlItems.curpos < 0) || (!CtlMenu[CtlItems.curpos].active))
-      for (i = 0; i < CtlItems.amount; i++)
-			if (CtlMenu[i].active)
-         {
-            CtlItems.curpos = i;
-            break;
-         }
-
+    if (CtlItems.curpos < 0 || !CtlMenu[CtlItems.curpos].active)
+        for (i = 0; i < CtlItems.amount; i++) {
+            if (CtlMenu[i].active) {
+                CtlItems.curpos = i;
+                break;
+            }
+        }
 }
 
 //******************************************************************************
@@ -4672,25 +4583,20 @@ void DrawCtlButtons (void)
 //
 //******************************************************************************
 
-void WaitKeyUp (void)
-{
-   ControlInfo ci;
+void WaitKeyUp(void) {
+    ControlInfo ci;
 
-   IN_IgnoreMouseButtons();
-   ReadAnyControl (&ci);
+    IN_IgnoreMouseButtons();
+    ReadAnyControl(&ci);
 
-   while (ci.button0 || ci.button1 || ci.button2 || ci.button3 ||
-          Keyboard[sc_Space] || Keyboard[sc_Enter] || Keyboard[sc_Escape])
-   {
-      ReadAnyControl (&ci);
-      RefreshMenuBuf (0);
-      if (Keystate[sc_CapsLock] && Keystate[sc_Q])
-         Error("Stuck in WaitKeyUp\n");
-   }
+    while (ci.button0 || ci.button1 || ci.button2 || ci.button3 || Keyboard[sc_Space] || Keyboard[sc_Enter] || Keyboard[sc_Escape]) {
+        ReadAnyControl(&ci);
+        RefreshMenuBuf(0);
+        if (Keystate[sc_CapsLock] && Keystate[sc_Q]) Error("Stuck in WaitKeyUp\n");
+    }
 }
 
-#define PMOUSE    3
-#define SMOUSE    4
+
 
 //******************************************************************************
 //
@@ -4701,17 +4607,10 @@ void WaitKeyUp (void)
 void ReadAnyControl (ControlInfo *ci)
 {
 
-#if PLATFORM_DOS
-   union REGS inregs;
-   union REGS outregs;
-#endif
-
    int mouseactive = 0;
    word buttons = 0;
-//   struct Spw_IntPacket packet;
 
-
-   IN_UpdateKeyboard ();  /* implies IN_PumpEvents() ... */
+   IN_UpdateKeyboard();  /* implies IN_PumpEvents() ... */
    IN_ReadControl (0, ci);
 
    if (MousePresent && mouseenabled)

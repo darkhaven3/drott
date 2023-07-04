@@ -531,13 +531,8 @@ void PositionMenuBuf( int angle, int distance, boolean drawbackground )
    CurrentFont=oldfont;
    FlipPage();
    titleshade+=titleshadedir;
-   if (abs(titleshade-16)>6)
-      titleshadedir=-titleshadedir;
-   if (BackgroundDrawn==false)
-      {
-      VL_CopyDisplayToHidden();
-      BackgroundDrawn=true;
-      }
+   if (abs(titleshade-16)>6) titleshadedir=-titleshadedir;
+   if (!BackgroundDrawn) BackgroundDrawn=true;
 }
 
 //******************************************************************************

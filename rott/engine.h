@@ -21,6 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define _engine_public
 
 #include "modexlib.h"
+
+#define IsWindow(x,y)       (MAPSPOT((x),(y),2)==13)
+
 //***************************************************************************
 //
 // ENGINE.C
@@ -45,7 +48,7 @@ extern int lasttilex;
 extern int lasttiley;
 
 void Refresh (void);
-
-#define IsWindow(x,y)       (MAPSPOT((x),(y),2)==13)
+void InitialCast(void);
+void Cast(int curx);
 
 #endif
