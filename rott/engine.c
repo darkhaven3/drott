@@ -27,9 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_ted.h"
 #include "rt_view.h"
 #include <stdlib.h>
-//MED
-#include "memcheck.h"
-
+#include "memcheck.h"   //MED
 
 /*
 =============================================================================
@@ -38,10 +36,11 @@ Global Variables                                                                
 
 =============================================================================
 */
-//wallcast_t posts[642];//bna++
+
 wallcast_t posts[3440+8];   //[*** FREERES SUPPORT ***]
 int lasttilex;
 int lasttiley;
+
 /*
 =============================================================================
 
@@ -52,9 +51,6 @@ Local Variables                                                                 
 
 static int xtilestep,ytilestep;
 static int c_vx,c_vy;
-
-void InitialCast (void);
-void Cast (int curx);
 
 void Interpolate(int x1, int x2) {
     int dx = x2 - x1;

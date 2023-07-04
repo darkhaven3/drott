@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "_rt_in.h"
 #include "isr.h"
 #include "rt_util.h"
-#include "rt_swift.h"
 #include "rt_vh_a.h"
 #include "rt_cfg.h"
 #include "rt_msg.h"

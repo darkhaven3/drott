@@ -296,30 +296,6 @@ void VL_CopyPlanarPageToMemory ( byte * src, byte * dest ) {
 }
 
 /*
-=======================
-=
-= VL_CopyBufferToAll
-=
-=======================
-*/
-void VL_CopyBufferToAll ( byte *buffer )
-{
-	//[stub]
-}
-
-/*
-=======================
-=
-= VL_CopyDisplayToHidden
-=
-=======================
-*/
-void VL_CopyDisplayToHidden ( void )
-{
-   VL_CopyBufferToAll ( displayofs );
-}
-
-/*
 =================
 =
 = VL_ClearBuffer

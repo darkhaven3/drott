@@ -540,9 +540,6 @@
 				RelativePath="..\rott\rt_str.h">
 			</File>
 			<File
-				RelativePath="..\rott\rt_swift.h">
-			</File>
-			<File
 				RelativePath="..\rott\rt_table.h">
 			</File>
 			<File

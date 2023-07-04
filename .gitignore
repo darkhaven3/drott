@@ -2,4 +2,13 @@
 ./vs.net
 *.Po
 *.Po
-*.Po
+rott/.deps/rott-rt_actor.Po
+rott/.deps/rott-rt_debug.Po
+rott/.deps/rott-rt_door.Po
+rott/.deps/rott-rt_game.Po
+rott/.deps/rott-rt_in.Po
+rott/.deps/rott-rt_map.Po
+rott/.deps/rott-rt_menu.Po
+rott/.deps/rott-rt_playr.Po
+rott/.deps/rott-rt_str.Po
+rott/.deps/rott-rt_ted.Po

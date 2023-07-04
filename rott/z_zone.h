@@ -69,7 +69,6 @@ void Z_CheckHeap (void);                        // Check the heap for corruption
 void Z_ChangeTag (void *ptr, int tag);          // Change the tag of a memory item
 int Z_HeapSize ( void );                        // Return the total heap size
 int Z_UsedHeap ( void );                        // Return used portion of heap size
-int Z_AvailHeap ( void );                       // Returns largest available contiguous block
 int Z_UsedStaticHeap ( void );                  // Returns amount of heap which is static ( < PURGELEVEL )
 void Z_ShutDown( void );
 int Z_GetSize (void *ptr);

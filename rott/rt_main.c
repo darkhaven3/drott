@@ -442,15 +442,12 @@ void CheckCommandLineParameters(void) {
         printf("   SPACEBALL  - Enable check for Spaceball.\n");
         printf("   NOJOYS     - Disable check for joystick.\n");
         printf("   NOMOUSE    - Disable check for mouse.\n");
-        printf("   CYBERMAN   - Enable check for Cyberman.\n");
-        printf("   ASSASSIN   - Enable check for Wingman Assassin.\n");
         printf("   VER        - Version number.\n");
         printf("   MAPSTATS   - Dump Map statistics to ERROR.\n");
         printf("   TILESTATS  - Dump Tile statistics to ERROR.\n");
         printf("   MONO       - Enable mono-monitor support.\n");
         printf("   SCREENSHOTS- Clean screen capture for shots.\n");
         printf("   PAUSE      - Pauses startup screen information.\n");
-        printf("   ENABLEVR   - Enable VR helmet input devices\n");
         printf("   NOECHO     - Turn off sound reverb\n");
         printf("   DEMOEXIT   - Exit program when demo is terminated\n");
         printf("   WARP       - Warp to specific ROTT level\n");

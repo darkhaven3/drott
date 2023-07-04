@@ -496,43 +496,24 @@ void DrawPlanes(void) {
     int twall;
     int bwall;
 
-    if (sky)
-        DrawSky();
+    if (sky) DrawSky();
     else {
         y = 0;
         for (x = 0; x < viewwidth; x++) {
             twall = posts[x].ceilingclip;
-            while (y < twall) {
-                xstarts[y] = x;
-                y++;
-            }
-            while (y > twall) {
-                y--;
-                DrawHLine(xstarts[y], x - 1, y);
-            }
+            while (y < twall) xstarts[y++] = x;
+            while (y > twall)  DrawHLine(xstarts[--y], x - 1, y);
         }
-        while (y > 0) {
-            y--;
-            DrawHLine(xstarts[y], viewwidth - 1, y);
-        }
+        while (y > 0) DrawHLine(xstarts[--y], viewwidth - 1, y);
     }
     y = viewheight - 1;
 
     for (x = 0; x < viewwidth; x++) {
         bwall = posts[x].floorclip;
-        while (y > bwall) {
-            xstarts[y] = x;
-            y--;
-        }
-        while (y < bwall) {
-            y++;
-            DrawHLine(xstarts[y], x - 1, y);
-        }
+        while (y > bwall) xstarts[y--] = x;
+        while (y < bwall) DrawHLine(xstarts[++y], x - 1, y);
     }
-    while (y < viewheight - 1) {
-        y++;
-        DrawHLine(xstarts[y], viewwidth - 1, y);
-    }
+    while (y < viewheight - 1) DrawHLine(xstarts[++y], viewwidth - 1, y);
 }
 
 void DrawRow(int count, byte* dest, byte* src) {
@@ -544,8 +525,7 @@ void DrawRow(int count, byte* dest, byte* src) {
 
     while (count--) {
         /* extract the x/y coordinates */
-        coord = ((frac >> (32 - 7)) | ((frac >> (32 - 23)) << 7)) & 16383;
-
+        coord = ( (frac >> 25) | (frac >> 9) << 7) & 16383;    //32-5, 32-23
         *dest++ = shadingtable[src[coord]];
         frac += fracstep;
     }
