@@ -20,10 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef _w_wad_private
 #define _w_wad_private
 
-#include "develop.h"
-
 #define CHECKPERIOD 20
-
 
 #if ( SHAREWARE == 1 )
 

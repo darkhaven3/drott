@@ -961,17 +961,11 @@ void ReadConfig (void)
 
    GetPathFromEnvironment( filename, ApogeePath, BattleName );
    SetBattleDefaultValues ();
-   if (access(filename,F_OK)==0)
-      {
-      LoadScriptFile(filename);
-
-      if (ParseBattleFile() == false)
-         {
-         unlink (filename);          // Delete BATTLE.ROT
-         }
-
-      Z_Free(scriptbuffer);
-      }
+   if (!access(filename, F_OK)) {
+       LoadScriptFile(filename);
+       if (!ParseBattleFile()) unlink(filename);    // Delete BATTLE.ROT
+       Z_Free(scriptbuffer);
+   }
 #endif
    ConfigLoaded = true;
 }

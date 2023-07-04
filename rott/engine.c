@@ -70,20 +70,19 @@ void Interpolate(int x1, int x2) {
 }
 
 void Refresh(void) {
-    InitialCast();      // Cast Initial comb filter
 
+    InitialCast();      // Cast Initial comb filter
     for (int x = 0; x <= viewwidth - 4; x += 4) {
         if NOTSAMETILE(x, x + 4) {
             Cast(x + 2);
-
             if NOTSAMETILE(x, x + 2) Cast(x + 1);
             else Interpolate(x, x + 2);
-
             if NOTSAMETILE(x + 2, x + 4) Cast(x + 3);
             else Interpolate(x + 2, x + 4);
         }
         else Interpolate(x, x + 4);
     }
+
 }
 
 //todo: lots of hardcoded stuff in here
