@@ -14,7 +14,11 @@ rott-rt_door.o: rt_door.c rt_def.h C:/msys64/mingw32/include/stdio.h \
  C:/msys64/mingw32/include/sec_api/stdlib_s.h \
  C:/msys64/mingw32/include/malloc.h \
  C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h \
- C:/msys64/mingw32/include/errno.h C:/msys64/mingw32/include/string.h \
+ C:/msys64/mingw32/include/errno.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h \
+ C:/msys64/mingw32/include/stdint.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h \
+ C:/msys64/mingw32/include/stddef.h C:/msys64/mingw32/include/string.h \
  C:/msys64/mingw32/include/sec_api/string_s.h develop.h \
  C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/io.h \
  C:/msys64/mingw32/include/process.h \
@@ -26,7 +30,7 @@ rott-rt_door.o: rt_door.c rt_def.h C:/msys64/mingw32/include/stdio.h \
  rt_ted.h rottnet.h _rt_door.h z_zone.h w_wad.h byteordr.h rt_draw.h \
  rt_main.h rt_battl.h rt_playr.h rt_util.h rt_menu.h lumpy.h rt_in.h \
  rt_msg.h rt_game.h rt_cfg.h rt_vid.h rt_net.h isr.h keyb.h rt_rand.h \
- engine.h modexlib.h WinRott.h memcheck.h
+ rt_vh_a.h engine.h modexlib.h WinRott.h memcheck.h
 rt_def.h:
 C:/msys64/mingw32/include/stdio.h:
 C:/msys64/mingw32/include/corecrt_stdio_config.h:
@@ -47,6 +51,10 @@ C:/msys64/mingw32/include/sec_api/stdlib_s.h:
 C:/msys64/mingw32/include/malloc.h:
 C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h:
 C:/msys64/mingw32/include/errno.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h:
+C:/msys64/mingw32/include/stdint.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h:
+C:/msys64/mingw32/include/stddef.h:
 C:/msys64/mingw32/include/string.h:
 C:/msys64/mingw32/include/sec_api/string_s.h:
 develop.h:
@@ -88,6 +96,7 @@ rt_net.h:
 isr.h:
 keyb.h:
 rt_rand.h:
+rt_vh_a.h:
 engine.h:
 modexlib.h:
 WinRott.h:

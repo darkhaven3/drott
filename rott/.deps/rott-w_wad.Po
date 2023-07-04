@@ -20,14 +20,18 @@ rott-w_wad.o: w_wad.c C:/msys64/mingw32/include/stdio.h \
  C:/msys64/mingw32/include/sec_api/stdlib_s.h \
  C:/msys64/mingw32/include/malloc.h \
  C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h \
- C:/msys64/mingw32/include/errno.h develop.h \
+ C:/msys64/mingw32/include/errno.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h \
+ C:/msys64/mingw32/include/stdint.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h \
+ C:/msys64/mingw32/include/stddef.h develop.h \
  C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/process.h \
  C:/msys64/mingw32/include/corecrt_startup.h \
  C:/msys64/mingw32/include/getopt.h \
  C:/msys64/mingw32/include/pthread_unistd.h \
  C:/msys64/mingw32/include/dirent.h C:/msys64/mingw32/include/ctype.h \
- rt_util.h _w_wad.h w_wad.h byteordr.h z_zone.h isr.h keyb.h rt_crc.h \
- rt_main.h rottnet.h rt_battl.h
+ rt_util.h _w_wad.h w_wad.h byteordr.h z_zone.h rt_main.h rottnet.h \
+ rt_battl.h
 C:/msys64/mingw32/include/stdio.h:
 C:/msys64/mingw32/include/corecrt_stdio_config.h:
 C:/msys64/mingw32/include/corecrt.h:
@@ -55,6 +59,10 @@ C:/msys64/mingw32/include/sec_api/stdlib_s.h:
 C:/msys64/mingw32/include/malloc.h:
 C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h:
 C:/msys64/mingw32/include/errno.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h:
+C:/msys64/mingw32/include/stdint.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h:
+C:/msys64/mingw32/include/stddef.h:
 develop.h:
 C:/msys64/mingw32/include/unistd.h:
 C:/msys64/mingw32/include/process.h:
@@ -68,9 +76,6 @@ _w_wad.h:
 w_wad.h:
 byteordr.h:
 z_zone.h:
-isr.h:
-keyb.h:
-rt_crc.h:
 rt_main.h:
 rottnet.h:
 rt_battl.h:

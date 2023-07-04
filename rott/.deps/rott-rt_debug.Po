@@ -14,7 +14,11 @@ rott-rt_debug.o: rt_debug.c rt_def.h C:/msys64/mingw32/include/stdio.h \
  C:/msys64/mingw32/include/sec_api/stdlib_s.h \
  C:/msys64/mingw32/include/malloc.h \
  C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h \
- C:/msys64/mingw32/include/errno.h C:/msys64/mingw32/include/string.h \
+ C:/msys64/mingw32/include/errno.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h \
+ C:/msys64/mingw32/include/stdint.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h \
+ C:/msys64/mingw32/include/stddef.h C:/msys64/mingw32/include/string.h \
  C:/msys64/mingw32/include/sec_api/string_s.h develop.h \
  C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/io.h \
  C:/msys64/mingw32/include/process.h \
@@ -26,7 +30,7 @@ rott-rt_debug.o: rt_debug.c rt_def.h C:/msys64/mingw32/include/stdio.h \
  rt_playr.h rt_stat.h rt_ted.h rottnet.h rt_battl.h rt_menu.h rt_in.h \
  rt_build.h rt_str.h myprint.h rt_vid.h rt_main.h rt_util.h rt_draw.h \
  z_zone.h rt_view.h modexlib.h WinRott.h rt_msg.h rt_net.h rt_sound.h \
- music.h sndcards.h rt_map.h memcheck.h w_wad.h byteordr.h
+ music.h sndcards.h rt_map.h rt_vh_a.h memcheck.h w_wad.h byteordr.h
 rt_def.h:
 C:/msys64/mingw32/include/stdio.h:
 C:/msys64/mingw32/include/corecrt_stdio_config.h:
@@ -47,6 +51,10 @@ C:/msys64/mingw32/include/sec_api/stdlib_s.h:
 C:/msys64/mingw32/include/malloc.h:
 C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h:
 C:/msys64/mingw32/include/errno.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h:
+C:/msys64/mingw32/include/stdint.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h:
+C:/msys64/mingw32/include/stddef.h:
 C:/msys64/mingw32/include/string.h:
 C:/msys64/mingw32/include/sec_api/string_s.h:
 develop.h:
@@ -91,6 +99,7 @@ rt_sound.h:
 music.h:
 sndcards.h:
 rt_map.h:
+rt_vh_a.h:
 memcheck.h:
 w_wad.h:
 byteordr.h:

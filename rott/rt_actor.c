@@ -100,15 +100,84 @@ byte              RANDOMACTORTYPE[10];
 
 #if (SHAREWARE == 0)
 _2Dpoint          SNAKEPATH[512];
+static int        OLDTILEX, OLDTILEY;
+
+static const byte dirdiff16[16][16] = {
+                {0,1,2,3,4,5,6,7,8,7,6,5,4,3,2,1},
+                {1,0,1,2,3,4,5,6,7,8,7,6,5,4,3,2},
+                {2,1,0,1,2,3,4,5,6,7,8,7,6,5,4,3},
+                {3,2,1,0,1,2,3,4,5,6,7,8,7,6,5,4},
+                {4,3,2,1,0,1,2,3,4,5,6,7,8,7,6,5},
+                {5,4,3,2,1,0,1,2,3,4,5,6,7,8,7,6},
+                {6,5,4,3,2,1,0,1,2,3,4,5,6,7,8,7},
+                {7,6,5,4,3,2,1,0,1,2,3,4,5,6,7,8},
+                {8,7,6,5,4,3,2,1,0,1,2,3,4,5,6,7},
+                {7,8,7,6,5,4,3,2,1,0,1,2,3,4,5,6},
+                {6,7,8,7,6,5,4,3,2,1,0,1,2,3,4,5},
+                {5,6,7,8,7,6,5,4,3,2,1,0,1,2,3,4},
+                {4,5,6,7,8,7,6,5,4,3,2,1,0,1,2,3},
+                {3,4,5,6,7,8,7,6,5,4,3,2,1,0,1,2},
+                {2,3,4,5,6,7,8,7,6,5,4,3,2,1,0,1},
+                {1,2,3,4,5,6,7,8,7,6,5,4,3,2,1,0} };
+
+static statetype* UPDATE_STATES[NUMSTATES][NUMENEMIES] =
+
+{ {&s_lowgrdstand,&s_highgrdstand,&s_opstand,&s_strikestand,
+    &s_blitzstand,&s_enforcerstand,&s_dmonkstand,&s_firemonkstand,
+    &s_robogrdstand,&s_darianstand,&s_heinrichstand,NULL,
+    &s_darkmonkstand,NULL,&s_gunstand,&s_wallstand},
+
+   {&s_lowgrdpath1,&s_highgrdpath1,&s_oppath1,&s_strikepath1,
+    &s_blitzpath1,&s_enforcerpath1,&s_dmonkpath1,&s_firemonkpath1,
+    &s_robogrdpath1,NULL,NULL,NULL,
+    NULL,NULL,NULL,&s_wallpath},
+
+   {&s_lowgrdcollide,&s_highgrdcollide,&s_opcollide,&s_strikecollide,
+    &s_blitzcollide,&s_enforcercollide,&s_dmonkcollide,&s_firemonkcollide,
+    &s_robogrdcollide,&s_dariancollide,NULL,NULL,
+    NULL,NULL,NULL,&s_wallcollide},
+
+   {&s_lowgrdcollide2,&s_highgrdcollide2,&s_opcollide2,&s_strikecollide2,
+    &s_blitzcollide2,&s_enforcercollide2,&s_dmonkcollide2,&s_firemonkcollide2,
+    &s_robogrdcollide2,&s_dariancollide2,NULL,NULL,
+    NULL,NULL,NULL,&s_wallcollide},
+
+   {&s_lowgrdchase1,&s_highgrdchase1,&s_opchase1,&s_strikechase1,
+    &s_blitzchase1,&s_enforcerchase1,&s_dmonkchase1,&s_firemonkchase1,
+    NULL/*se1*/,&s_darianchase1,&s_heinrichchase,&s_NMEchase,
+    &s_darkmonkchase1,NULL,&s_gunstand,&s_wallpath},
+     {0},
+
+    {&s_lowgrdshoot1,&s_highgrdshoot1,&s_opshoot1,&s_strikeshoot1,
+     &s_blitzshoot1,&s_enforcershoot1,NULL,&s_firemonkcast1,
+    &s_robogrdshoot1,&s_darianshoot1,&s_heinrichshoot1,NULL,
+     NULL,NULL,&s_gunfire1,&s_wallshoot},
+
+    {&s_lowgrddie1,&s_highgrddie1,&s_opdie1,&s_strikedie1,
+     &s_blitzdie1,&s_enforcerdie1,&s_dmonkdie1,&s_firemonkdie1,
+     &s_robogrddie1,&s_dariandie1,&s_heinrichdie1,&s_NMEdie,
+     &s_darkmonkdie1,NULL,&s_gundie1,NULL},
+
+    {0},
+
+    {NULL,NULL,NULL,&s_strikewait,
+     &s_blitzstand,&s_enforcerdie1,&s_dmonkdie1,&s_firemonkdie1,
+     &s_robogrddie1,&s_dariandie1,&s_heinrichdie1,NULL,
+     &s_darkmonkdie1,NULL,NULL,NULL},
+
+    {&s_lowgrdcrushed1,&s_highgrdcrushed1,&s_opcrushed1,&s_strikecrushed1,
+     &s_blitzcrushed1,&s_enforcercrushed1,&s_dmonkcrushed1,&s_firemonkcrushed1,
+     &s_robogrddie1,NULL,NULL,NULL,
+     NULL,NULL,NULL,NULL}
+
+};
 #endif
+
 misc_stuff        mstruct,*MISCVARS = &mstruct;
 int               angletodir[ANGLES];
 objtype           *new;
 
 void              *actorat[MAPSIZE][MAPSIZE];
-#if (DEVELOPMENT == 1)
-FILE *            williamdebug;
-#endif
 exit_t            playstate;
 
 void              T_SlideDownScreen(objtype*);
@@ -177,9 +246,6 @@ extern boolean dopefish;
 boolean Masterdisk;
 
 static objtype    *SNAKEHEAD,*SNAKEEND,*PARTICLE_GENERATOR,*EXPLOSIONS;
-#if (SHAREWARE == 0)
-  static int        OLDTILEX,OLDTILEY;
-#endif
 
 
 static char *debugstr[] = {
@@ -261,96 +327,13 @@ static const byte dirorder[8][2] = {{southeast,northeast},{east,north},
 				 {northwest,southwest},{west,south},
 				 {southwest,southeast},{south,east}};
 
-#if (SHAREWARE == 0)
-
-static const byte dirdiff16[16][16] = {
-				{0,1,2,3,4,5,6,7,8,7,6,5,4,3,2,1},
-				{1,0,1,2,3,4,5,6,7,8,7,6,5,4,3,2},
-				{2,1,0,1,2,3,4,5,6,7,8,7,6,5,4,3},
-				{3,2,1,0,1,2,3,4,5,6,7,8,7,6,5,4},
-				{4,3,2,1,0,1,2,3,4,5,6,7,8,7,6,5},
-				{5,4,3,2,1,0,1,2,3,4,5,6,7,8,7,6},
-				{6,5,4,3,2,1,0,1,2,3,4,5,6,7,8,7},
-				{7,6,5,4,3,2,1,0,1,2,3,4,5,6,7,8},
-				{8,7,6,5,4,3,2,1,0,1,2,3,4,5,6,7},
-				{7,8,7,6,5,4,3,2,1,0,1,2,3,4,5,6},
-				{6,7,8,7,6,5,4,3,2,1,0,1,2,3,4,5},
-				{5,6,7,8,7,6,5,4,3,2,1,0,1,2,3,4},
-				{4,5,6,7,8,7,6,5,4,3,2,1,0,1,2,3},
-				{3,4,5,6,7,8,7,6,5,4,3,2,1,0,1,2},
-				{2,3,4,5,6,7,8,7,6,5,4,3,2,1,0,1},
-				{1,2,3,4,5,6,7,8,7,6,5,4,3,2,1,0}};
-#endif
-
 static const byte dirorder16[16][2] = {
 						 {15,1}  ,   {0,2},   {1,3},   {2,4},
 						  {3,5}  ,   {4,6},   {5,7},   {6,8},
 						  {7,9}  ,  {8,10},  {9,11}, {10,12},
 						  {11,13}, {12,14}, {13,15},  {14,0}};
 
-//static byte opposite16[16] = {8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7};
-
-#if (SHAREWARE == 0)
-
-static statetype * UPDATE_STATES[NUMSTATES][NUMENEMIES] =
-
- { {&s_lowgrdstand,&s_highgrdstand,&s_opstand,&s_strikestand,
-	 &s_blitzstand,&s_enforcerstand,&s_dmonkstand,&s_firemonkstand,
-	 &s_robogrdstand,&s_darianstand,&s_heinrichstand,NULL,
-	 &s_darkmonkstand,NULL,&s_gunstand,&s_wallstand},
-
-	{&s_lowgrdpath1,&s_highgrdpath1,&s_oppath1,&s_strikepath1,
-	 &s_blitzpath1,&s_enforcerpath1,&s_dmonkpath1,&s_firemonkpath1,
-	 &s_robogrdpath1,NULL,NULL,NULL,
-	 NULL,NULL,NULL,&s_wallpath},
-
-	{&s_lowgrdcollide,&s_highgrdcollide,&s_opcollide,&s_strikecollide,
-	 &s_blitzcollide,&s_enforcercollide,&s_dmonkcollide,&s_firemonkcollide,
-	 &s_robogrdcollide,&s_dariancollide,NULL,NULL,
-	 NULL,NULL,NULL,&s_wallcollide},
-
-	{&s_lowgrdcollide2,&s_highgrdcollide2,&s_opcollide2,&s_strikecollide2,
-	 &s_blitzcollide2,&s_enforcercollide2,&s_dmonkcollide2,&s_firemonkcollide2,
-	 &s_robogrdcollide2,&s_dariancollide2,NULL,NULL,
-	 NULL,NULL,NULL,&s_wallcollide},
-
-	{&s_lowgrdchase1,&s_highgrdchase1,&s_opchase1,&s_strikechase1,
-	 &s_blitzchase1,&s_enforcerchase1,&s_dmonkchase1,&s_firemonkchase1,
-	 NULL/*se1*/,&s_darianchase1,&s_heinrichchase,&s_NMEchase,
-	 &s_darkmonkchase1,NULL,&s_gunstand,&s_wallpath},
-
-	/*
-	{&s_lowgrduse1,&s_highgrduse1,&s_opuse1,&s_strikeuse1,
-	 &s_blitzuse,&s_enforceruse1,NULL,NULL,
-	 NULL,&s_darianuse1,NULL,NULL,
-	 NULL,NULL,NULL,NULL},*/
-	 {0},
-
-	{&s_lowgrdshoot1,&s_highgrdshoot1,&s_opshoot1,&s_strikeshoot1,
-	 &s_blitzshoot1,&s_enforcershoot1,NULL,&s_firemonkcast1,
-    &s_robogrdshoot1,&s_darianshoot1,&s_heinrichshoot1,NULL,
-	 NULL,NULL,&s_gunfire1,&s_wallshoot},
-
-	{&s_lowgrddie1,&s_highgrddie1,&s_opdie1,&s_strikedie1,
-	 &s_blitzdie1,&s_enforcerdie1,&s_dmonkdie1,&s_firemonkdie1,
-	 &s_robogrddie1,&s_dariandie1,&s_heinrichdie1,&s_NMEdie,
-	 &s_darkmonkdie1,NULL,&s_gundie1,NULL},
-
-	{0},
-
-	{NULL,NULL,NULL,&s_strikewait,
-	 &s_blitzstand,&s_enforcerdie1,&s_dmonkdie1,&s_firemonkdie1,
-	 &s_robogrddie1,&s_dariandie1,&s_heinrichdie1,NULL,
-	 &s_darkmonkdie1,NULL,NULL,NULL},
-
-	{&s_lowgrdcrushed1,&s_highgrdcrushed1,&s_opcrushed1,&s_strikecrushed1,
-	 &s_blitzcrushed1,&s_enforcercrushed1,&s_dmonkcrushed1,&s_firemonkcrushed1,
-	 &s_robogrddie1,NULL,NULL,NULL,
-	 NULL,NULL,NULL,NULL}
-
-	};
-
-#else
+#if (SHAREWARE==1)
 
 static statetype * UPDATE_STATES[NUMSTATES][NUMENEMIES] =
 
@@ -434,353 +417,276 @@ static int     DIAGADJUST        =    0xb504;
 static boolean MissileSound      =    true;
 
 
+boolean FirstExplosionState(statetype* state) {
+    if (DoPanicMapping()) {
+        if (state == &s_altexplosion1) return true;
+        else return false;
+    }
 
-
-boolean FirstExplosionState(statetype *state)
-   {
-   if (DoPanicMapping())
-      {
-      if (state == &s_altexplosion1)
-         return true;
-      else
-         return false;
-      }
-   else
-      {
-      if ((state == &s_explosion1) ||
-          (state == &s_grexplosion1) ||
-          (state == &s_staticexplosion1)
-         )
-         return true;
-      else
-         return false;
-      }
-
-   }
-
-
-
-
-
-void SetGibSpeed(int speed)
-   {
-   MISCVARS->gibspeed = speed;
-   }
-
-void ResetGibSpeed(void)
-   {
-   MISCVARS->gibspeed = NORMALGIBSPEED;
-   }
-
-int ValidAreanumber (int areanumber)
-{ if ((areanumber >=0) && (areanumber <= NUMAREAS))
-	return 1;
-  return 0;
+    else {
+        if ((state == &s_explosion1) || (state == &s_grexplosion1) || (state == &s_staticexplosion1)) return true;
+        else return false;
+    }
 }
 
-int GetIndexForState (statetype * state)
-{
-	int i;
 
-   if (state == NULL)
-      return -1;
+inline void SetGibSpeed(int speed) {
+    MISCVARS->gibspeed = speed;
+}
 
-   for (i=0;i<MAXSTATES;i++)
-		{
-		if (statetable[i]==state)
-			return i;
-		}
-   Error("Cannot find the state in 'GetIndexForState', state->shapenum = %d\n",state->shapenum);
-	return -1;
+inline void ResetGibSpeed(void) {
+    MISCVARS->gibspeed = NORMALGIBSPEED;
+}
+
+int ValidAreanumber(int areanumber) {
+    if ((areanumber >= 0) && (areanumber <= NUMAREAS)) return 1;
+    return 0;
+}
+
+int GetIndexForState(statetype* state) {
+    int i;
+
+    if (state == NULL) return -1;
+
+    for (i = 0; i < MAXSTATES; i++)
+        if (statetable[i] == state) return i;
+
+    Error("Cannot find the state in 'GetIndexForState', state->shapenum = %d\n", state->shapenum);
+    return -1;
 }
 
 
 
-statetype * GetStateForIndex (int index)
-{
-   if (index == -1)
-      return NULL;
-
-   return statetable[index];
+statetype* GetStateForIndex(int index) {
+    if (index == -1) return NULL;
+    return statetable[index];
 }
 
 
-statobj_t* GetStaticForIndex(int index)
-{statobj_t* temp;
+statobj_t* GetStaticForIndex(int index) {
+    statobj_t* temp;
 
- for(temp=FIRSTSTAT;temp;temp=temp->statnext)
-  if (index == temp->whichstat)
-	 return temp;
+    for (temp = FIRSTSTAT; temp; temp = temp->statnext)
+        if (index == temp->whichstat) return temp;
 
- Error("Cannot find the static in 'GetStaticForIndex', statindex %d\n",index);
- return NULL;
+    Error("Cannot find the static in 'GetStaticForIndex', statindex %d\n", index);
+    return NULL;
 
 }
 
 
 
-void SaveActors(byte **buffer,int*size)
-{objtype*temp,*tact;
- saved_actor_type dummy;
- byte*tptr;
- int actorcount;
+void SaveActors(byte** buffer, int* size) {
+    objtype* temp, * tact;
+    saved_actor_type dummy;
+    byte* tptr;
+    int actorcount;
+
+    for (actorcount = 0, temp = FIRSTACTOR; temp; temp = temp->next) temp->whichactor = actorcount++;
+
+    *size = sizeof(int) + sizeof(numplayers) + sizeof(misc_stuff) + objcount * sizeof(saved_actor_type);
+    *buffer = (byte*)SafeMalloc(*size);
+    tptr = *buffer;
+
+    memcpy(tptr, MISCVARS, sizeof(misc_stuff));
+    tptr += sizeof(misc_stuff);
+
+    memcpy(tptr, &numplayers, sizeof(numplayers));
+    tptr += sizeof(numplayers);
+
+    memcpy(tptr, &consoleplayer, sizeof(consoleplayer));
+    tptr += sizeof(consoleplayer);
+
+    for (temp = FIRSTACTOR; temp; temp = temp->next) {
+        dummy.x = temp->x;
+        dummy.y = temp->y;
+        dummy.z = temp->z;
+        dummy.flags = temp->flags;
+        dummy.areanumber = temp->areanumber;
+        dummy.hitpoints = temp->hitpoints;
+        dummy.ticcount = temp->ticcount;
+        dummy.obclass = (byte)(temp->obclass);
+        dummy.stateindex = GetIndexForState(temp->state);
+        dummy.shapeoffset = temp->shapeoffset;
+        dummy.dirchoosetime = temp->dirchoosetime;
+        dummy.door_to_open = temp->door_to_open;
+        dummy.targetx = temp->targettilex;
+        dummy.targety = temp->targettiley;
+        dummy.dir = (signed char)temp->dir;
+        dummy.angle = temp->angle;
+        dummy.yzangle = temp->yzangle;
+        dummy.speed = temp->speed;
+        dummy.momentumx = temp->momentumx;
+        dummy.momentumy = temp->momentumy;
+        dummy.momentumz = temp->momentumz;
+
+        dummy.temp1 = temp->temp1;
+        dummy.temp2 = temp->temp2;
+        dummy.temp3 = temp->temp3;
+
+        if (temp->whatever) {
+            tact = (objtype*)(temp->whatever);
+            if (tact->which == ACTOR) dummy.whateverindex = tact->whichactor;
+            else {
+                statobj_t* tstat = (statobj_t*)(temp->whatever);
+                dummy.whateverindex = (tstat->whichstat | SG_PSTAT);
+            }
+        }
+        else dummy.whateverindex = -1;
 
 
- for(actorcount=0,temp=FIRSTACTOR;temp;temp=temp->next)
-    temp->whichactor = actorcount++;
+        if (temp->target) {
+            tact = (objtype*)(temp->target);
+            if (tact->which == ACTOR) {
+                dummy.targetindex = tact->whichactor;
+                Debug("\nsave actor %d, type %d has target %d", temp->whichactor, temp->obclass, tact->whichactor);
+            }
+            else if (tact->which == SPRITE) {
+                statobj_t* tstat;
+                tstat = (statobj_t*)(temp->target);
+                dummy.targetindex = (tstat->whichstat | SG_PSTAT);
+            }
+            else dummy.targetindex = -1; // It must be a push wall, and we don't save that
+        }
+        else dummy.targetindex = -1;
 
+        memcpy(tptr, &(dummy.x), sizeof(saved_actor_type));
+        tptr += sizeof(saved_actor_type);
 
-
- *size = sizeof(int) + sizeof(numplayers) + sizeof(misc_stuff) + objcount*sizeof(saved_actor_type);
- *buffer = (byte*)SafeMalloc(*size);
- tptr = *buffer;
-
- memcpy(tptr,MISCVARS,sizeof(misc_stuff));
- tptr += sizeof(misc_stuff);
-
- memcpy(tptr,&numplayers,sizeof(numplayers));
- tptr += sizeof(numplayers);
-
- memcpy(tptr,&consoleplayer,sizeof(consoleplayer));
- tptr += sizeof(consoleplayer);
-
- for(temp=FIRSTACTOR;temp;temp=temp->next)
-  {dummy.x = temp->x;
-	dummy.y = temp->y;
-	dummy.z = temp->z;
-	dummy.flags = temp->flags;
-	dummy.areanumber = temp->areanumber;
-	//dummy.whichactor = temp->whichactor;
-	dummy.hitpoints = temp->hitpoints;
-	dummy.ticcount = temp->ticcount;
-	dummy.obclass = (byte)(temp->obclass);
-	dummy.stateindex = GetIndexForState(temp->state);
-	dummy.shapeoffset = temp->shapeoffset;
-	dummy.dirchoosetime = temp->dirchoosetime;
-	dummy.door_to_open = temp->door_to_open;
-	dummy.targetx = temp->targettilex;
-	dummy.targety = temp->targettiley;
-	dummy.dir = (signed char)temp->dir;
-	dummy.angle = temp->angle;
-	dummy.yzangle = temp->yzangle;
-	dummy.speed = temp->speed;
-	dummy.momentumx = temp->momentumx;
-	dummy.momentumy = temp->momentumy;
-	dummy.momentumz = temp->momentumz;
-
-	dummy.temp1 = temp->temp1;
-	dummy.temp2 = temp->temp2;
-	dummy.temp3 = temp->temp3;
-	if (temp->whatever)
-	  {/*if ((temp->flags & FL_USE) && (temp!=player))
-		  {dummy.whateverindex = (GetIndexForState((statetype*)(temp->whatever))|SG_PSTATE);
-			if ((dummy.whateverindex < 0) && (dummy.whateverindex != -1))
-			  Error("Bad actor whatever save value of %d\n",dummy.whateverindex);
-		  }
-		else*/
-		  {tact = (objtype*)(temp->whatever);
-			if (tact->which == ACTOR)
-			  dummy.whateverindex = tact->whichactor;
-			else
-			  {statobj_t *tstat;
-
-				tstat = (statobj_t*)(temp->whatever);
-				dummy.whateverindex = (tstat->whichstat|SG_PSTAT);
-
-			  }
-		  }
-	  }
-	else
-	 dummy.whateverindex = -1;
-
-
-	if (temp->target)
-	  {tact = (objtype*)(temp->target);
-		if (tact->which == ACTOR)
-		  {dummy.targetindex = tact->whichactor;
-			Debug("\nsave actor %d, type %d has target %d",temp->whichactor,temp->obclass,tact->whichactor);
-		  }
-		else if (tact->which == SPRITE)
-		  {statobj_t *tstat;
-
-			tstat = (statobj_t*)(temp->target);
-			dummy.targetindex = (tstat->whichstat|SG_PSTAT);
-		  }
-      else // It must be a push wall, and we don't save that
-        dummy.targetindex=-1;
-	  }
-	else
-	  dummy.targetindex = -1;
-
-
-	memcpy(tptr,&(dummy.x),sizeof(saved_actor_type));
-	tptr += sizeof(saved_actor_type);
-
-  }
+    }
 
 }
 
 
 
-void LoadActors(byte *buffer,int size)
-   {
-   int numactors,i,playerindex;
-   saved_actor_type dummy;
-   objtype *temp;
-   short *targetindices,*whateverindices;
+void LoadActors(byte* buffer, int size) {
+    int numactors, i, playerindex;
+    saved_actor_type dummy;
+    objtype* temp;
+    short* targetindices, * whateverindices;
 
-   InitActorList();
+    InitActorList();
 
-   memcpy(MISCVARS,buffer,sizeof(misc_stuff));
-   buffer += sizeof(misc_stuff);
+    memcpy(MISCVARS, buffer, sizeof(misc_stuff));
+    buffer += sizeof(misc_stuff);
 
-   memcpy(&numplayers,buffer,sizeof(numplayers));
-   buffer += sizeof(numplayers);
+    memcpy(&numplayers, buffer, sizeof(numplayers));
+    buffer += sizeof(numplayers);
 
-   memcpy(&playerindex,buffer,sizeof(playerindex));
-   buffer += sizeof(playerindex);
+    memcpy(&playerindex, buffer, sizeof(playerindex));
+    buffer += sizeof(playerindex);
 
-   size -= (sizeof(misc_stuff)+sizeof(numplayers)+sizeof(playerindex));
-   numactors = size/sizeof(saved_actor_type);
-
-
-   objlist = (objtype**)SafeMalloc(numactors*sizeof(objtype*));
-   targetindices = (short*)SafeMalloc(numactors*sizeof(short));
-   whateverindices = (short*)SafeMalloc(numactors*sizeof(short));
-
-   for(i=0;i<numactors;i++)
-      {
-      targetindices[i] = 0;
-      whateverindices[i] = 0;
-      objlist[i] = NULL;
-      }
+    size -= (sizeof(misc_stuff) + sizeof(numplayers) + sizeof(playerindex));
+    numactors = size / sizeof(saved_actor_type);
 
 
-   for(i=0;i<numactors;i++)
-      {
-      GetNewActor();
-      objlist[i] = new;
-      if (i < numplayers)
-         {
-         PLAYER[i]=new;
-         if (i==playerindex)
-            player=new;
-         }
+    objlist = (objtype**)SafeMalloc(numactors * sizeof(objtype*));
+    targetindices = (short*)SafeMalloc(numactors * sizeof(short));
+    whateverindices = (short*)SafeMalloc(numactors * sizeof(short));
 
-      memcpy(&(dummy.x),buffer,sizeof(saved_actor_type));
-
-      //new->x = dummy.x;
-      //new->y = dummy.y;
-      SetFinePosition(new,dummy.x,dummy.y);
-      SetVisiblePosition(new,dummy.x,dummy.y);
-      new->z = dummy.z;
-      new->flags = dummy.flags;
-      new->hitpoints = dummy.hitpoints;
-      new->ticcount = dummy.ticcount;
-      new->shapeoffset = dummy.shapeoffset;
-      new->obclass = (classtype)(dummy.obclass);
+    for (i = 0; i < numactors; i++) {
+        targetindices[i] = 0;
+        whateverindices[i] = 0;
+        objlist[i] = NULL;
+    }
 
 
-      new->state = GetStateForIndex(dummy.stateindex);
-      if (new->state == &s_superparticles)
-         PARTICLE_GENERATOR = new;
-      else if
-         (new->state->think == T_SlideDownScreen)
-         SCREENEYE = new;
-      new->dirchoosetime = dummy.dirchoosetime;
-      new->door_to_open = dummy.door_to_open;
-      new->targettilex = dummy.targetx;
-      new->targettiley = dummy.targety;
-      new->dir = (dirtype)(dummy.dir);
-      new->angle = dummy.angle;
-      new->yzangle = dummy.yzangle;
-      new->speed = dummy.speed;
-      new->momentumx = dummy.momentumx;
-      new->momentumy = dummy.momentumy;
-      new->momentumz = dummy.momentumz;
-      new->temp1 = dummy.temp1;
-      new->temp2 = dummy.temp2;
-      new->temp3 = dummy.temp3;
-      if (dummy.whateverindex == -1)
-         new->whatever = NULL;
+    for (i = 0; i < numactors; i++) {
+        GetNewActor();
+        objlist[i] = new;
+        if (i < numplayers) {
+            PLAYER[i] = new;
+            if (i == playerindex) player = new;
+        }
 
-      else if (dummy.whateverindex & SG_PSTAT)
-         new->whatever = GetStaticForIndex(dummy.whateverindex & ~SG_PSTAT);
-      else
-         whateverindices[i] = dummy.whateverindex+1;
+        memcpy(&(dummy.x), buffer, sizeof(saved_actor_type));
+
+        //new->x = dummy.x;
+        //new->y = dummy.y;
+        SetFinePosition(new, dummy.x, dummy.y);
+        SetVisiblePosition(new, dummy.x, dummy.y);
+        new->z = dummy.z;
+        new->flags = dummy.flags;
+        new->hitpoints = dummy.hitpoints;
+        new->ticcount = dummy.ticcount;
+        new->shapeoffset = dummy.shapeoffset;
+        new->obclass = (classtype)(dummy.obclass);
 
 
-      if (dummy.targetindex == -1)
-         new->target = NULL;
-      else if (dummy.targetindex & SG_PSTAT)
-         new->target = GetStaticForIndex(dummy.targetindex & ~SG_PSTAT);
-      else
-         {
-         targetindices[i] = dummy.targetindex+1;
-         Debug("\nload actor %d, type %d has target %d",i,new->obclass,dummy.targetindex);
-         }
+        new->state = GetStateForIndex(dummy.stateindex);
+
+        if (new->state == &s_superparticles) PARTICLE_GENERATOR = new;
+        else if(new->state->think == T_SlideDownScreen) SCREENEYE = new;
+
+        new->dirchoosetime = dummy.dirchoosetime;
+        new->door_to_open = dummy.door_to_open;
+        new->targettilex = dummy.targetx;
+        new->targettiley = dummy.targety;
+        new->dir = (dirtype)(dummy.dir);
+        new->angle = dummy.angle;
+        new->yzangle = dummy.yzangle;
+        new->speed = dummy.speed;
+        new->momentumx = dummy.momentumx;
+        new->momentumy = dummy.momentumy;
+        new->momentumz = dummy.momentumz;
+        new->temp1 = dummy.temp1;
+        new->temp2 = dummy.temp2;
+        new->temp3 = dummy.temp3;
+        if (dummy.whateverindex == -1) new->whatever = NULL;
+        else if (dummy.whateverindex & SG_PSTAT) new->whatever = GetStaticForIndex(dummy.whateverindex & ~SG_PSTAT);
+        else whateverindices[i] = dummy.whateverindex + 1;
+        if (dummy.targetindex == -1) new->target = NULL;
+        else if (dummy.targetindex & SG_PSTAT) new->target = GetStaticForIndex(dummy.targetindex & ~SG_PSTAT);
+        else {
+            targetindices[i] = dummy.targetindex + 1;
+            Debug("\nload actor %d, type %d has target %d", i, new->obclass, dummy.targetindex);
+        }
 
 
-      new->areanumber = dummy.areanumber;
-      new->shapenum = new->state->shapenum + new->shapeoffset;
-      new->which = ACTOR;
-      if (new->flags & FL_ABP)
-         MakeActive(new);
-      if (new->obclass != inertobj)
-         MakeLastInArea(new);
+        new->areanumber = dummy.areanumber;
+        new->shapenum = new->state->shapenum + new->shapeoffset;
+        new->which = ACTOR;
 
-      if (!(new->flags & (FL_NEVERMARK|FL_NONMARK)))
-         actorat[new->tilex][new->tiley] = new;
+        if (new->flags & FL_ABP) MakeActive(new);
+        if (new->obclass != inertobj) MakeLastInArea(new);
+        if (!(new->flags & (FL_NEVERMARK | FL_NONMARK))) actorat[new->tilex][new->tiley] = new;
 
-      PreCacheActor(new->obclass,-1);
-      buffer += sizeof(saved_actor_type);
-      }
+        PreCacheActor(new->obclass, -1);
+        buffer += sizeof(saved_actor_type);
+    }
 
-
-   // find unique links between actors,
-   // searching list AFTER all have been spawned
-
-   for(i=0;i<numactors;i++)
-      {temp=objlist[i];
-      if (whateverindices[i])
-         temp->whatever = objlist[whateverindices[i]-1];
-      if (targetindices[i])
-         temp->target = objlist[targetindices[i]-1];
-      }
+    // find unique links between actors,
+    // searching list AFTER all have been spawned
+    for (i = 0; i < numactors; i++) {
+        temp = objlist[i];
+        if (whateverindices[i]) temp->whatever = objlist[whateverindices[i] - 1];
+        if (targetindices[i]) temp->target = objlist[targetindices[i] - 1];
+    }
 
 
-   for(temp=FIRSTACTOR;temp;temp=temp->next)
-      {if (temp->obclass == b_darksnakeobj)
-         {if (!SNAKEHEAD)
-            SNAKEHEAD = temp;
-         else if (!temp->whatever)
-            SNAKEEND = temp;
-         }
+    for (temp = FIRSTACTOR; temp; temp = temp->next) {
+        if (temp->obclass == b_darksnakeobj) {
+            if (!SNAKEHEAD) SNAKEHEAD = temp;
+            else if (!temp->whatever) SNAKEEND = temp;
+        }
 
-      }
+    }
 
-   if (SNAKEHEAD)
-      for(temp=FIRSTACTOR;temp;temp=temp->next)
-         {if (temp->state == &s_megaexplosions)
-            EXPLOSIONS = temp;
-         }
+    if (SNAKEHEAD) {
+        for (temp = FIRSTACTOR; temp; temp = temp->next)
+            if (temp->state == &s_megaexplosions) EXPLOSIONS = temp;
+    }
 
-   //SafeFree(objlist);
-   SafeFree(targetindices);
-   SafeFree(whateverindices);
-
-   }
+    SafeFree(targetindices);
+    SafeFree(whateverindices);
+}
 
 
 
-int RandomSign(void)
-   {
-   if (GameRandomNumber("random sign",0) < 128)
-      return -1;
-   return 1;
-
-
-   }
+int RandomSign(void) {
+    if (GameRandomNumber("random sign", 0) < 128) return -1;
+    return 1;
+}
 
 
 void AddToFreeList(objtype*ob)
@@ -812,208 +718,148 @@ void RemoveFromFreeList(objtype*ob)
 }
 
 
-void MakeActive(objtype *ob)
- {if ((ob == firstactive) || (ob->prevactive) || (ob->nextactive))
-	 {
-	 SoftError("\ndouble make active try");
-	 //AddEndGameCommand ();
-	 return;
-	 }
-
-  if (!firstactive)
-	 firstactive = ob;
-  else
-	 {ob->prevactive = lastactive;
-	  lastactive->nextactive = ob;
-	 }
-  lastactive = ob;
-
-  #if ((DEVELOPMENT == 1))
-  #if ((LOADSAVETEST == 1))
-  if (!lastactive)
-	Debug("\nlastactive = NULL !");
-  else
-	Debug("\nlastactive = %8x",lastactive);
-
-  #endif
-  #endif
- }
-
-
-
-void MakeLastInArea(objtype *ob)
- {
-  if (!ValidAreanumber(ob->areanumber))
-     Error("\n ob type %s at %d,%d has illegal areanumber of %d",
-           debugstr[ob->obclass],ob->tilex,ob->tiley,ob->areanumber);
-
-
-  if ((ob == firstareaactor[ob->areanumber]) || (ob->previnarea) || (ob->nextinarea))
-	 {
-	 SoftError("\ndouble make last in area try");
-	 //AddEndGameCommand ();
-	 return;
-	 }
-  if (!firstareaactor[ob->areanumber])
-	 firstareaactor[ob->areanumber]	= ob;
-  else
-	  {ob->previnarea = lastareaactor[ob->areanumber];
-		lastareaactor[ob->areanumber]->nextinarea = ob;
-	  }
-  lastareaactor[ob->areanumber] = ob;
- }
-
-
-
-void RemoveFromArea(objtype*ob)
- {
-  if (!((ob == firstareaactor[ob->areanumber]) || (ob->previnarea) || (ob->nextinarea)))
-	 {
-	 SoftError("\ndouble remove from area try");
-	 //AddEndGameCommand ();
-	 return;
-	 }
-
-  if (ob == lastareaactor[ob->areanumber])     // remove from master list
-		lastareaactor[ob->areanumber] = ob->previnarea;
-  else
-		ob->nextinarea->previnarea = ob->previnarea;
-
-  if (ob == firstareaactor[ob->areanumber])
-		firstareaactor[ob->areanumber] = ob->nextinarea;
-  else
-		ob->previnarea->nextinarea = ob->nextinarea;
-
-  ob->previnarea = NULL;
-  ob->nextinarea = NULL;
- }
-
-
-void MakeInactive(objtype*ob)
+void MakeActive(objtype* ob)
 {
-  if (!ACTIVE(ob))
-//  if (!((ob == firstactive) || (ob->prevactive) || (ob->nextactive)))
-	 {
-	 SoftError("\n trying to remove inactive object");
-	 //AddEndGameCommand ();
-	 return;
-	 }
+    if ((ob == firstactive) || (ob->prevactive) || (ob->nextactive)) {
+        SoftError("\ndouble make active try");
+        return;
+    }
 
-  //if (ob->flags & FL_ABP)
-	  {
-
-		if (ob == lastactive)     // remove from master list
-			lastactive = ob->prevactive;
-		else
-			ob->nextactive->prevactive = ob->prevactive;
-
-		if (ob == firstactive)
-			firstactive = ob->nextactive;
-		else
-			ob->prevactive->nextactive = ob->nextactive;
-
-
-		ob->prevactive = NULL;
-		ob->nextactive = NULL;
-	  }
-
+    if (!firstactive) firstactive = ob;
+    else {
+        ob->prevactive = lastactive;
+        lastactive->nextactive = ob;
+    }
+    lastactive = ob;
 }
 
 
 
-void A_Steal(objtype*ob)
-   {
-   int dx,dy,dz;
+void MakeLastInArea(objtype* ob) {
+    if (!ValidAreanumber(ob->areanumber)) Error("\n ob type %s at %d,%d has illegal areanumber of %d", debugstr[ob->obclass], ob->tilex, ob->tiley, ob->areanumber);
 
-   ActorMovement(ob);
-
-   dx = abs(ob->x - PLAYER[0]->x);
-   dy = abs(ob->y - PLAYER[0]->y);
-   dz = abs(ob->z - PLAYER[0]->z);
-
-   if ((dx > TOUCHDIST) || (dy > TOUCHDIST) || (dz > (TOUCHDIST >> 10)))
-      {
-      NewState(ob,&s_blitzchase1);
-      return;
-      }
-
-   if (ob->ticcount)
-      return;
-
-   SD_PlaySoundRTP(SD_BLITZSTEALSND,ob->x,ob->y);
-   if (PLAYER[0]->flags & FL_GASMASK)
-      {
-      PLAYER[0]->flags &= ~FL_GASMASK;
-      PLAYERSTATE[0].protectiontime = 1;
-      ob->temp3 = stat_gasmask;
-      GM_UpdateBonus (PLAYERSTATE[0].poweruptime, true);
-
-      }
-   else if(PLAYER[0]->flags & FL_BPV)
-      {
-      PLAYER[0]->flags &= ~FL_BPV;
-      PLAYERSTATE[0].protectiontime = 1;
-      ob->temp3 = stat_bulletproof;
-      GM_UpdateBonus (PLAYERSTATE[0].poweruptime, true);
-
-      }
-   else if(PLAYER[0]->flags & FL_AV)
-      {
-      PLAYER[0]->flags &= ~FL_AV;
-      PLAYERSTATE[0].protectiontime = 1;
-      ob->temp3 = stat_asbesto;
-      GM_UpdateBonus (PLAYERSTATE[0].poweruptime, true);
-
-      }
-   else if (PLAYERSTATE[0].missileweapon != -1)
-      {
-      NewState(PLAYER[0],&s_player);
-      PLAYERSTATE[0].attackframe = PLAYERSTATE[0].weaponframe = 0;
-      PLAYERSTATE[0].new_weapon = PLAYERSTATE[0].bulletweapon;
-      ob->temp3 = GetItemForWeapon(PLAYERSTATE[0].missileweapon);
-      ob->temp2 = PLAYERSTATE[0].ammo;
-      //ob->temp1 = oldpolltime;
-      PLAYERSTATE[0].ammo = -1;
-
-      if (PLAYERSTATE[0].weapon == PLAYERSTATE[0].missileweapon)
-         PLAYERSTATE[0].weapondowntics = WEAPONS[PLAYERSTATE[0].weapon].screenheight/GMOVE;
-      PLAYERSTATE[0].missileweapon = -1;
-
-      if ( SHOW_BOTTOM_STATUS_BAR() )
-         DrawBarAmmo (false);
-
-      }
-   }
+    if ((ob == firstareaactor[ob->areanumber]) || (ob->previnarea) || (ob->nextinarea)) {
+        SoftError("\ndouble make last in area try");
+        return;
+    }
+    if (!firstareaactor[ob->areanumber]) firstareaactor[ob->areanumber] = ob;
+    else {
+        ob->previnarea = lastareaactor[ob->areanumber];
+        lastareaactor[ob->areanumber]->nextinarea = ob;
+    }
+    lastareaactor[ob->areanumber] = ob;
+}
 
 
-void FindAddresses(void)
+
+void RemoveFromArea(objtype* ob)
 {
- int i;
- unsigned long tstate,tfunct;
+    if (!((ob == firstareaactor[ob->areanumber]) || (ob->previnarea) || (ob->nextinarea))) {
+        SoftError("\ndouble remove from area try");
+        return;
+    }
 
- MINFUNCTION = -1l;
- MAXFUNCTION = 0x00000000;
- MINSTATE = -1l;
- MAXSTATE = 0x00000000;
+    if (ob == lastareaactor[ob->areanumber]) lastareaactor[ob->areanumber] = ob->previnarea;    // remove from master list
+    else ob->nextinarea->previnarea = ob->previnarea;
 
- for(i=0;i<MAXSTATES;i++)
-   {
-   tstate = (unsigned long)(statetable[i]);
-   if (tstate < MINSTATE)
-      MINSTATE = tstate;
+    if (ob == firstareaactor[ob->areanumber]) firstareaactor[ob->areanumber] = ob->nextinarea;
+    else ob->previnarea->nextinarea = ob->nextinarea;
 
-   if (tstate > MAXSTATE)
-      MAXSTATE = tstate;
-   if (statetable[i]!=NULL)
-      {
-      tfunct = (unsigned long)(statetable[i]->think);
-      if (tfunct < MINFUNCTION)
-         MINFUNCTION = tfunct;
+    ob->previnarea = NULL;
+    ob->nextinarea = NULL;
+}
 
-      if (tfunct > MAXFUNCTION)
-         MAXFUNCTION = tfunct;
-      }
-   }
+
+void MakeInactive(objtype* ob)
+{
+    if (!ACTIVE(ob)) {
+        SoftError("\n trying to remove inactive object");
+        return;
+    }
+
+    if (ob == lastactive) lastactive = ob->prevactive;    // remove from master list
+    else ob->nextactive->prevactive = ob->prevactive;
+
+    if (ob == firstactive) firstactive = ob->nextactive;
+    else ob->prevactive->nextactive = ob->nextactive;
+
+    ob->prevactive = NULL;
+    ob->nextactive = NULL;
+}
+
+
+void A_Steal(objtype* ob) {
+    int dx, dy, dz;
+
+    ActorMovement(ob);
+
+    dx = abs(ob->x - PLAYER[0]->x);
+    dy = abs(ob->y - PLAYER[0]->y);
+    dz = abs(ob->z - PLAYER[0]->z);
+
+    if ((dx > TOUCHDIST) || (dy > TOUCHDIST) || (dz > (TOUCHDIST >> 10))) {
+        NewState(ob, &s_blitzchase1);
+        return;
+    }
+    if (ob->ticcount) return;
+
+    SD_PlaySoundRTP(SD_BLITZSTEALSND, ob->x, ob->y);
+    if (PLAYER[0]->flags & FL_GASMASK) {
+        PLAYER[0]->flags &= ~FL_GASMASK;
+        PLAYERSTATE[0].protectiontime = 1;
+        ob->temp3 = stat_gasmask;
+        GM_UpdateBonus(PLAYERSTATE[0].poweruptime, true);
+    }
+    else if (PLAYER[0]->flags & FL_BPV) {
+        PLAYER[0]->flags &= ~FL_BPV;
+        PLAYERSTATE[0].protectiontime = 1;
+        ob->temp3 = stat_bulletproof;
+        GM_UpdateBonus(PLAYERSTATE[0].poweruptime, true);
+    }
+    else if (PLAYER[0]->flags & FL_AV)
+    {
+        PLAYER[0]->flags &= ~FL_AV;
+        PLAYERSTATE[0].protectiontime = 1;
+        ob->temp3 = stat_asbesto;
+        GM_UpdateBonus(PLAYERSTATE[0].poweruptime, true);
+
+    }
+    else if (PLAYERSTATE[0].missileweapon != -1) {
+        NewState(PLAYER[0], &s_player);
+        PLAYERSTATE[0].attackframe = PLAYERSTATE[0].weaponframe = 0;
+        PLAYERSTATE[0].new_weapon = PLAYERSTATE[0].bulletweapon;
+        ob->temp3 = GetItemForWeapon(PLAYERSTATE[0].missileweapon);
+        ob->temp2 = PLAYERSTATE[0].ammo;
+        PLAYERSTATE[0].ammo = -1;
+
+        if (PLAYERSTATE[0].weapon == PLAYERSTATE[0].missileweapon) PLAYERSTATE[0].weapondowntics = WEAPONS[PLAYERSTATE[0].weapon].screenheight / GMOVE;
+        PLAYERSTATE[0].missileweapon = -1;
+        if (SHOW_BOTTOM_STATUS_BAR()) DrawBarAmmo(false);
+
+    }
+}
+
+
+void FindAddresses(void) {
+    int i;
+    unsigned long tstate, tfunct;
+
+    MINFUNCTION = -1l;
+    MAXFUNCTION = 0x00000000;
+    MINSTATE = -1l;
+    MAXSTATE = 0x00000000;
+
+    for (i = 0; i < MAXSTATES; i++) {
+        tstate = (unsigned long)(statetable[i]);
+        if (tstate < MINSTATE) MINSTATE = tstate;
+        if (tstate > MAXSTATE) MAXSTATE = tstate;
+
+        if (statetable[i] != NULL) {
+            tfunct = (unsigned long)(statetable[i]->think);
+            if (tfunct < MINFUNCTION) MINFUNCTION = tfunct;
+            if (tfunct > MAXFUNCTION) MAXFUNCTION = tfunct;
+        }
+    }
 }
 
 void CheckBounds(objtype*ob)
@@ -1578,163 +1424,183 @@ void ConsiderOutfittingBlitzguard(objtype *ob)
 ===============
 */
 
-
-void SpawnStand (classtype which, int tilex, int tiley, int dir, int ambush)
-{statetype *temp;
-
- #if (SHAREWARE == 1)
-   switch(which)
-      {
-       case overpatrolobj:
-       case wallopobj:
-       case deathmonkobj:
-       case dfiremonkobj:
-       case b_darianobj:
-       case b_heinrichobj:
-       case b_darkmonkobj:
-         Error("\n%s actor at %d,%d not allowed in shareware !",debugstr[which],tilex,tiley);
-         break;
-      default:
-	  ;
-      }
+#if (SHAREWARE==1)
 
 
+void SpawnStand(classtype which, int tilex, int tiley, int dir, int ambush)
+{
+    statetype* temp;
+    switch (which)
+    {
+    case overpatrolobj:
+    case wallopobj:
+    case deathmonkobj:
+    case dfiremonkobj:
+    case b_darianobj:
+    case b_heinrichobj:
+    case b_darkmonkobj:
+        Error("\n%s actor at %d,%d not allowed in shareware !", debugstr[which], tilex, tiley);
+        break;
+    default:
+        ;
+    }
 
- #endif
-
- if ((which == lowguardobj) && (GameRandomNumber("SpawnStand",which) < 128))
-    which = blitzguardobj;
-
-
- if ((temp = UPDATE_STATES[STAND][which-lowguardobj]) != NULL)
-   {
-   SpawnNewObj(tilex,tiley,temp,which);
-   if (!loadedgame)
-      gamestate.killtotal++;
-
-
-   if (ambush)
-      new->flags |= FL_AMBUSH;
-
-
- #if 0
- if (gamestate.Product == ROTT_SUPERCD)
-   ConsiderAlternateActor(new,which);
- #endif
-
-   StandardEnemyInit(new,dir);
-
-   if (which == b_darkmonkobj)
-      {
-      new->flags |= (FL_NOFRICTION);//|FL_INVULNERABLE);
-      new->speed = ENEMYRUNSPEED*2;
-      }
-
-   if (which == blitzguardobj)
-      ConsiderOutfittingBlitzguard(new);
+    if ((which == lowguardobj) && (GameRandomNumber("SpawnStand", which) < 128))
+        which = blitzguardobj;
 
 
-   if ((new->obclass >= lowguardobj) && (new->obclass <= dfiremonkobj))
-      RANDOMACTORTYPE[new->obclass]++;
+    if ((temp = UPDATE_STATES[STAND][which - lowguardobj]) != NULL) {
+        SpawnNewObj(tilex, tiley, temp, which);
+        if (!loadedgame)
+            gamestate.killtotal++;
 
-   if (MAPSPOT(tilex,tiley,2) == 0xdead)
-      {
-      new->flags |= FL_KEYACTOR;
-      MISCVARS->KEYACTORSLEFT++;
-      }
+        if (ambush) new->flags |= FL_AMBUSH;
 
-   PreCacheActor(which,0);
-   }
- //else
-   //Error("NULL initialization error");
+        StandardEnemyInit(new, dir);
+
+        if (which == b_darkmonkobj) {
+            new->flags |= (FL_NOFRICTION & FL_NOSPLASHDMG);
+            new->speed = ENEMYRUNSPEED * 2;
+        }
+
+        if (which == blitzguardobj) ConsiderOutfittingBlitzguard(new);
+
+        if ((new->obclass >= lowguardobj) && (new->obclass <= dfiremonkobj))
+            RANDOMACTORTYPE[new->obclass]++;
+
+        if (MAPSPOT(tilex, tiley, 2) == 0xDEAD) {
+            new->flags |= FL_KEYACTOR;
+            MISCVARS->KEYACTORSLEFT++;
+        }
+
+        PreCacheActor(which, 0);
+    }
 }
 
+void SpawnPatrol(classtype which, int tilex, int tiley, int dir) {
+    statetype* temp;
+    int path = PATH;
+
+    switch (which)
+    {
+    case overpatrolobj:
+    case wallopobj:
+    case deathmonkobj:
+    case dfiremonkobj:
+    case b_darianobj:
+    case b_heinrichobj:
+    case b_darkmonkobj:
+        Error("\n%s actor at %d,%d not allowed in shareware !", debugstr[which], tilex, tiley);
+        break;
+    default:
+        ;
+    }
+
+    if ((which == lowguardobj) && (GameRandomNumber("SpawnStand", which) < 128))
+        which = blitzguardobj;
 
 
 
 
-/*
-===============
-=
-= SpawnPatrol
-=
-===============
-*/
+    if ((temp = UPDATE_STATES[path][(int)(which - lowguardobj)]) != NULL)
+    {
+        SpawnNewObj(tilex, tiley, temp, which);
 
-void SpawnPatrol (classtype which, int tilex, int tiley, int dir)
-{statetype *temp;
- int path=PATH;
-#if 0
-if (gamestate.Product == ROTT_SUPERCD)
- char *altstartlabel;
+        if (!loadedgame)
+            gamestate.killtotal++;
+
+        StandardEnemyInit(new, dir);
+
+        if ((which == wallopobj) || (which == roboguardobj))
+        {
+            new->flags |= FL_NOFRICTION;
+            new->dir <<= 1;
+            ParseMomentum(new, dirangle16[new->dir]);
+        }
+        else
+            ParseMomentum(new, dirangle8[new->dir]);
+
+
+        if (which == blitzguardobj)
+            ConsiderOutfittingBlitzguard(new);
+
+
+        if (MAPSPOT(tilex, tiley, 2) == 0xdead)
+        {
+            new->flags |= FL_KEYACTOR;
+            MISCVARS->KEYACTORSLEFT++;
+        }
+
+        PreCacheActor(which, 0);
+    }
+}
+
+#else
+
+void SpawnStand(classtype which, int tilex, int tiley, int dir, int ambush) {
+    statetype* temp;
+
+    if ((which == lowguardobj) && (GameRandomNumber("SpawnStand", which) < 128))
+        which = blitzguardobj;
+
+
+    if ((temp = UPDATE_STATES[STAND][which - lowguardobj]) != NULL) {
+        SpawnNewObj(tilex, tiley, temp, which);
+        if (!loadedgame)
+            gamestate.killtotal++;
+
+        if (ambush) new->flags |= FL_AMBUSH;
+
+        StandardEnemyInit(new, dir);
+
+        if (which == b_darkmonkobj) {
+            new->flags |= (FL_NOFRICTION & FL_NOSPLASHDMG);
+            new->speed = ENEMYRUNSPEED * 2;
+        }
+
+        if (which == blitzguardobj) ConsiderOutfittingBlitzguard(new);
+
+        if ((new->obclass >= lowguardobj) && (new->obclass <= dfiremonkobj))
+            RANDOMACTORTYPE[new->obclass]++;
+
+        if (MAPSPOT(tilex, tiley, 2) == 0xDEAD) {
+            new->flags |= FL_KEYACTOR;
+            MISCVARS->KEYACTORSLEFT++;
+        }
+        PreCacheActor(which, 0);
+    }
+}
+
+void SpawnPatrol(classtype which, int tilex, int tiley, int dir) {
+    statetype* temp;
+    int path = PATH;
+
+    if ((which == lowguardobj) && (GameRandomNumber("SpawnStand", which) < 128)) which = blitzguardobj;
+    if ((temp = UPDATE_STATES[path][(int)(which - lowguardobj)]) != NULL) {
+        SpawnNewObj(tilex, tiley, temp, which);
+
+        if (!loadedgame) gamestate.killtotal++;
+        StandardEnemyInit(new, dir);
+
+        if (which == wallopobj) new->flags |= FL_NOSPLASHDMG;
+        if (which == wallopobj || which == roboguardobj) {
+            new->flags |= FL_NOFRICTION;
+            new->dir <<= 1;
+            ParseMomentum(new, dirangle16[new->dir]);
+        }
+        else ParseMomentum(new, dirangle8[new->dir]);
+
+        if (which == blitzguardobj) ConsiderOutfittingBlitzguard(new);
+
+        if (MAPSPOT(tilex, tiley, 2) == 0xDEAD) {
+            new->flags |= FL_KEYACTOR;
+            MISCVARS->KEYACTORSLEFT++;
+        }
+        PreCacheActor(which, 0);
+    }
+}
+
 #endif
-
-
-
- #if (SHAREWARE==1)
-   switch(which)
-      {
-       case overpatrolobj:
-       case wallopobj:
-       case deathmonkobj:
-       case dfiremonkobj:
-       case b_darianobj:
-       case b_heinrichobj:
-       case b_darkmonkobj:
-         Error("\n%s actor at %d,%d not allowed in shareware !",debugstr[which],tilex,tiley);
-         break;
-      default:
-	  ;
-      }
-
- #endif
-
- if ((which == lowguardobj) && (GameRandomNumber("SpawnStand",which) < 128))
-    which = blitzguardobj;
-
-
-
-
- if ((temp= UPDATE_STATES[path][(int)(which-lowguardobj)]) != NULL)
-   {
-   SpawnNewObj(tilex,tiley,temp,which);
-
-   if (!loadedgame)
-      gamestate.killtotal++;
-
-
-   #if 0
-   if (gamestate.Product == ROTT_SUPERCD)
-   ConsiderAlternateActor(new,which);
-   #endif
-
-   StandardEnemyInit(new,dir);
-
-   if ((which == wallopobj) || (which == roboguardobj))
-      {new->flags |= FL_NOFRICTION;
-      //new->flags &= ~FL_SHOOTABLE;
-      new->dir <<= 1;
-      ParseMomentum(new,dirangle16[new->dir]);
-      }
-   else
-      ParseMomentum(new,dirangle8[new->dir]);
-
-
-   if (which == blitzguardobj)
-      ConsiderOutfittingBlitzguard(new);
-
-
-   if (MAPSPOT(tilex,tiley,2) == 0xdead)
-      {new->flags |= FL_KEYACTOR;
-      MISCVARS->KEYACTORSLEFT++;
-      }
-
-   PreCacheActor(which,0);
-   }
-
-}
-
-
 
 
 //==========================================================================
@@ -1933,15 +1799,11 @@ void SpawnInertActor(int newx,int newy, int newz)
    }
 
 
-
-
 #if (SHAREWARE == 0)
-void SpawnGroundExplosion(int x, int y, int z)
-{
+void SpawnGroundExplosion(int x, int y, int z) {
    SpawnInertActor(x,y,z);
    NewState(new,&s_grexplosion1);
    new->temp2 = GameRandomNumber("SpawnGroundExplosion",0)>>2;
-
 }
 #endif
 
@@ -1971,65 +1833,26 @@ void SpawnSlowParticles(int which, int numgibs, int x,int y,int z)
 }
 
 
-void ResolveDoorSpace(int tilex,int tiley)
-   {
-   statobj_t* tstat,*temp;
+void ResolveDoorSpace(int tilex, int tiley) {
+    statobj_t* tstat, * temp;
 
-   for(tstat = firstactivestat;tstat;)
-      {
-      temp = tstat->nextactive;
+    for (tstat = firstactivestat; tstat;) {
+        temp = tstat->nextactive;
 
-      if (tstat->flags & FL_DEADBODY)
-         {
-         if ((tstat->tilex == tilex) && (tstat->tiley == tiley))
-            {
-            if ((tstat->flags & FL_DEADBODY) && (tstat->linked_to != -1))
-                DEADPLAYER[tstat->linked_to] = NULL;
-            RemoveStatic(tstat);
-            if (tstat->flags & FL_DEADBODY)
-               SpawnSlowParticles(GUTS,8,tstat->x,tstat->y,tstat->z);
-            else
-               SpawnSlowParticles(gt_sparks,8,tstat->x,tstat->y,tstat->z);
-            SD_PlaySoundRTP(SD_ACTORSQUISHSND,tstat->x,tstat->y);
+        if (tstat->flags & FL_DEADBODY) {
+            if ((tstat->tilex == tilex) && (tstat->tiley == tiley)) {
+                if ((tstat->flags & FL_DEADBODY) && (tstat->linked_to != -1)) DEADPLAYER[tstat->linked_to] = NULL;
+
+                RemoveStatic(tstat);
+                if (tstat->flags & FL_DEADBODY) SpawnSlowParticles(GUTS, 8, tstat->x, tstat->y, tstat->z);
+                else SpawnSlowParticles(gt_sparks, 8, tstat->x, tstat->y, tstat->z);
+
+                SD_PlaySoundRTP(SD_ACTORSQUISHSND, tstat->x, tstat->y);
             }
-         }
-      tstat = temp;
-      }
-   }
-
-
-void SpawnSpear(int tilex,int tiley,int up)
-   {
-   int count,i;
-   statetype *tstate;
-
-
-   if (BATTLEMODE && (!gamestate.BattleOptions.SpawnDangers))
-      return;
-
-   if (!up)
-      {
-#if (SHAREWARE == 1)
-      Error("\ndownspear at %d,%d in shareware!",tilex,tiley);
-#else
-      SpawnNewObj(tilex,tiley,&s_speardown1,spearobj);
-      new->z = 0;
-#endif
-      }
-   else
-
-      SpawnNewObj(tilex,tiley,&s_spearup1,spearobj);
-
-   count = (int)(GameRandomNumber("Spawn Spear",0) % 16);
-   for(i=0,tstate = new->state;i<count;i++,tstate=tstate->next);
-   NewState(new,tstate);
-
-   PreCacheActor(spearobj,up);
-   new->flags |= (FL_ABP);//|FL_INVULNERABLE);
-   MakeActive(new);
-   }
-
-
+        }
+        tstat = temp;
+    }
+}
 
 void SpawnSpring(int tilex,int tiley)
    {
@@ -2056,399 +1879,373 @@ void SpawnSpring(int tilex,int tiley)
 
 
 
-void T_Spring(objtype*ob)
-   {
-   objtype *temp;
-   int op,dx,dy,dz;
+void T_Spring(objtype* ob) {
+    objtype* temp;
+    int op, dx, dy, dz;
 
+    if ((ob->state->condition & SF_DOWN) && ob->temp1) {
+        if (ob->ticcount) return;
+        ob->shapenum++;
+        TurnActorIntoSprite(ob);
+        return;
+    }
 
-   if ((ob->state->condition & SF_DOWN) && (ob->temp1))
-      {
-      if (ob->ticcount)
-         return;
-      ob->shapenum++;
-      TurnActorIntoSprite(ob);
-      return;
-      }
+    for (temp = firstareaactor[ob->areanumber]; temp; temp = temp->nextinarea) {
+        if (temp == ob) continue;
+        if (temp->obclass >= roboguardobj) continue;
 
-   for(temp=firstareaactor[ob->areanumber];temp;temp=temp->nextinarea)
-      {
-      if (temp == ob)
-         continue;
-
-      if (temp->obclass >= roboguardobj)
-         continue;
-
-      dx = abs(ob->x-temp->x);
-      dy = abs(ob->y-temp->y);
-      dz = abs(ob->z-temp->z);
-      if ((dx > ACTORSIZE+0x2800) || (dy > ACTORSIZE+0x2800) || (dz > 40))
-         continue;
-      if (!temp->momentumz)
-         {
-         op = FixedMul(GRAVITY,(temp->z-5)<<16) << 1;
-         temp->momentumz = - FixedSqrtHP(op);
-         SD_PlaySoundRTP(SD_SPRINGBOARDSND,ob->x,ob->y);
-         }
-      }
-   }
-
-
-
-void T_Count(objtype*ob)
-   {
-   int index;
-   wall_t* tswitch;
-   touchplatetype *temp;
-   objtype* tempactor;
-
-   if (ob->dirchoosetime)
-      {
-      ob->dirchoosetime --;
-      if (ob->dirchoosetime>980)
-         MISCVARS->gasindex=((1050-ob->dirchoosetime)<<4)/70;
-      else if (ob->dirchoosetime<35)
-         MISCVARS->gasindex=(ob->dirchoosetime<<4)/35;
-      if (ob->temp3)
-         {
-         ob->temp3 --;
-         if (ob->temp3 & 1)
-            SD_PlaySoundRTP(SD_GASHISSSND,ob->x,ob->y);
-         }
-      else
-         {
-         ob->temp3 = 105;
-         for(tempactor=firstareaactor[ob->areanumber];tempactor;tempactor=tempactor->nextinarea)
-            {
-            if (tempactor == ob)
-               continue;
-            if (!(tempactor->flags & FL_SHOOTABLE))
-               continue;
-            if (tempactor->obclass != playerobj)
-               {
-               if ((tempactor->obclass >= lowguardobj) &&
-                   (tempactor->obclass <= dfiremonkobj))
-                  {
-                  int oldviolence = gamestate.violence;
-
-                  gamestate.violence = vl_low;
-                  DamageThing(tempactor,EnvironmentDamage(ob));
-                  Collision(tempactor,ob,-(tempactor->momentumx),-(tempactor->momentumy));
-                  gamestate.violence = oldviolence;
-
-                  }
-               }
-            else if (!(tempactor->flags & FL_GASMASK))
-               {
-               DamageThing(tempactor,EnvironmentDamage(ob));
-               Collision(tempactor,ob,0,0);
-               M_CheckPlayerKilled(tempactor);
-               }
-            }
-         }
-      }
-
-   else
-      {
-      int i;
-      playertype *pstate;
-
-      for(i=0;i<numplayers;i++)
-         {
-         M_LINKSTATE(PLAYER[i],pstate);
-         PLAYER[i]->flags &= ~FL_GASMASK;
-         pstate->protectiontime = 1;
-         }
-
-      NewState(ob,&s_gas1);
-      SD_PlaySoundRTP(SD_GASENDSND,ob->x,ob->y);
-      ob->flags &= ~FL_ACTIVE;
-      MISCVARS->gasindex=0;
-      MU_StartSong(song_level);
-      MU_RestoreSongPosition();
-      MISCVARS->GASON = 0;
-
-      index = touchindices[ob->temp1][ob->temp2]-1;
-      TRIGGER[index] = 0;
-      for(temp = touchplate[index];temp;temp = temp->nextaction)
-         if (temp->action == EnableObject)
-            {
-            tempactor = (objtype*)(temp->whichobj);
-            tempactor->flags &= ~FL_ACTIVE;
-            }
-
-      tswitch = (wall_t*)actorat[ob->temp1][ob->temp2];
-      /*
-      if (tswitch && (tswitch->which != ACTOR))
-         {
-         tilemap[ob->temp1][ob->temp2]--;
-         tswitch->flags &= ~FL_ON;
-         }
-      */
-
-      }
-   }
-
-
-
-
-void SpawnBlade(int tilex, int tiley,int dir,int upordown,int moving)
-{int count,i;
- statetype *nstate;
-
- #if (SHAREWARE == 1)
-   if (!upordown)
-     Error("\ndown spinblade at %d,%d not allowed in shareware !",tilex,tiley);
-   if (moving)
-     Error("\nupdown spinblade at %d,%d not allowed in shareware !",tilex,tiley);
-
- #endif
-
-
- if (BATTLEMODE && (!gamestate.BattleOptions.SpawnDangers))
-	return;
-
- if (moving)
-
-  {
-#if (SHAREWARE == 0)
-
-  if (upordown)
-	  SpawnNewObj(tilex,tiley,&s_spinupblade1,bladeobj);
-   else
-	  {SpawnNewObj(tilex,tiley,&s_spindownblade1,bladeobj);
-		new->z = 0;
-	  }
-#endif
-  }
- else
-  {if (upordown)
-	  SpawnNewObj(tilex,tiley,&s_upblade1,bladeobj);
-
-#if (SHAREWARE == 0)
-
-   else
-	  {SpawnNewObj(tilex,tiley,&s_downblade1,bladeobj);
-		new->z = 0;
-	  }
-#endif
-  }
-
-
- count = (int)(GameRandomNumber("SpawnBlade",0) % 16);
- for(nstate=new->state,i=0;i<count;nstate = nstate->next,i++);
- NewState(new,nstate);
-
- new->flags |= (FL_BLOCK);
- new->flags &= ~FL_SHOOTABLE;
- new->dir = dir;
- if (dir != nodir)
-  {new->flags |= FL_NOFRICTION;
-	new->speed = ENEMYRUNSPEED;
-
-  }
- if (!MAPSPOT(tilex,tiley,2))
-	{new->flags |= FL_ACTIVE;
-	 ParseMomentum(new,dirangle8[new->dir]);
-	}
- PreCacheActor(bladeobj,(moving<<1)+upordown);
+        dx = abs(ob->x - temp->x);
+        dy = abs(ob->y - temp->y);
+        dz = abs(ob->z - temp->z);
+        if ((dx > ACTORSIZE + 0x2800) || (dy > ACTORSIZE + 0x2800) || (dz > 40)) continue;
+        if (!temp->momentumz) {
+            op = FixedMul(GRAVITY, (temp->z - 5) << 16) << 1;
+            temp->momentumz = -FixedSqrtHP(op);
+            SD_PlaySoundRTP(SD_SPRINGBOARDSND, ob->x, ob->y);
+        }
+    }
 }
 
+
+
+void T_Count(objtype* ob) {
+    int index;
+    wall_t* tswitch;
+    touchplatetype* temp;
+    objtype* tempactor;
+
+    if (ob->dirchoosetime) {
+
+        ob->dirchoosetime--;
+        if (ob->dirchoosetime > 980) MISCVARS->gasindex = ((1050 - ob->dirchoosetime) << 4) / 70;
+        else if (ob->dirchoosetime < 35) MISCVARS->gasindex = (ob->dirchoosetime << 4) / 35;
+
+        if (ob->temp3) {
+            ob->temp3--;
+            if (ob->temp3 & 1) SD_PlaySoundRTP(SD_GASHISSSND, ob->x, ob->y);
+        }
+        else {
+            ob->temp3 = 105;
+            for (tempactor = firstareaactor[ob->areanumber]; tempactor; tempactor = tempactor->nextinarea) {
+                if (tempactor == ob) continue;
+                if (!(tempactor->flags & FL_SHOOTABLE)) continue;
+                if (tempactor->obclass != playerobj) {
+                    if ((tempactor->obclass >= lowguardobj) && (tempactor->obclass <= dfiremonkobj)) {
+                        int oldviolence = gamestate.violence;
+                        gamestate.violence = vl_low;
+                        DamageThing(tempactor, EnvironmentDamage(ob));
+                        Collision(tempactor, ob, -(tempactor->momentumx), -(tempactor->momentumy));
+                        gamestate.violence = oldviolence;
+                    }
+                }
+                else if (!(tempactor->flags & FL_GASMASK)) {
+                    DamageThing(tempactor, EnvironmentDamage(ob));
+                    Collision(tempactor, ob, 0, 0);
+                    M_CheckPlayerKilled(tempactor);
+                }
+            }
+        }
+    }
+
+    else {
+        playertype* pstate;
+
+        for (int i = 0; i < numplayers; i++) {
+            M_LINKSTATE(PLAYER[i], pstate);
+            PLAYER[i]->flags &= ~FL_GASMASK;
+            pstate->protectiontime = 1;
+        }
+
+        NewState(ob, &s_gas1);
+        SD_PlaySoundRTP(SD_GASENDSND, ob->x, ob->y);
+        ob->flags &= ~FL_ACTIVE;
+        MISCVARS->gasindex = 0;
+        MU_StartSong(song_level);
+        MU_RestoreSongPosition();
+        MISCVARS->GASON = 0;
+
+        index = touchindices[ob->temp1][ob->temp2] - 1;
+        TRIGGER[index] = 0;
+        for (temp = touchplate[index]; temp; temp = temp->nextaction)
+            if (temp->action == EnableObject) {
+                tempactor = (objtype*)(temp->whichobj);
+                tempactor->flags &= ~FL_ACTIVE;
+            }
+
+        tswitch = (wall_t*)actorat[ob->temp1][ob->temp2];
+    }
+}
+
+
+//[SHAR] roll these split functions into singular ones that can handle shareware mode
+
+#if (SHAREWARE == 1)
+inline void SpawnSpear(int tilex, int tiley, int up) {
+    Error("\ndownspear at %d,%d in shareware!", tilex, tiley);
+}
+
+void SpawnBlade(int tilex, int tiley, int dir, int upordown, int moving)
+{
+    int count, i;
+    statetype* nstate;
+
+    if (!upordown) Error("\ndown spinblade at %d,%d not allowed in shareware !", tilex, tiley);
+    if (moving) Error("\nupdown spinblade at %d,%d not allowed in shareware !", tilex, tiley);
+
+
+    if (BATTLEMODE && (!gamestate.BattleOptions.SpawnDangers)) return;
+    if (upordown) SpawnNewObj(tilex, tiley, &s_upblade1, bladeobj);
+
+    count = (int)(GameRandomNumber("SpawnBlade", 0) % 16);
+    for (nstate = new->state, i = 0; i < count; nstate = nstate->next, i++);
+    NewState(new, nstate);
+
+    new->flags |= (FL_BLOCK);
+    new->flags &= ~FL_SHOOTABLE;
+    new->dir = dir;
+    if (dir != nodir) {
+        new->flags |= FL_NOFRICTION;
+        new->speed = ENEMYRUNSPEED;
+    }
+    if (!MAPSPOT(tilex, tiley, 2)) {
+        new->flags |= FL_ACTIVE;
+        ParseMomentum(new, dirangle8[new->dir]);
+    }
+
+    PreCacheActor(bladeobj, (moving << 1) + upordown);
+}
+
+void SpawnCrushingColumn(int tilex, int tiley, int upordown) {
+    int i, count;
+    statetype* nstate;
+
+    if (!upordown)  Error("\ncrush-up column at %d,%d not allowed in shareware!", tilex, tiley);
+
+    if (BATTLEMODE && (!gamestate.BattleOptions.SpawnDangers)) return;
+
+    SpawnNewObj(tilex, tiley, &s_columndowndown1, crushcolobj);
+    new->z = 0;
+
+    count = (int)(GameRandomNumber("SpawnCrushingColumn", 0) % 8);
+    for (nstate = new->state, i = 0; i < count; nstate = nstate->next, i++)
+        if ((!upordown) && (nstate->condition & SF_UP)) new->temp1 += (((nstate->tictime >> 1) + 1) << 2);
+
+    NewState(new, nstate);
+    new->flags |= FL_BLOCK;
+    new->flags &= ~FL_SHOOTABLE;
+    PreCacheActor(crushcolobj, upordown);
+}
+
+void SpawnFirejet(int tilex, int tiley, int dir, int upordown) {
+    int statecount, i;
+    statetype* tstate;
+
+
+    statecount = (int)(GameRandomNumber("SpawnFirejet", 0) % 22);
+
+    if (upordown) {
+        for (i = 0, tstate = &s_firejetup1; i < statecount; i++, tstate = tstate->next);
+        SpawnNewObj(tilex, tiley, tstate, firejetobj);
+    }
+    else Error("\ndown firejet at %d,%d not allowed in shareware", tilex, tiley);
+
+    PreCacheActor(firejetobj, upordown);
+
+    new->flags &= ~FL_SHOOTABLE;
+
+    if (dir != nodir)
+    {
+        new->dir = dir * 2;
+        new->flags |= FL_NOFRICTION;
+        new->speed = ENEMYRUNSPEED;
+        ParseMomentum(new, dirangle8[new->dir]);
+    }
+    else
+        new->dir = dir;
+}
+
+#else
+
+void SpawnSpear(int tilex, int tiley, int up) {
+    int count, i;
+    statetype* tstate;
+
+    if (BATTLEMODE && (!gamestate.BattleOptions.SpawnDangers)) return;
+    if (!up) {
+        SpawnNewObj(tilex, tiley, &s_speardown1, spearobj);
+        new->z = 0;
+    }
+    else SpawnNewObj(tilex, tiley, &s_spearup1, spearobj);
+
+    count = (int)(GameRandomNumber("Spawn Spear", 0) % 16);
+    for (i = 0, tstate = new->state; i < count; i++, tstate = tstate->next);
+    NewState(new, tstate);
+
+    PreCacheActor(spearobj, up);
+    new->flags |= (FL_ABP);//|FL_INVULNERABLE);
+    MakeActive(new);
+}
+
+void SpawnBlade(int tilex, int tiley, int dir, int upordown, int moving)
+{
+    int i,count;
+    statetype* nstate;
+
+    if (BATTLEMODE && (!gamestate.BattleOptions.SpawnDangers)) return;
+    if (moving)  {
+        if (upordown) SpawnNewObj(tilex, tiley, &s_spinupblade1, bladeobj);
+        else {
+            SpawnNewObj(tilex, tiley, &s_spindownblade1, bladeobj);
+            new->z = 0;
+        }
+
+    }
+
+    else {
+        if (upordown) SpawnNewObj(tilex, tiley, &s_upblade1, bladeobj);
+        else {
+            SpawnNewObj(tilex, tiley, &s_downblade1, bladeobj);
+            new->z = 0;
+        }
+
+    }
+
+    count = (int)(GameRandomNumber("SpawnBlade", 0) % 16);
+    for (i = 0, nstate = new->state; i < count; nstate = nstate->next, i++);
+    NewState(new, nstate);
+
+    new->flags |= (FL_BLOCK);
+    new->flags &= ~FL_SHOOTABLE;
+    new->dir = dir;
+
+    if (dir != nodir) {
+        new->flags |= FL_NOFRICTION;
+        new->speed = ENEMYRUNSPEED;
+
+    }
+    if (!MAPSPOT(tilex, tiley, 2)) {
+        new->flags |= FL_ACTIVE;
+        ParseMomentum(new, dirangle8[new->dir]);
+    }
+
+    PreCacheActor(bladeobj, (moving << 1) + upordown);
+}
 
 void SpawnCrushingColumn(int tilex, int tiley, int upordown)
-{int i,count;
- statetype * nstate;
+{
+    int i, count;
+    statetype* nstate;
+
+    if (BATTLEMODE && (!gamestate.BattleOptions.SpawnDangers)) return;
+    if (!upordown) SpawnNewObj(tilex, tiley, &s_columnupup1, crushcolobj);
+    else {
+        SpawnNewObj(tilex, tiley, &s_columndowndown1, crushcolobj);
+        new->z = 0;
+    }
+
+    count = (int)(GameRandomNumber("SpawnCrushingColumn", 0) % 8);
+    for (nstate = new->state, i = 0; i < count; nstate = nstate->next, i++)
+        if ((!upordown) && (nstate->condition & SF_UP)) new->temp1 += (((nstate->tictime >> 1) + 1) << 2);
+
+    NewState(new, nstate);
+    new->flags |= FL_BLOCK;
+    new->flags &= ~FL_SHOOTABLE;
+    PreCacheActor(crushcolobj, upordown);
+}
+
+void SpawnFirejet(int tilex, int tiley, int dir, int upordown) {
+    int statecount, i;
+    statetype* tstate;
 
 
- #if (SHAREWARE == 1)
-  if (!upordown)
-    Error("\ncrush-up column at %d,%d not allowed in shareware!",tilex,tiley);
- #endif
+    statecount = (int)(GameRandomNumber("SpawnFirejet", 0) % 22);
 
+    if (upordown) {
+        for (i = 0, tstate = &s_firejetup1; i < statecount; i++, tstate = tstate->next);
+        SpawnNewObj(tilex, tiley, tstate, firejetobj);
+    }
+    else {
+        for (i = 0, tstate = &s_firejetdown1; i < statecount; i++, tstate = tstate->next);
+        SpawnNewObj(tilex, tiley, tstate, firejetobj);
+        new->z = 0;
+    }
 
- if (BATTLEMODE && (!gamestate.BattleOptions.SpawnDangers))
-	return;
-#if (SHAREWARE == 0)
- if (!upordown)
-  SpawnNewObj(tilex,tiley,&s_columnupup1,crushcolobj);
- else
+    PreCacheActor(firejetobj, upordown);
+
+    new->flags &= ~FL_SHOOTABLE;
+
+    if (dir != nodir)
+    {
+        new->dir = dir * 2;
+        new->flags |= FL_NOFRICTION;
+        new->speed = ENEMYRUNSPEED;
+        ParseMomentum(new, dirangle8[new->dir]);
+    }
+    else
+        new->dir = dir;
+}
+
 #endif
-  {SpawnNewObj(tilex,tiley,&s_columndowndown1,crushcolobj);
-	new->z = 0;
-  }
 
- count = (int)(GameRandomNumber("SpawnCrushingColumn",0) % 8);
- for(nstate=new->state,i=0;i<count;nstate = nstate->next,i++)
-	{if ((!upordown) && (nstate->condition & SF_UP))
-		new->temp1 += (((nstate->tictime>>1) + 1)<<2);
 
-	}
- NewState(new,nstate);
- new->flags |= (FL_BLOCK);
+void SpawnFirebomb(objtype* ob, int damage, int which) {
+    int i, low, high, doorat;
+    wall_t* tempwall;
+    doorobj_t* tempdoor;
 
- new->flags &= ~FL_SHOOTABLE;
- PreCacheActor(crushcolobj,upordown);
+    if (which == 0) {
+        low = (ob->dir >> 1);
+        high = low;
+    }
+    else {
+        low = 0;
+        high = which - 1;
+        if ((FindDistance((ob->x - player->x), (ob->y - player->y)) < 0x120000) && (player->z == nominalheight)) SHAKETICS = 35;
+    }
+
+    for (i = low; i <= high; i++) {
+        MissileSound = false;
+        SpawnMissile(ob, p_firebombobj, 0, dirangle8[2 * i], &s_grexplosion1, 0x10000);
+        new->z = ob->z;
+        new->dir = (i << 1);
+        MissileSound = true;
+        SD_PlaySoundRTP(SD_EXPLODEFLOORSND, ob->x, ob->y);
+        new->temp2 = FixedMul(damage, DIAGADJUST);
+        tempwall = (wall_t*)actorat[new->tilex][new->tiley];
+        doorat = 0;
+
+        if (M_ISDOOR(new->tilex, new->tiley)) {
+            tempdoor = doorobjlist[tilemap[new->tilex][new->tiley] & 0x3ff];
+            if (tempdoor->position < 0x8000)
+                doorat = 1;
+        }
+
+        if ((tempwall && M_ISWALL(tempwall)) || doorat || (new->tilex <= 0) || (new->tilex > MAPSIZE - 1) || (new->tiley <= 0) || (new->tiley > MAPSIZE - 1)) {
+            new->z = ob->z;
+            SetFinePosition(new, ob->x, ob->y);
+            SetVisiblePosition(new, ob->x, ob->y);
+        }
+        new->whatever = ob->whatever;
+        new->temp3 = ob->temp3 - 1;
+    }
 }
 
 
 
-void SpawnFirejet(int tilex, int tiley, int dir, int upordown)
-   {
-   int statecount,i;
-   statetype *tstate;
 
+//[CLEANUP] convert these special cases into a single actor flag - FL_NOSPLASHDMG
 
-   statecount = (int)(GameRandomNumber("SpawnFirejet",0) % 22);
-
-   if (upordown)
-      {
-      for(i=0,tstate=&s_firejetup1;i<statecount;i++,tstate=tstate->next);
-      SpawnNewObj(tilex,tiley,tstate,firejetobj);
-      }
-   else
-      {
-#if (SHAREWARE == 1)
-      Error("\ndown firejet at %d,%d not allowed in shareware",tilex,tiley);
-#else
-      for(i=0,tstate=&s_firejetdown1;i<statecount;i++,tstate=tstate->next);
-      SpawnNewObj(tilex,tiley,tstate,firejetobj);
-      new->z = 0;
-#endif
-      }
-
-   PreCacheActor(firejetobj,upordown);
-
-   new->flags &= ~FL_SHOOTABLE;
-
-   if (dir != nodir)
-      {
-      new->dir = dir*2;
-      new->flags |= FL_NOFRICTION;
-      new->speed = ENEMYRUNSPEED;
-      ParseMomentum(new,dirangle8[new->dir]);
-      }
-   else
-      new->dir = dir;
-   }
-
-
-void SpawnFirebomb(objtype*ob,int damage,int which)
-   {
-   int i,low,high,doorat;
-   wall_t *tempwall;
-   doorobj_t*tempdoor;
-
-   if (which == 0)
-      {
-      low = (ob->dir>>1);
-      high = low;
-      }
-   else
-      {
-      low = 0;
-      high = which-1;
-
-      if ((FindDistance((ob->x-player->x), (ob->y-player->y))<0x120000) &&
-          (player->z==nominalheight)
-         )
-         SHAKETICS = 35;
-      }
-
-   for (i=low;i<=high;i++)
-      {
-      MissileSound = false;
-      /*
-      if (((which == 0) && ((low == 5) || (low == 6))) ||
-          ((which == 6) && ((i==4) || (i==5)))
-         )
-         {
-
-         if (((which == 0) && (low == 5)) ||
-             ((which == 6) && (i == 4))
-            )
-            {
-            newz = ob->z + 64;
-            if (newz > maxheight)
-               continue;
-            SpawnMissile(ob,p_firebombobj,0,0,&s_grexplosion1,0);
-            new->z = newz;
-            new->dir = 10;
-
-
-            }
-         else
-            {
-            newz = ob->z - 64;
-            if ((sky == 0) && (newz < 0))
-               continue;
-            SpawnMissile(ob,p_firebombobj,0,0,&s_grexplosion1,0);
-            new->z = newz;
-            new->dir = 12;
-
-            }
-
-
-         }
-      else */
-         {
-         SpawnMissile(ob,p_firebombobj,0,dirangle8[2*i],&s_grexplosion1,0x10000);
-         new->z = ob->z;
-         new->dir = (i<<1);
-
-         }
-
-      MissileSound = true;
-
-
-      SD_PlaySoundRTP(SD_EXPLODEFLOORSND,ob->x,ob->y);
-      new->temp2 = FixedMul(damage,DIAGADJUST);
-
-
-      tempwall = (wall_t*)actorat[new->tilex][new->tiley];
-      doorat= 0;
-      if (M_ISDOOR(new->tilex,new->tiley))
-         {
-         tempdoor = doorobjlist[tilemap[new->tilex][new->tiley]&0x3ff];
-         if (tempdoor->position<0x8000)
-            doorat = 1;
-         }
-
-      if ((tempwall && M_ISWALL(tempwall)) || doorat ||
-          (new->tilex <=0) || (new->tilex > MAPSIZE-1) ||
-          (new->tiley <=0) || (new->tiley > MAPSIZE-1)
-         )
-         {
-         new->z = ob->z;
-         SetFinePosition(new,ob->x,ob->y);
-         SetVisiblePosition(new,ob->x,ob->y);
-         }
-      new->whatever = ob->whatever;
-      new->temp3 = ob->temp3 - 1;
-      }
-   }
-
-
-
-
-
-
-void MissileHitActor(objtype *owner, objtype *missile, objtype *victim,
-                     int damage, int hitmomx, int hitmomy
-                    )
-   {
+void MissileHitActor(objtype *owner, objtype *missile, objtype *victim, int damage, int hitmomx, int hitmomy) {
    int tcl = victim->obclass;
    int ocl = missile->obclass;
 
    if (
          (victim->flags & FL_DYING) || // hey, they're dying already;
          (victim->flags & FL_HEAD)  || // don't hurt overrobot's head, wheels
-         (tcl == wallopobj)            || // bcraft is invulnerable
-         (tcl == b_darkmonkobj)        || // darkmonk is invulnerable
+         (victim->flags & FL_NOSPLASHDMG)            || // immune to explosives
          (!(victim->flags & FL_SHOOTABLE)) || // don't hurt environment dangers, dead guys
-         ((tcl == b_darksnakeobj) &&
-         ((SNAKELEVEL != 3) || (!victim->temp3))// return for non-red snake
-         )
-      )
+         ((tcl == b_darksnakeobj) && ((SNAKELEVEL != 3) || !victim->temp3)) // return for non-red snake
+       )
       return;
 
 
@@ -2668,14 +2465,6 @@ void MissileHit (objtype *ob,void *hitwhat)
    ob->flags &= ~FL_SHOOTABLE;
    if (FirstExplosionState(ob->state))
       return;
-
-   /*
-   if ((ob->z < -28) || (IsWindow(ob->tilex,ob->tiley)))
-      {
-      NewState(ob,&s_megaremove);
-      return;
-      }
-   */
 
    tempactor = (objtype*)hitwhat;
    owner = (objtype*)(ob->whatever);

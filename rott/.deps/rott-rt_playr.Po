@@ -181,8 +181,8 @@ rott-rt_playr.o: rt_playr.c C:/msys64/mingw32/include/string.h \
  rt_main.h rottnet.h rt_battl.h rt_playr.h rt_stat.h rt_ted.h isr.h \
  keyb.h rt_draw.h rt_door.h rt_menu.h lumpy.h rt_in.h rt_view.h \
  modexlib.h WinRott.h rt_com.h rt_util.h rt_game.h rt_cfg.h rt_rand.h \
- z_zone.h rt_swift.h engine.h _rt_play.h rt_floor.h rt_msg.h rt_debug.h \
- sprites.h rt_net.h rt_dmand.h memcheck.h
+ z_zone.h engine.h _rt_play.h rt_floor.h rt_msg.h rt_debug.h sprites.h \
+ rt_net.h rt_dmand.h memcheck.h
 C:/msys64/mingw32/include/string.h:
 C:/msys64/mingw32/include/crtdefs.h:
 C:/msys64/mingw32/include/corecrt.h:
@@ -401,7 +401,6 @@ rt_game.h:
 rt_cfg.h:
 rt_rand.h:
 z_zone.h:
-rt_swift.h:
 engine.h:
 _rt_play.h:
 rt_floor.h:

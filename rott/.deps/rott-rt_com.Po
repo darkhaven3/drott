@@ -19,7 +19,11 @@ rott-rt_com.o: rt_com.c C:/msys64/mingw32/include/stdio.h \
  C:/msys64/mingw32/include/ctype.h \
  C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdarg.h \
  C:/msys64/mingw32/include/stdarg.h \
- C:/msys64/mingw32/include/_mingw_stdarg.h rt_def.h develop.h \
+ C:/msys64/mingw32/include/_mingw_stdarg.h rt_def.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h \
+ C:/msys64/mingw32/include/stdint.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h \
+ C:/msys64/mingw32/include/stddef.h develop.h \
  C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/io.h \
  C:/msys64/mingw32/include/process.h \
  C:/msys64/mingw32/include/corecrt_startup.h \
@@ -55,6 +59,10 @@ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdarg.h:
 C:/msys64/mingw32/include/stdarg.h:
 C:/msys64/mingw32/include/_mingw_stdarg.h:
 rt_def.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h:
+C:/msys64/mingw32/include/stdint.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h:
+C:/msys64/mingw32/include/stddef.h:
 develop.h:
 C:/msys64/mingw32/include/unistd.h:
 C:/msys64/mingw32/include/io.h:

@@ -14,7 +14,11 @@ rott-rt_util.o: rt_util.c rt_def.h C:/msys64/mingw32/include/stdio.h \
  C:/msys64/mingw32/include/sec_api/stdlib_s.h \
  C:/msys64/mingw32/include/malloc.h \
  C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h \
- C:/msys64/mingw32/include/errno.h C:/msys64/mingw32/include/string.h \
+ C:/msys64/mingw32/include/errno.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h \
+ C:/msys64/mingw32/include/stdint.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h \
+ C:/msys64/mingw32/include/stddef.h C:/msys64/mingw32/include/string.h \
  C:/msys64/mingw32/include/sec_api/string_s.h develop.h \
  C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/io.h \
  C:/msys64/mingw32/include/process.h \
@@ -31,14 +35,10 @@ rott-rt_util.o: rt_util.c rt_def.h C:/msys64/mingw32/include/stdio.h \
  C:/msys64/mingw32/include/winsdkver.h \
  C:/msys64/mingw32/include/winapifamily.h \
  C:/msys64/mingw32/include/sdkddkver.h \
- C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h \
- C:/msys64/mingw32/include/stddef.h \
  C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdarg.h \
  C:/msys64/mingw32/include/stdarg.h \
  C:/msys64/mingw32/include/_mingw_stdarg.h \
  C:/msys64/mingw32/include/strings.h C:/msys64/mingw32/include/inttypes.h \
- C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h \
- C:/msys64/mingw32/include/stdint.h \
  C:/msys64/usr/include/SDL2/SDL_assert.h \
  C:/msys64/usr/include/SDL2/SDL_atomic.h \
  C:/msys64/usr/include/SDL2/SDL_audio.h \
@@ -205,6 +205,10 @@ C:/msys64/mingw32/include/sec_api/stdlib_s.h:
 C:/msys64/mingw32/include/malloc.h:
 C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h:
 C:/msys64/mingw32/include/errno.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h:
+C:/msys64/mingw32/include/stdint.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h:
+C:/msys64/mingw32/include/stddef.h:
 C:/msys64/mingw32/include/string.h:
 C:/msys64/mingw32/include/sec_api/string_s.h:
 develop.h:
@@ -227,15 +231,11 @@ C:/msys64/usr/include/SDL2/close_code.h:
 C:/msys64/mingw32/include/winsdkver.h:
 C:/msys64/mingw32/include/winapifamily.h:
 C:/msys64/mingw32/include/sdkddkver.h:
-C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h:
-C:/msys64/mingw32/include/stddef.h:
 C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdarg.h:
 C:/msys64/mingw32/include/stdarg.h:
 C:/msys64/mingw32/include/_mingw_stdarg.h:
 C:/msys64/mingw32/include/strings.h:
 C:/msys64/mingw32/include/inttypes.h:
-C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h:
-C:/msys64/mingw32/include/stdint.h:
 C:/msys64/usr/include/SDL2/SDL_assert.h:
 C:/msys64/usr/include/SDL2/SDL_atomic.h:
 C:/msys64/usr/include/SDL2/SDL_audio.h:

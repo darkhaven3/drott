@@ -32,7 +32,7 @@ rott-rt_game.o: rt_game.c C:/msys64/mingw32/include/stdlib.h \
  rt_util.h rt_draw.h rt_view.h modexlib.h WinRott.h rt_vid.h rt_door.h \
  rt_str.h myprint.h isr.h keyb.h rt_build.h rt_rand.h rt_sound.h music.h \
  sndcards.h version.h rt_crc.h engine.h gmove.h rt_com.h rt_net.h \
- watcom.h rt_floor.h rt_msg.h rt_scale.h memcheck.h
+ watcom.h rt_floor.h rt_msg.h rt_scale.h rt_vh_a.h memcheck.h
 C:/msys64/mingw32/include/stdlib.h:
 C:/msys64/mingw32/include/corecrt.h:
 C:/msys64/mingw32/include/_mingw.h:
@@ -112,4 +112,5 @@ watcom.h:
 rt_floor.h:
 rt_msg.h:
 rt_scale.h:
+rt_vh_a.h:
 memcheck.h:

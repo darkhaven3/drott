@@ -18,7 +18,11 @@ rott-scriplib.o: scriplib.c C:/msys64/mingw32/include/fcntl.h \
  C:/msys64/mingw32/include/sec_api/stdlib_s.h \
  C:/msys64/mingw32/include/malloc.h \
  C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h \
- C:/msys64/mingw32/include/errno.h develop.h \
+ C:/msys64/mingw32/include/errno.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h \
+ C:/msys64/mingw32/include/stdint.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h \
+ C:/msys64/mingw32/include/stddef.h develop.h \
  C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/process.h \
  C:/msys64/mingw32/include/corecrt_startup.h \
  C:/msys64/mingw32/include/sys/types.h C:/msys64/mingw32/include/getopt.h \
@@ -49,6 +53,10 @@ C:/msys64/mingw32/include/sec_api/stdlib_s.h:
 C:/msys64/mingw32/include/malloc.h:
 C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/mm_malloc.h:
 C:/msys64/mingw32/include/errno.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h:
+C:/msys64/mingw32/include/stdint.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h:
+C:/msys64/mingw32/include/stddef.h:
 develop.h:
 C:/msys64/mingw32/include/unistd.h:
 C:/msys64/mingw32/include/process.h:

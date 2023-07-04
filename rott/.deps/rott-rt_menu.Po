@@ -183,7 +183,7 @@ rott-rt_menu.o: rt_menu.c C:/msys64/mingw32/include/stdlib.h \
  rt_playr.h rt_actor.h states.h rt_stat.h rt_ted.h rt_rand.h rt_game.h \
  rt_cfg.h rt_floor.h rt_draw.h rt_view.h modexlib.h WinRott.h rt_str.h \
  myprint.h rt_vid.h rt_com.h version.h rt_msg.h rt_net.h rt_scale.h \
- memcheck.h
+ rt_vh_a.h memcheck.h
 C:/msys64/mingw32/include/stdlib.h:
 C:/msys64/mingw32/include/corecrt.h:
 C:/msys64/mingw32/include/_mingw.h:
@@ -414,4 +414,5 @@ version.h:
 rt_msg.h:
 rt_net.h:
 rt_scale.h:
+rt_vh_a.h:
 memcheck.h:

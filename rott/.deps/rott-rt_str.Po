@@ -19,7 +19,11 @@ rott-rt_str.o: rt_str.c C:/msys64/mingw32/include/stdlib.h \
  C:/msys64/mingw32/include/_mingw_stdarg.h \
  C:/msys64/mingw32/include/string.h \
  C:/msys64/mingw32/include/sec_api/string_s.h \
- C:/msys64/mingw32/include/ctype.h rt_def.h develop.h \
+ C:/msys64/mingw32/include/ctype.h rt_def.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h \
+ C:/msys64/mingw32/include/stdint.h \
+ C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h \
+ C:/msys64/mingw32/include/stddef.h develop.h \
  C:/msys64/mingw32/include/unistd.h C:/msys64/mingw32/include/io.h \
  C:/msys64/mingw32/include/process.h \
  C:/msys64/mingw32/include/corecrt_startup.h \
@@ -29,7 +33,7 @@ rott-rt_str.o: rt_str.c C:/msys64/mingw32/include/stdlib.h \
  rt_util.h rt_vid.h rt_build.h rt_str.h myprint.h _rt_str.h isr.h keyb.h \
  rt_view.h modexlib.h WinRott.h w_wad.h byteordr.h z_zone.h rt_main.h \
  rt_battl.h rt_msg.h rt_playr.h rt_actor.h states.h rt_stat.h rt_ted.h \
- rt_sound.h music.h sndcards.h memcheck.h
+ rt_sound.h music.h sndcards.h rt_vh_a.h memcheck.h
 C:/msys64/mingw32/include/stdlib.h:
 C:/msys64/mingw32/include/corecrt.h:
 C:/msys64/mingw32/include/_mingw.h:
@@ -56,6 +60,10 @@ C:/msys64/mingw32/include/string.h:
 C:/msys64/mingw32/include/sec_api/string_s.h:
 C:/msys64/mingw32/include/ctype.h:
 rt_def.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stdint.h:
+C:/msys64/mingw32/include/stdint.h:
+C:/msys64/mingw32/lib/gcc/i686-w64-mingw32/12.2.0/include/stddef.h:
+C:/msys64/mingw32/include/stddef.h:
 develop.h:
 C:/msys64/mingw32/include/unistd.h:
 C:/msys64/mingw32/include/io.h:
@@ -94,4 +102,5 @@ rt_ted.h:
 rt_sound.h:
 music.h:
 sndcards.h:
+rt_vh_a.h:
 memcheck.h:

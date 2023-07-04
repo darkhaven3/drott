@@ -77,6 +77,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //MED
 #include "memcheck.h"
 
+#if (SHAREWARE==1)
+#define VENDORDOC ("VENDOR.DOC")
+#define VENDORLUMP ("VENDOR")
+#else
+#define VENDORDOC ("LICENSE.DOC")
+#define VENDORLUMP ("LICENSE")
+#endif
+
 
 //******************************************************************************
 //
@@ -86,6 +94,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 extern int G_weaponscale;
 extern boolean iG_aimCross;
+
+extern char pword[13];
 
 boolean WriteSoundFile   = true;
 
@@ -126,13 +136,6 @@ int     DefaultPlayerCharacter = 0;
 int     DefaultPlayerColor     = 0;
 byte    passwordstring[20];
 
-#ifndef _ROTT_
-
-int     fulllight        = 0;
-int     viewsize         = 7;
-
-#endif
-
 MacroList CommbatMacros[MAXMACROS];
 
 char ApogeePath[256];
@@ -144,25 +147,17 @@ char ApogeePath[256];
 //******************************************************************************
 
 static char SoundName[13]  = "sound.rot";
-
-#ifdef _ROTT_
-
-static char *ConfigName = "config.rot";
-static char *ScoresName = "scores.rot";
-static char *ROTT       = "rott.rot";
-static char *CONFIG     = "setup.rot";
-static char *BattleName = "battle.rot";
+static char *ConfigName    = "config.rot";
+static char *ScoresName    = "scores.rot";
+static char *ROTT          = "rott.rot";
+static char *CONFIG        = "setup.rot";
+static char *BattleName    = "battle.rot";
 
 AlternateInformation RemoteSounds;
-//AlternateInformation PlayerGraphics;
 AlternateInformation GameLevels;
 AlternateInformation BattleLevels;
 char CodeName[MAXCODENAMELENGTH];
 
-#endif
-
-
-#ifdef _ROTT_
 
 //******************************************************************************
 //
@@ -170,23 +165,18 @@ char CodeName[MAXCODENAMELENGTH];
 //
 //******************************************************************************
 
-void ReadScores (void)
-{
-   int file;
-   char filename[ 128 ];
+void ReadScores(void) {
+    int file;
+    char filename[128];
+    GetPathFromEnvironment(filename, ApogeePath, ScoresName);
 
-   GetPathFromEnvironment( filename, ApogeePath, ScoresName );
-   if (access (filename, F_OK) == 0)
-      {
-      file = SafeOpenRead (filename);
-      SafeRead (file, &Scores, sizeof (Scores));
-      close(file);
-      }
-   else
-      gamestate.violence = 0;
+    if (access(filename, F_OK) == 0) {
+        file = SafeOpenRead(filename);
+        SafeRead(file, &Scores, sizeof(Scores));
+        close(file);
+    }
+    else gamestate.violence = 0;
 }
-
-#endif
 
 //******************************************************************************
 //
@@ -194,17 +184,14 @@ void ReadScores (void)
 //
 //******************************************************************************
 
-void ReadInt (const char * s1, int * val)
-{
-   GetToken (true);
-   if (!strcmpi (token,s1))
-      {
-      if (TokenAvailable()==true)
-         {
-         GetToken(false);
-         *val=ParseNum(token);
-         }
-      }
+void ReadInt(const char* s1, int* val) {
+    GetToken(true);
+
+    if (!strcmpi(token, s1))
+        if (TokenAvailable()) {
+            GetToken(false);
+            *val = ParseNum(token);
+        }
 }
 
 //******************************************************************************
@@ -213,13 +200,10 @@ void ReadInt (const char * s1, int * val)
 //
 //******************************************************************************
 
-void ReadBoolean (const char * s1, boolean * val)
-{
-   int temp;
-
-   temp = (int)(*val);
-   ReadInt (s1,&temp);
-   *val = (boolean) temp;
+void ReadBoolean(const char* s1, boolean* val) {
+    int temp = (int)(*val);
+    ReadInt(s1, &temp);
+    *val = (boolean)temp;
 }
 
 //******************************************************************************
@@ -228,13 +212,10 @@ void ReadBoolean (const char * s1, boolean * val)
 //
 //******************************************************************************
 
-void ReadUnsigned (const char * s1, unsigned long * val)
-{
-   int temp;
-
-   temp = (int)(*val);
-   ReadInt (s1,&temp);
-   *val = (unsigned) temp;
+void ReadUnsigned(const char* s1, unsigned long* val) {
+    int temp = (int)(*val);
+    ReadInt(s1, &temp);
+    *val = (unsigned)temp;
 }
 
 //******************************************************************************
@@ -243,53 +224,25 @@ void ReadUnsigned (const char * s1, unsigned long * val)
 //
 //******************************************************************************
 
-boolean ParseSoundFile (void)
-{
-   boolean retval = true;
-   int version    = 0;
+boolean ParseSoundFile(void) {
 
-   ReadInt("Version",&version);
+    boolean retval = true;
+    int version = 0;
+    ReadInt("Version", &version);
 
-   if (version == ROTTVERSION)
-   {
-      // Read in Music Mode
+    if (version == ROTTVERSION) {
+        ReadInt("MusicMode", &MusicMode);               // Read in Music Mode
+        ReadInt("FXMode", &FXMode);                     // Read in FX Mode
+        ReadInt("MusicVolume", &MUvolume);              // Read in Music Volume
+        ReadInt("FXVolume", &FXvolume);                 // Read in FX Volume
+        ReadInt("NumVoices", &NumVoices);               // Read in numvoices
+        ReadInt("NumChannels", &NumChannels);           // Read in numchannels
+        ReadInt("NumBits", &NumBits);                   // Read in numbits
+        ReadBoolean("StereoReverse", &stereoreversed);  // Read in stereo reversal
+    }
+    else retval = false;
 
-      ReadInt ("MusicMode",&MusicMode);
-
-      // Read in FX Mode
-
-      ReadInt ("FXMode",&FXMode);
-
-      // Read in Music Volume
-
-      ReadInt ("MusicVolume", &MUvolume);
-
-      // Read in FX Volume
-
-      ReadInt ("FXVolume", &FXvolume);
-
-      // Read in numvoices
-
-      ReadInt ("NumVoices",&NumVoices);
-
-      // Read in numchannels
-
-      ReadInt ("NumChannels",&NumChannels);
-
-      // Read in numbits
-
-      ReadInt ("NumBits",&NumBits);
-
-      // Read in stereo reversal
-
-      ReadBoolean ("StereoReverse",&stereoreversed);
-
-   }
-
-   else
-      retval = false;
-
-   return (retval);
+    return retval;
 }
 
 
@@ -299,27 +252,19 @@ boolean ParseSoundFile (void)
 // SetSoundDefaultValues ()
 //
 //******************************************************************************
-void SetSoundDefaultValues (void) {
-   int status;
+void SetSoundDefaultValues(void) {
+    int status;
 
-   //
-   //  no config file, so select default values
-   //
+    // icculus' SDL_mixer driver looks like a soundscape to us
+    MusicMode = 6;
+    FXMode = 6;
+    NumVoices = 8;
+    NumChannels = 2;
+    NumBits = 16;
+    stereoreversed = false;
 
-   // icculus' SDL_mixer driver looks like a soundscape to us
-   MusicMode   = 6;
-   FXMode      = 6;
-   NumVoices   = 8;
-   NumChannels = 2;
-   NumBits     = 16;
-   stereoreversed = false;
+}
 
-   }
-
-
-#ifdef _ROTT_
-
-extern char    pword[ 13 ];
 //******************************************************************************
 //
 // ConvertStringToPasswordString ()
@@ -900,19 +845,18 @@ void SetConfigDefaultValues (void)
    passwordstring[11]=0x23;
    passwordstring[12]=0x1c;
 }
-#endif
+
 
 //******************************************************************************
 //
 // DeleteSoundFile ()
 //
 //******************************************************************************
-void DeleteSoundFile ( void )
-{
-   char filename[ 128 ];
+void DeleteSoundFile(void) {
+    char filename[128];
 
-   GetPathFromEnvironment( filename, ApogeePath, SoundName );
-   unlink (filename);          // Delete SOUND.ROT
+    GetPathFromEnvironment(filename, ApogeePath, SoundName);
+    unlink(filename);          // Delete SOUND.ROT
 }
 
 //******************************************************************************
@@ -922,40 +866,25 @@ void DeleteSoundFile ( void )
 //******************************************************************************
 
 
-void ReadConfig (void)
-{
-   char filename[ 128 ];
+void ReadConfig(void) {
+   char filename[128];
 
-   GetPathFromEnvironment( filename, ApogeePath, SoundName );
-   SetSoundDefaultValues ();
+   GetPathFromEnvironment(filename, ApogeePath, SoundName);
+   SetSoundDefaultValues();
 
-   if (access (filename, F_OK) == 0)
-      {
-      LoadScriptFile (filename);
+   if (!access(filename, F_OK)) {
+       LoadScriptFile(filename);
+       if (!ParseSoundFile()) DeleteSoundFile();
+       Z_Free(scriptbuffer);
+   }
 
-      if (ParseSoundFile () == false)
-         {
-         DeleteSoundFile();
-         }
-
-      Z_Free (scriptbuffer);
-      }
-
-
-#ifdef _ROTT_
    ReadScores();
+   GetPathFromEnvironment(filename, ApogeePath, ConfigName);
+   SetConfigDefaultValues();
 
-   GetPathFromEnvironment( filename, ApogeePath, ConfigName );
-   SetConfigDefaultValues ();
-   if (access(filename,F_OK)==0)
-      {
+   if (!access(filename,F_OK)) {
       LoadScriptFile(filename);
-
-      if (ParseConfigFile () == false)
-         {
-         unlink (filename);          // Delete CONFIG.ROT
-         }
-
+      if (!ParseConfigFile()) unlink (filename);          // Delete CONFIG.ROT
       Z_Free(scriptbuffer);
       }
 
@@ -966,7 +895,6 @@ void ReadConfig (void)
        if (!ParseBattleFile()) unlink(filename);    // Delete BATTLE.ROT
        Z_Free(scriptbuffer);
    }
-#endif
    ConfigLoaded = true;
 }
 
@@ -976,47 +904,34 @@ void ReadConfig (void)
 //
 //******************************************************************************
 
-#if (SHAREWARE==1)
-#define VENDORDOC ("VENDOR.DOC")
-#define VENDORLUMP ("VENDOR")
-#else
-#define VENDORDOC ("LICENSE.DOC")
-#define VENDORLUMP ("LICENSE")
-#endif
+void CheckVendor(void) {
+    boolean saveout = false;
+    int wadcrc;
+    int filecrc;
+    int size;
+    int lump;
+    byte* vendor;
+    char filename[128];
 
-void CheckVendor (void)
-{
-   boolean saveout=false;
-   int wadcrc;
-   int filecrc;
-   int size;
-   int lump;
-   byte * vendor;
-   char filename[ 128 ];
+    GetPathFromEnvironment(filename, ApogeePath, VENDORDOC);
+    if (!access(filename, F_OK)) {
+        size = LoadFile(filename, (void**)&vendor);
+        filecrc = CalculateCRC(vendor, size);
+        SafeFree(vendor);
+        lump = W_GetNumForName(VENDORLUMP);
+        vendor = W_CacheLumpNum(lump, PU_CACHE, CvtNull, 1);
+        size = W_LumpLength(lump);
+        wadcrc = CalculateCRC(vendor, size);
+        if (wadcrc != filecrc) saveout = true;
+    }
+    else saveout = true;
 
-   GetPathFromEnvironment( filename, ApogeePath, VENDORDOC );
-   if (access (filename, F_OK) == 0)
-      {
-      size = LoadFile(filename,(void **)&vendor);
-      filecrc = CalculateCRC (vendor, size);
-      SafeFree(vendor);
-      lump=W_GetNumForName(VENDORLUMP);
-      vendor = W_CacheLumpNum(lump,PU_CACHE, CvtNull, 1);
-      size=W_LumpLength(lump);
-      wadcrc = CalculateCRC (vendor, size);
-      if (wadcrc != filecrc)
-         saveout=true;
-      }
-   else
-      saveout=true;
-
-   if (saveout==true)
-      {
-      lump=W_GetNumForName(VENDORLUMP);
-      vendor = W_CacheLumpNum(lump,PU_CACHE, CvtNull, 1);
-      size = W_LumpLength(lump);
-      SaveFile (filename,vendor,size);
-      }
+    if (saveout) {
+        lump = W_GetNumForName(VENDORLUMP);
+        vendor = W_CacheLumpNum(lump, PU_CACHE, CvtNull, 1);
+        size = W_LumpLength(lump);
+        SaveFile(filename, vendor, size);
+    }
 }
 
 //******************************************************************************
@@ -1025,24 +940,16 @@ void CheckVendor (void)
 //
 //******************************************************************************
 
-void WriteParameter (int file, const char * s1, int val)
-{
-   char s[50];
+void WriteParameter(int file, const char* s1, int val) {
+    char s[50];
 
-   // Write out Header
-   SafeWriteString (file, (char *)s1);
-
-   // Write out space character
-   strcpy (&s[0],(const char *)"  ");
-   SafeWriteString (file, &s[0]);
-
-   // Write out value
-   itoa(val,&s[0],10);
-   SafeWriteString (file, &s[0]);
-
-   // Write out EOL character
-   strcpy (&s[0],(const char *)"\n");
-   SafeWriteString (file, &s[0]);
+    SafeWriteString(file, (char*)s1);      // Write out Header
+    strcpy(&s[0], (const char*)"  ");       // Write out space character
+    SafeWriteString(file, &s[0]);
+    itoa(val, &s[0], 10);
+    SafeWriteString(file, &s[0]);           // Write out value
+    strcpy(&s[0], (const char*)"\n");       // Write out EOL character
+    SafeWriteString(file, &s[0]);
 }
 
 
@@ -1052,29 +959,17 @@ void WriteParameter (int file, const char * s1, int val)
 //
 //******************************************************************************
 
-void WriteParameterHex (int file, const char * s1, int val)
-{
-   char s[50];
+void WriteParameterHex(int file, const char* s1, int val) {
+    char s[50];
 
-   // Write out Header
-   SafeWriteString (file, (char *)s1);
-
-   // Write out space character
-   strcpy (&s[0],(const char *)"  $");
-   SafeWriteString (file, &s[0]);
-
-   // Write out value
-   itoa(val,&s[0],16);
-   SafeWriteString (file, &s[0]);
-
-   // Write out EOL character
-   strcpy (&s[0],(const char *)"\n");
-   SafeWriteString (file, &s[0]);
+    SafeWriteString(file, (char*)s1);      // Write out Header
+    strcpy(&s[0], (const char*)"  $");      // Write out space character
+    SafeWriteString(file, &s[0]);
+    itoa(val, &s[0], 16);
+    SafeWriteString(file, &s[0]);           // Write out value
+    strcpy(&s[0], (const char*)"\n");       // Write out EOL character
+    SafeWriteString(file, &s[0]);
 }
-
-
-
-#ifdef _ROTT_
 
 //******************************************************************************
 //
@@ -1082,15 +977,14 @@ void WriteParameterHex (int file, const char * s1, int val)
 //
 //******************************************************************************
 
-void WriteScores (void)
-{
-   int file;
-   char filename[ 128 ];
+void WriteScores(void) {
+    int file;
+    char filename[128];
 
-   GetPathFromEnvironment( filename, ApogeePath, ScoresName );
-   file=SafeOpenWrite( filename );
-   SafeWrite (file, &Scores, sizeof (Scores));
-   close(file);
+    GetPathFromEnvironment(filename, ApogeePath, ScoresName);
+    file = SafeOpenWrite(filename);
+    SafeWrite(file, &Scores, sizeof(Scores));
+    close(file);
 }
 
 
@@ -1100,356 +994,275 @@ void WriteScores (void)
 //
 //******************************************************************************
 
-void WriteBattleConfig
-   (
-   void
-   )
+void WriteBattleConfig(void) {
+    int  file;
+    int  index;
+    char filename[128];
+    extern specials BattleSpecialsTimes;
 
-   {
-   int  file;
-   int  index;
-   char filename[ 128 ];
-   extern specials BattleSpecialsTimes;
+    // Write Battle File
+    GetPathFromEnvironment(filename, ApogeePath, BattleName);
+    file = open(filename, O_RDWR | O_TEXT | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE);
+    if (file == -1) Error("Error opening %s: %s", filename, strerror(errno));
 
-   // Write Battle File
-   GetPathFromEnvironment( filename, ApogeePath, BattleName );
-   file = open( filename, O_RDWR | O_TEXT | O_CREAT | O_TRUNC,
-      S_IREAD | S_IWRITE );
+    // Write out BATTLECONFIG header
+    SafeWriteString(file,
+        ";Rise of the Triad Battle Configuration File\n"
+        ";                  (c) 1995\n"
+        ";\n"
+        ";You may change these options at you own risk.  Using any values\n"
+        ";other than the ones documented may make the game unplayable.\n"
+        ";If this happens, you may delete this file (BATTLE.ROT) and ROTT\n"
+        ";will recreate it with the default values selected.\n"
+        ";\n"
+        ";With that in mind, have fun!\n"
+        ";\n"
+        "\n");
 
-   if ( file == -1 )
-      {
-      Error( "Error opening %s: %s", filename, strerror( errno ) );
-      }
+    // Write out Version
+    WriteParameter(file, "Version                        ", ROTTVERSION);
 
-   // Write out BATTLECONFIG header
-   SafeWriteString( file,
-      ";Rise of the Triad Battle Configuration File\n"
-      ";                  (c) 1995\n"
-      ";\n"
-      ";You may change these options at you own risk.  Using any values\n"
-      ";other than the ones documented may make the game unplayable.\n"
-      ";If this happens, you may delete this file (BATTLE.ROT) and ROTT\n"
-      ";will recreate it with the default values selected.\n"
-      ";\n"
-      ";With that in mind, have fun!\n"
-      ";\n"
-      "\n" );
+    // Write out BATTLE_ShowKillPics
+    SafeWriteString(file, "\n;\n");
+    WriteParameter(file, "; Yes                        - ", 1);
+    WriteParameter(file, "; No                         - ", 0);
+    WriteParameter(file, "ShowKillCount                  ", BATTLE_ShowKillCount);
 
-   // Write out Version
-   WriteParameter( file, "Version                        ", ROTTVERSION );
+    // Write out specials' times
+    SafeWriteString(file, "\n;\n"
+        "; These are the time in seconds of the various powerups.\n"
+        "; You could modify these to give you infinite Mercury mode,\n"
+        "; stronger vests, or to make them persistent.\n;\n");
 
-   // Write out BATTLE_ShowKillPics
-   SafeWriteString(file, "\n;\n");
-	WriteParameter( file, "; Yes                        - ", 1 );
-   WriteParameter( file, "; No                         - ", 0 );
-   WriteParameter( file, "ShowKillCount                  ", BATTLE_ShowKillCount );
+    WriteParameter(file, "GodModeTime                ", BattleSpecialsTimes.GodModeTime);
+    WriteParameter(file, "DogModeTime                ", BattleSpecialsTimes.DogModeTime);
+    WriteParameter(file, "ShroomsModeTime            ", BattleSpecialsTimes.ShroomsModeTime);
+    WriteParameter(file, "ElastoModeTime             ", BattleSpecialsTimes.ElastoModeTime);
+    WriteParameter(file, "AsbestosVestTime           ", BattleSpecialsTimes.AsbestosVestTime);
+    WriteParameter(file, "BulletProofVestTime        ", BattleSpecialsTimes.BulletProofVestTime);
+    WriteParameter(file, "GasMaskTime                ", BattleSpecialsTimes.GasMaskTime);
+    WriteParameter(file, "MercuryModeTime            ", BattleSpecialsTimes.MercuryModeTime);
+    WriteParameter(file, "GodModeRespawnTime         ", BattleSpecialsTimes.GodModeRespawnTime);
+    WriteParameter(file, "DogModeRespawnTime         ", BattleSpecialsTimes.DogModeRespawnTime);
+    WriteParameter(file, "ShroomsModeRespawnTime     ", BattleSpecialsTimes.ShroomsModeRespawnTime);
+    WriteParameter(file, "ElastoModeRespawnTime      ", BattleSpecialsTimes.ElastoModeRespawnTime);
+    WriteParameter(file, "AsbestosVestRespawnTime    ", BattleSpecialsTimes.AsbestosVestRespawnTime);
+    WriteParameter(file, "BulletProofVestRespawnTime ", BattleSpecialsTimes.BulletProofVestRespawnTime);
+    WriteParameter(file, "GasMaskRespawnTime         ", BattleSpecialsTimes.GasMaskRespawnTime);
+    WriteParameter(file, "MercuryModeRespawnTime     ", BattleSpecialsTimes.MercuryModeRespawnTime);
 
-   // Write out specials' times
-   SafeWriteString(file, "\n;\n"
-      "; These are the time in seconds of the various powerups.\n"
-      "; You could modify these to give you infinite Mercury mode,\n"
-      "; stronger vests, or to make them persistent.\n;\n" );
+    // Write out battlegibs
+    SafeWriteString(file, "\n;\n");
+    WriteParameter(file, "; Yes                        - ", 1);
+    WriteParameter(file, "; No                         - ", 0);
+    WriteParameter(file, "EKG                            ", battlegibs);
 
-   WriteParameter( file, "GodModeTime                ", BattleSpecialsTimes.GodModeTime );
-   WriteParameter( file, "DogModeTime                ", BattleSpecialsTimes.DogModeTime );
-   WriteParameter( file, "ShroomsModeTime            ", BattleSpecialsTimes.ShroomsModeTime );
-   WriteParameter( file, "ElastoModeTime             ", BattleSpecialsTimes.ElastoModeTime );
-   WriteParameter( file, "AsbestosVestTime           ", BattleSpecialsTimes.AsbestosVestTime );
-   WriteParameter( file, "BulletProofVestTime        ", BattleSpecialsTimes.BulletProofVestTime );
-   WriteParameter( file, "GasMaskTime                ", BattleSpecialsTimes.GasMaskTime );
-   WriteParameter( file, "MercuryModeTime            ", BattleSpecialsTimes.MercuryModeTime );
-   WriteParameter( file, "GodModeRespawnTime         ", BattleSpecialsTimes.GodModeRespawnTime );
-   WriteParameter( file, "DogModeRespawnTime         ", BattleSpecialsTimes.DogModeRespawnTime );
-   WriteParameter( file, "ShroomsModeRespawnTime     ", BattleSpecialsTimes.ShroomsModeRespawnTime );
-   WriteParameter( file, "ElastoModeRespawnTime      ", BattleSpecialsTimes.ElastoModeRespawnTime );
-   WriteParameter( file, "AsbestosVestRespawnTime    ", BattleSpecialsTimes.AsbestosVestRespawnTime );
-   WriteParameter( file, "BulletProofVestRespawnTime ", BattleSpecialsTimes.BulletProofVestRespawnTime );
-   WriteParameter( file, "GasMaskRespawnTime         ", BattleSpecialsTimes.GasMaskRespawnTime );
-   WriteParameter( file, "MercuryModeRespawnTime     ", BattleSpecialsTimes.MercuryModeRespawnTime );
+    // Describe options
 
-   // Write out battlegibs
-   SafeWriteString(file, "\n;\n");
-	WriteParameter( file, "; Yes                        - ", 1 );
-   WriteParameter( file, "; No                         - ", 0 );
-   WriteParameter( file, "EKG                            ", battlegibs );
+    // Write out Gravity
+    SafeWriteString(file, "\n"
+        ";\n"
+        "; Here is a description of the possible values for"
+        " each option:\n"
+        ";\n"
+        "; Gravity options:\n");
+    WriteParameter(file, ";    Low Gravity             - ", LOW_GRAVITY);
+    WriteParameter(file, ";    Normal Gravity          - ", NORMAL_GRAVITY);
+    WriteParameter(file, ";    High Gravity            - ", HIGH_GRAVITY);
 
-   // Describe options
+    // Write out Speed
+    SafeWriteString(file, ";\n" "; Speed options:\n");
+    WriteParameter(file, ";    Normal Speed            - ", bo_normal_speed);
+    WriteParameter(file, ";    Fast Speed              - ", bo_fast_speed);
 
-   // Write out Gravity
-   SafeWriteString(file, "\n"
-                         ";\n"
-                         "; Here is a description of the possible values for"
-                         " each option:\n"
-                         ";\n"
-                         "; Gravity options:\n" );
-   WriteParameter( file, ";    Low Gravity             - ", LOW_GRAVITY );
-   WriteParameter( file, ";    Normal Gravity          - ", NORMAL_GRAVITY );
-   WriteParameter( file, ";    High Gravity            - ", HIGH_GRAVITY );
+    // Write out Ammo
+    SafeWriteString(file, ";\n" "; Ammo options:\n");
+    WriteParameter(file, ";    One Shot                - ", bo_one_shot);
+    WriteParameter(file, ";    Normal Shots            - ", bo_normal_shots);
+    WriteParameter(file, ";    Infinite Shots          - ", bo_infinite_shots);
 
-   // Write out Speed
-   SafeWriteString(file, ";\n"
-                         "; Speed options:\n" );
-   WriteParameter( file, ";    Normal Speed            - ", bo_normal_speed );
-   WriteParameter( file, ";    Fast Speed              - ", bo_fast_speed );
+    // Write out Hit Points
+    SafeWriteString(file, ";\n" "; Hitpoint options:\n");
+    WriteParameter(file, ";    Character Hitpoints     - ", bo_character_hitpoints);
+    WriteParameter(file, ";       1 Hitpoint           - ", 1);
+    WriteParameter(file, ";      25 Hitpoints          - ", 25);
+    WriteParameter(file, ";     100 Hitpoints          - ", 100);
+    WriteParameter(file, ";     500 Hitpoints          - ", 500);
+    WriteParameter(file, ";     250 Hitpoints          - ", 250);
+    WriteParameter(file, ";    4000 Hitpoints          - ", 4000);
 
-   // Write out Ammo
-   SafeWriteString(file, ";\n"
-                         "; Ammo options:\n" );
-   WriteParameter( file, ";    One Shot                - ", bo_one_shot );
-   WriteParameter( file, ";    Normal Shots            - ", bo_normal_shots );
-   WriteParameter( file, ";    Infinite Shots          - ", bo_infinite_shots );
+    // Write out Danger Spawning
+    SafeWriteString(file, ";\n"
+        "; SpawnDangers options:\n"
+        ";    Spawn Dangers           -   1\n"
+        ";    Don't Spawn Dangers     -   0\n");
 
-   // Write out Hit Points
-   SafeWriteString(file, ";\n"
-                         "; Hitpoint options:\n" );
-   WriteParameter( file, ";    Character Hitpoints     - ", bo_character_hitpoints );
-   WriteParameter( file, ";       1 Hitpoint           - ", 1 );
-   WriteParameter( file, ";      25 Hitpoints          - ", 25 );
-   WriteParameter( file, ";     100 Hitpoints          - ", 100 );
-   WriteParameter( file, ";     500 Hitpoints          - ", 500 );
-   WriteParameter( file, ";     250 Hitpoints          - ", 250 );
-   WriteParameter( file, ";    4000 Hitpoints          - ", 4000 );
+    // Write out Health Spawning
+    SafeWriteString(file, ";\n"
+        "; SpawnHealth options:\n"
+        ";    Spawn Health            -   1\n"
+        ";    Don't Spawn Health      -   0\n");
 
-   // Write out Danger Spawning
-   SafeWriteString(file, ";\n"
-                         "; SpawnDangers options:\n"
-                         ";    Spawn Dangers           -   1\n"
-                         ";    Don't Spawn Dangers     -   0\n" );
+    // Write out Mine Spawning
+    SafeWriteString(file, ";\n"
+        "; SpawnMines options:\n"
+        ";    Spawn Mines             -   1\n"
+        ";    Don't Spawn Mines       -   0\n");
 
-   // Write out Health Spawning
-   SafeWriteString(file, ";\n"
-                         "; SpawnHealth options:\n"
-                         ";    Spawn Health            -   1\n"
-                         ";    Don't Spawn Health      -   0\n" );
+    // Write out Weapon Spawning
+    SafeWriteString(file, ";\n"
+        "; SpawnWeapons options:\n"
+        ";    Spawn Weapons           -   1\n"
+        ";    Don't Spawn Weapons     -   0\n");
 
-   // Write out Mine Spawning
-   SafeWriteString(file, ";\n"
-                         "; SpawnMines options:\n"
-                         ";    Spawn Mines             -   1\n"
-                         ";    Don't Spawn Mines       -   0\n" );
+    // Write out Random Weapons
+    SafeWriteString(file, ";\n"
+        "; RandomWeapons options:\n"
+        ";    Randomize Weapons       -   1\n"
+        ";    Don't Randomize Weapons -   0\n");
 
-   // Write out Weapon Spawning
-   SafeWriteString(file, ";\n"
-                         "; SpawnWeapons options:\n"
-                         ";    Spawn Weapons           -   1\n"
-                         ";    Don't Spawn Weapons     -   0\n" );
+    // Write out Weapon Persistence
+    SafeWriteString(file, ";\n"
+        "; WeaponPersistence options:\n"
+        ";    Weapons Persist         -   1\n"
+        ";    Weapons don't Persist   -   0\n");
 
-   // Write out Random Weapons
-   SafeWriteString(file, ";\n"
-                         "; RandomWeapons options:\n"
-                         ";    Randomize Weapons       -   1\n"
-                         ";    Don't Randomize Weapons -   0\n" );
+    // Write out Friendly Fire
+    SafeWriteString(file, ";\n"
+        "; FriendlyFire options:\n"
+        ";    Penalize Friendly Fire  -   1\n"
+        ";    No penalty              -   0\n");
 
-   // Write out Weapon Persistence
-   SafeWriteString(file, ";\n"
-                         "; WeaponPersistence options:\n"
-                         ";    Weapons Persist         -   1\n"
-                         ";    Weapons don't Persist   -   0\n" );
+    // Write out Respawn Items
+    SafeWriteString(file, ";\n"
+        "; RespawnItems options:\n"
+        ";    Respawn Items           -   1\n"
+        ";    Don't Respawn Items     -   0\n");
 
-   // Write out Friendly Fire
-   SafeWriteString(file, ";\n"
-                         "; FriendlyFire options:\n"
-                         ";    Penalize Friendly Fire  -   1\n"
-                         ";    No penalty              -   0\n" );
+    // Write out Light Level
+    SafeWriteString(file, ";\n" "; LightLevel options:\n");
+    WriteParameter(file, ";    Dark                    - ", bo_light_dark);
+    WriteParameter(file, ";    Normal Light Levels     - ", bo_light_normal);
+    WriteParameter(file, ";    Bright                  - ", bo_light_bright);
+    WriteParameter(file, ";    Fog                     - ", bo_light_fog);
+    WriteParameter(file, ";    Periodic light          - ", bo_light_periodic);
+    WriteParameter(file, ";    Lightning               - ", bo_light_lightning);
 
-   // Write out Respawn Items
-   SafeWriteString(file, ";\n"
-                         "; RespawnItems options:\n"
-                         ";    Respawn Items           -   1\n"
-                         ";    Don't Respawn Items     -   0\n" );
+    // Write out Point Goal
+    SafeWriteString(file, ";\n" "; PointGoal options:\n");
+    WriteParameter(file, ";           1 Point          - ", 1);
+    WriteParameter(file, ";           5 Points         - ", 5);
+    WriteParameter(file, ";          11 Points         - ", 11);
+    WriteParameter(file, ";          21 Points         - ", 21);
+    WriteParameter(file, ";          50 Points         - ", 50);
+    WriteParameter(file, ";         100 Points         - ", 100);
+    WriteParameter(file, ";      Random Points         - ", bo_kills_random);
+    WriteParameter(file, ";       Blind Points         - ", bo_kills_blind);
+    WriteParameter(file, ";    Infinite Points         - ", bo_kills_infinite);
 
-   // Write out Light Level
-   SafeWriteString(file, ";\n"
-                         "; LightLevel options:\n" );
-   WriteParameter( file, ";    Dark                    - ", bo_light_dark );
-   WriteParameter( file, ";    Normal Light Levels     - ", bo_light_normal );
-   WriteParameter( file, ";    Bright                  - ", bo_light_bright );
-   WriteParameter( file, ";    Fog                     - ", bo_light_fog );
-   WriteParameter( file, ";    Periodic light          - ", bo_light_periodic );
-   WriteParameter( file, ";    Lightning               - ", bo_light_lightning );
+    // Write out Danger Damage
+    SafeWriteString(file, ";\n" "; DangerDamage options:\n");
+    WriteParameter(file, ";    Normal Damage           - ", bo_danger_normal);
+    WriteParameter(file, ";    Low Damage              - ", bo_danger_low);
+    WriteParameter(file, ";    Kill                    - ", bo_danger_kill);
 
-   // Write out Point Goal
-   SafeWriteString(file, ";\n"
-                         "; PointGoal options:\n" );
-   WriteParameter( file, ";           1 Point          - ", 1 );
-   WriteParameter( file, ";           5 Points         - ", 5 );
-   WriteParameter( file, ";          11 Points         - ", 11 );
-   WriteParameter( file, ";          21 Points         - ", 21 );
-   WriteParameter( file, ";          50 Points         - ", 50 );
-   WriteParameter( file, ";         100 Points         - ", 100 );
-   WriteParameter( file, ";      Random Points         - ", bo_kills_random );
-   WriteParameter( file, ";       Blind Points         - ", bo_kills_blind );
-   WriteParameter( file, ";    Infinite Points         - ", bo_kills_infinite );
+    // Write out TimeLimit
+    SafeWriteString(file, ";\n" "; TimeLimit options:\n");
+    WriteParameter(file, ";     1 minute               - ", 1);
+    WriteParameter(file, ";     2 minute               - ", 2);
+    WriteParameter(file, ";     5 minutes              - ", 5);
+    WriteParameter(file, ";    10 minutes              - ", 10);
+    WriteParameter(file, ";    21 minutes              - ", 21);
+    WriteParameter(file, ";    30 minutes              - ", 30);
+    WriteParameter(file, ";    99 minutes              - ", 99);
+    WriteParameter(file, ";    No limit                - ", bo_time_infinite);
 
-   // Write out Danger Damage
-   SafeWriteString(file, ";\n"
-                         "; DangerDamage options:\n" );
-   WriteParameter( file, ";    Normal Damage           - ", bo_danger_normal );
-   WriteParameter( file, ";    Low Damage              - ", bo_danger_low );
-   WriteParameter( file, ";    Kill                    - ", bo_danger_kill );
+    // Write out RespawnTime
+    SafeWriteString(file, ";\n" "; RespawnTime options:\n");
+    WriteParameter(file, ";     1 second               - ", 1);
+    WriteParameter(file, ";     1 minute               - ", 60);
+    WriteParameter(file, ";     2 minutes              - ", 120);
+    WriteParameter(file, ";       normal               - ", bo_normal_respawn_time);
 
-   // Write out TimeLimit
-   SafeWriteString(file, ";\n"
-                         "; TimeLimit options:\n" );
-   WriteParameter( file, ";     1 minute               - ", 1 );
-   WriteParameter( file, ";     2 minute               - ", 2 );
-   WriteParameter( file, ";     5 minutes              - ", 5 );
-   WriteParameter( file, ";    10 minutes              - ", 10 );
-   WriteParameter( file, ";    21 minutes              - ", 21 );
-   WriteParameter( file, ";    30 minutes              - ", 30 );
-   WriteParameter( file, ";    99 minutes              - ", 99 );
-   WriteParameter( file, ";    No limit                - ", bo_time_infinite );
-
-   // Write out RespawnTime
-   SafeWriteString(file, ";\n"
-                         "; RespawnTime options:\n" );
-   WriteParameter( file, ";     1 second               - ", 1 );
-   WriteParameter( file, ";     1 minute               - ", 60 );
-   WriteParameter( file, ";     2 minutes              - ", 120 );
-   WriteParameter( file, ";       normal               - ", bo_normal_respawn_time );
-
-   for( index = battle_Normal; index < battle_NumBattleModes; index++ )
-      {
-      SafeWriteString(file, "\n;\n");
-      switch( index )
-         {
-         case battle_Normal :
-            SafeWriteString( file, "; Standard battle options\n;\n" );
+    for (index = battle_Normal; index < battle_NumBattleModes; index++) {
+        SafeWriteString(file, "\n;\n");
+        switch (index) {
+        case battle_Normal:
+            SafeWriteString(file, "; Standard battle options\n;\n");
             break;
 
-         case battle_ScoreMore :
-            SafeWriteString( file, "; Score More battle options\n;\n" );
+        case battle_ScoreMore:
+            SafeWriteString(file, "; Score More battle options\n;\n");
             break;
 
-         case battle_Collector :
-            SafeWriteString( file, "; Collector battle options\n;\n" );
+        case battle_Collector:
+            SafeWriteString(file, "; Collector battle options\n;\n");
             break;
 
-         case battle_Scavenger :
-            SafeWriteString( file, "; Scavenger battle options\n;\n" );
+        case battle_Scavenger:
+            SafeWriteString(file, "; Scavenger battle options\n;\n");
             break;
 
-         case battle_Hunter :
-            SafeWriteString( file, "; Hunter battle options\n;\n" );
+        case battle_Hunter:
+            SafeWriteString(file, "; Hunter battle options\n;\n");
             break;
 
-         case battle_Tag :
-            SafeWriteString( file, "; Tag battle options\n;\n" );
+        case battle_Tag:
+            SafeWriteString(file, "; Tag battle options\n;\n");
             break;
 
-         case battle_Eluder :
-            SafeWriteString( file, "; Eluder battle options\n;\n" );
+        case battle_Eluder:
+            SafeWriteString(file, "; Eluder battle options\n;\n");
             break;
 
-         case battle_Deluder :
-            SafeWriteString( file, "; Deluder battle options\n;\n" );
+        case battle_Deluder:
+            SafeWriteString(file, "; Deluder battle options\n;\n");
             break;
 
-			case battle_CaptureTheTriad :
-				SafeWriteString( file, "; Capture the Triad battle options\n;\n" );
-				break;
-			}
+        case battle_CaptureTheTriad:
+            SafeWriteString(file, "; Capture the Triad battle options\n;\n");
+            break;
+        }
 
-		// Write out Gravity
-      WriteParameter( file, "Gravity          ",
-         BATTLE_Options[ index ].Gravity );
+        WriteParameter(file, "Gravity          ", BATTLE_Options[index].Gravity);                                                               // Write out Gravity
+        WriteParameter(file, "Speed            ", BATTLE_Options[index].Speed);                                                                 // Write out Speed
 
-      // Write out Speed
-      WriteParameter( file, "Speed            ",
-         BATTLE_Options[ index ].Speed );
+        if ((index != battle_Collector) && (index != battle_Tag) && (index != battle_Eluder))
+            WriteParameter(file, "Ammo             ", BATTLE_Options[index].Ammo);                                                              // Write out Ammo
 
-      if ( ( index != battle_Collector ) && ( index != battle_Tag ) &&
-         ( index != battle_Eluder ) )
-         {
-         // Write out Ammo
-         WriteParameter( file, "Ammo             ",
-            BATTLE_Options[ index ].Ammo );
-         }
+        if (index != battle_Eluder) WriteParameter(file, "Hitpoints        ", BATTLE_Options[index].HitPoints);                                 // Write out Hit Points
 
-      if ( index != battle_Eluder )
-         {
-         // Write out Hit Points
-         WriteParameter( file, "Hitpoints        ",
-            BATTLE_Options[ index ].HitPoints );
-         }
+        WriteParameter(file, "SpawnDangers     ", BATTLE_Options[index].SpawnDangers);                                                          // Write out Danger Spawning
 
-      // Write out Danger Spawning
-      WriteParameter( file, "SpawnDangers     ",
-         BATTLE_Options[ index ].SpawnDangers );
+        if (index != battle_Eluder) {
+            WriteParameter(file, "SpawnHealth      ", BATTLE_Options[index].SpawnHealth);                                                       // Write out Health Spawning            
+            WriteParameter(file, "SpawnMines       ", BATTLE_Options[index].SpawnMines);                                                        // Write out Mine Spawning
+        }
 
-      if ( index != battle_Eluder )
-         {
-         // Write out Health Spawning
-         WriteParameter( file, "SpawnHealth      ",
-            BATTLE_Options[ index ].SpawnHealth );
+        if ((index != battle_Collector) && (index != battle_Tag) && (index != battle_Eluder)) {
+            WriteParameter(file, "SpawnWeapons     ", BATTLE_Options[index].SpawnWeapons);                                                      // Write out Weapon Spawning
+            WriteParameter(file, "RandomWeapons    ", BATTLE_Options[index].RandomWeapons);                                                     // Write out Random Weapons
+            WriteParameter(file, "WeaponPersistence", BATTLE_Options[index].WeaponPersistence);                                                 // Write out Weapon Persistence
+        }
 
-         // Write out Mine Spawning
-         WriteParameter( file, "SpawnMines       ",
-            BATTLE_Options[ index ].SpawnMines );
-         }
+        if ((index == battle_Normal) || (index == battle_ScoreMore) || (index == battle_Hunter) || (index == battle_Tag))
+            WriteParameter(file, "FriendlyFire     ", BATTLE_Options[index].FriendlyFire);                                                      // Write out Friendly Fire
+        
+        if (index != battle_Eluder)  WriteParameter(file, "RespawnItems     ", BATTLE_Options[index].RespawnItems);                             // Write out Respawn Items
 
-      if ( ( index != battle_Collector ) && ( index != battle_Tag ) &&
-         ( index != battle_Eluder ) )
-         {
-         // Write out Weapon Spawning
-         WriteParameter( file, "SpawnWeapons     ",
-            BATTLE_Options[ index ].SpawnWeapons );
+        WriteParameter(file, "LightLevel       ", BATTLE_Options[index].LightLevel);                                                            // Write out Light Level
 
-         // Write out Random Weapons
-         WriteParameter( file, "RandomWeapons    ",
-            BATTLE_Options[ index ].RandomWeapons );
+        if ((index != battle_Collector) && (index != battle_Scavenger)) WriteParameter(file, "PointGoal        ", BATTLE_Options[index].Kills); // Write out Point Goal
+        if (index != battle_Eluder) WriteParameter(file, "DangerDamage     ", BATTLE_Options[index].DangerDamage);                              // Write out Danger Damage
 
-         // Write out Weapon Persistence
-         WriteParameter( file, "WeaponPersistence",
-            BATTLE_Options[ index ].WeaponPersistence );
-         }
+        WriteParameter(file, "TimeLimit        ", BATTLE_Options[index].TimeLimit);             // Write out TimeLimit
+        WriteParameter(file, "RespawnTime      ", BATTLE_Options[index].RespawnTime);           // Write out RespawnTime
+    }
 
-      if ( ( index == battle_Normal ) || ( index == battle_ScoreMore ) ||
-         ( index == battle_Hunter ) || ( index == battle_Tag ) )
-         {
-         // Write out Friendly Fire
-         WriteParameter( file, "FriendlyFire     ",
-            BATTLE_Options[ index ].FriendlyFire );
-         }
+    close(file);
+}
 
-      if ( index != battle_Eluder )
-         {
-         // Write out Respawn Items
-         WriteParameter( file, "RespawnItems     ",
-            BATTLE_Options[ index ].RespawnItems );
-         }
 
-      // Write out Light Level
-      WriteParameter( file, "LightLevel       ",
-         BATTLE_Options[ index ].LightLevel );
-
-      if ( ( index != battle_Collector ) && ( index != battle_Scavenger ) )
-         {
-         // Write out Point Goal
-         WriteParameter( file, "PointGoal        ",
-            BATTLE_Options[ index ].Kills );
-         }
-
-      if ( index != battle_Eluder )
-         {
-         // Write out Danger Damage
-         WriteParameter( file, "DangerDamage     ",
-            BATTLE_Options[ index ].DangerDamage );
-         }
-
-      // Write out TimeLimit
-      WriteParameter( file, "TimeLimit        ",
-         BATTLE_Options[ index ].TimeLimit );
-
-      // Write out RespawnTime
-      WriteParameter( file, "RespawnTime      ",
-         BATTLE_Options[ index ].RespawnTime );
-      }
-
-   close( file );
-   }
-
-#endif
 
 //******************************************************************************
 //
@@ -1457,64 +1270,42 @@ void WriteBattleConfig
 //
 //******************************************************************************
 
-void WriteSoundConfig
-   (
-   void
-   )
-
-   {
+void WriteSoundConfig(void) {
    int file;
    char filename[ 128 ];
 
-   if ( !WriteSoundFile )
-      {
-      return;
-      }
+   if (!WriteSoundFile) return;
 
    GetPathFromEnvironment( filename, ApogeePath, SoundName );
-   file = open ( filename, O_RDWR | O_TEXT | O_CREAT | O_TRUNC,
-      S_IREAD | S_IWRITE);
+   file = open ( filename, O_RDWR | O_TEXT | O_CREAT | O_TRUNC, S_IREAD | S_IWRITE);
 
-   if (file == -1)
-      Error ("Error opening %s: %s", filename, strerror(errno));
+   if (file == -1) Error ("Error opening %s: %s", filename, strerror(errno));
 
-   // Write out ROTTSOUND header
-
-   SafeWriteString (file, ";Rise of the Triad Sound File\n");
+   SafeWriteString (file, ";Rise of the Triad Sound File\n");                   // Write out ROTTSOUND header
    SafeWriteString (file, ";                  (c) 1995\n\n");
 
-   // Write out Version
+   WriteParameter(file,"Version          ",ROTTVERSION);                        // Write out Version
 
-   WriteParameter(file,"Version          ",ROTTVERSION);
-
-   // Write out Music Mode
-
-   SafeWriteString(file,"\n;\n");
+   SafeWriteString(file,"\n;\n");                                               // Write out Music Mode
    SafeWriteString(file,"; Music Modes\n");
    SafeWriteString(file,"; 0  -  Off\n");
    SafeWriteString(file,"; 6  -  On\n");
 
    WriteParameter(file,"MusicMode        ",MusicMode);
 
-   // Write out FX Mode
-
-   SafeWriteString(file,"\n;\n");
+   SafeWriteString(file,"\n;\n");                                               // Write out FX Mode
    SafeWriteString(file,"; FX Modes\n");
    SafeWriteString(file,"; 0  -  Off\n");
    SafeWriteString(file,"; 6  -  On\n");
 
    WriteParameter(file,"FXMode           ",FXMode);
 
-   // Write in Music Volume
-
-   SafeWriteString(file,"\n;\n");
+   SafeWriteString(file,"\n;\n");                                               // Write in Music Volume
    SafeWriteString(file,"; Music Volume\n");
    SafeWriteString(file,"; (low) 0 - 255 (high)\n");
    WriteParameter (file, "MusicVolume    ", MUvolume);
 
-   // Write in FX Volume
-
-   SafeWriteString(file,"\n;\n");
+   SafeWriteString(file,"\n;\n");                                               // Write in FX Volume
    SafeWriteString(file,"; FX Volume\n");
    SafeWriteString(file,"; (low) 0 - 255 (high)\n");
    WriteParameter (file, "FXVolume       ", FXvolume);
@@ -1581,7 +1372,6 @@ void WriteConfig (void)
    WriteSoundConfig();
 
   // Write Config, Battle and Score files
-#ifdef _ROTT_
    WriteScores();
    WriteBattleConfig();
 
@@ -1703,7 +1493,7 @@ void WriteConfig (void)
            G_weaponscale = 376;
        }
        else {
-           G_weaponscale = (int)(376 + (iGLOBAL_SCREENWIDTH / 200) * 0.75);    //[*** FREERES SUPPORT ***]
+           G_weaponscale = (int) (376 + (iGLOBAL_SCREENWIDTH / 200) * 0.75);    //[*** FREERES SUPPORT ***]
        }
    }
    WriteParameter(file,"Weaponscale         ",G_weaponscale);
@@ -1904,12 +1694,9 @@ void WriteConfig (void)
    SafeWriteString(file,"\n");
 
    close (file);
-#endif
+
    inconfig--;
 }
-
-#ifdef _ROTT_
-
 
 //****************************************************************************
 //
@@ -2053,5 +1840,4 @@ void ReadSETUPFiles (void)
    }
 }
 
-#endif
 

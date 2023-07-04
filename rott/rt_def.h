@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // RT_DEF.H Zee big one
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "develop.h"
 #define SAVE_SCREEN  1
@@ -279,7 +280,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define FL_SOLIDCOLOR           0x4000000
 #define FL_SEEN                 0x8000000
 #define FL_COLORED              0x10000000
-#define FL_FULLLIGHT       0x80000000
+#define FL_NOSPLASHDMG			0x20000000
+#define FL_FULLLIGHT			0x80000000
 
 //=================== ACTOR FLAGS =====================================//
 
@@ -354,6 +356,8 @@ typedef unsigned char           byte;
 typedef unsigned short int      word;
 typedef unsigned int            longword;
 typedef int fixed;
+
+typedef int32_t fixed32_t;
 
 
 //////////////////////////////////////////////////////////////////////////

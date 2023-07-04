@@ -20,15 +20,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef _rt_draw_private
 #define _rt_draw_private
 
-#include "develop.h"
-
 #define MINZ                            0x2700
 #define MAXBOB                          0x9000
 
 #define GOLOWER  0x38000		//dma -- uhh??
 #define GOHIGHER 0x20000
 
-#define MAXVISIBLEDOORS 30
 #define MAXDRAWNTICS                    40
 
 #define W_CHANGE  (WEAPONUPTICS || WEAPONDOWNTICS)
@@ -68,7 +65,6 @@ void  DrawPlayerWeapon(void);
 boolean TransformPlane (int x1, int y1, int x2, int y2, visobj_t * plane);
 int   CalcRotate (objtype *ob);
 void  DrawScaleds (void);
-void  FixOfs (void);
 void SetSpriteLightLevel (int x, int y, visobj_t * sprite, int dir, int fullbright);
 
 #endif
