@@ -21,6 +21,8 @@ int iGLOBAL_AMMO_Y;
 int iGLOBAL_FOCALWIDTH;
 double dGLOBAL_FPFOCALWIDTH;
 
+int iGLOBAL_FOCALWIDTH_USER = 0;
+
 double dTopYZANGLELIMIT;
 
 int iG_X_center;
@@ -84,18 +86,14 @@ void SetRottScreenRes (int Width, int Height)
 
 		iGLOBAL_FOCALWIDTH = 220;
 		dGLOBAL_FPFOCALWIDTH = 220.0;
+
 		iGLOBAL_HEALTH_X = 20 * ScaleFactorX;
 		iGLOBAL_HEALTH_Y = (185/200)*RoundedScreenHeight;
 		iGLOBAL_AMMO_X = (300/320)*RoundedScreenWidth;
 		iGLOBAL_AMMO_Y = RoundedScreenHeight-16;
 	}
 
-	//dYZANGLELIMIT = (12*FINEANGLES/360);
-	//#define YZANGLELIMIT  (12*FINEANGLES/360)//bna--(30*FINEANGLES/360)
-
-	//#define TopYZANGLELIMIT  (44*FINEANGLES/360)//bna added
-
-//	GetCurrentDirectory(sizeof(ApogeePath),ApogeePath);// curent directory name
+	iGLOBAL_FOCALWIDTH_USER = 0;
 
 }
 
@@ -107,7 +105,6 @@ void MoveScreenUpLeft()
 {
 	int startX,startY,startoffset;
     byte  *Ycnt,*b;
-//   SetTextMode (  );
     b=(byte *)bufferofs;
 	b += (((iGLOBAL_SCREENHEIGHT-viewheight)/2)*iGLOBAL_SCREENWIDTH)+((iGLOBAL_SCREENWIDTH-viewwidth)/2);
 	if (viewsize == 8) {b += 8*iGLOBAL_SCREENWIDTH;}
@@ -124,7 +121,6 @@ void MoveScreenDownLeft()
 {
 	int startX,startY,startoffset;
     byte  *Ycnt,*b;
-//   SetTextMode (  );
     b=(byte *)bufferofs;
 	b += (((iGLOBAL_SCREENHEIGHT-viewheight)/2)*iGLOBAL_SCREENWIDTH)+((iGLOBAL_SCREENWIDTH-viewwidth)/2);
 	if (viewsize == 8) {b += 8*iGLOBAL_SCREENWIDTH;}
@@ -142,7 +138,6 @@ void MoveScreenUpRight()
 {
 	int startX,startY,startoffset;
     byte  *Ycnt,*b;
-//   SetTextMode (  );
     b=(byte *)bufferofs;
 
 	b += (((iGLOBAL_SCREENHEIGHT-viewheight)/2)*iGLOBAL_SCREENWIDTH)+((iGLOBAL_SCREENWIDTH-viewwidth)/2);
@@ -160,7 +155,6 @@ void MoveScreenDownRight()
 {
 	int startX,startY,startoffset;
     byte  *Ycnt,*b;
-//   SetTextMode (  );
     b=(byte *)bufferofs;
 
 	b += (((iGLOBAL_SCREENHEIGHT-viewheight)/2)*iGLOBAL_SCREENWIDTH)+((iGLOBAL_SCREENWIDTH-viewwidth)/2);

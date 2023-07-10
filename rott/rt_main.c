@@ -969,103 +969,72 @@ void GameLoop (void)
             BATTLE_Shutdown();
             MU_StartSong(song_title);
 			EnableScreenStretch();
-            if ((NoWait==false)&&(!modemgame))
-               {
-               byte dimpal[768];
-               int i;
+            if (!NoWait && !modemgame) {
+                byte dimpal[768];
+                int i;
 
-               for (i = 0; i < 0x300; i++)
-                  dimpal[i] = origpal[i]>>2;
-               CalcTics();
-               CalcTics();
+                for (i = 0; i < 0x300; i++)
+                    dimpal[i] = origpal[i] >> 2;
+                CalcTics();
+                CalcTics();
 
-               IN_ClearKeysDown ();
-               while (IN_GetMouseButtons()) {}
-               while ((!LastScan) && (!IN_GetMouseButtons()))
-                  {
-                  int i;
-                  byte *tempbuf;
-                  MenuFadeOut();
-                  ClearGraphicsScreen();
-                  VL_SetPalette((byte*) &dimpal[0]);
-                  PlayMovie ("shartitl", true);
-                  if ( ( LastScan ) || ( IN_GetMouseButtons() ) )
-                     {
-                     break;
-                     }
+                IN_ClearKeysDown();
+                while (IN_GetMouseButtons()) {}
+                while (!LastScan && !IN_GetMouseButtons()) {
+                    int i;
+                    byte* tempbuf;
+                    MenuFadeOut();
+                    ClearGraphicsScreen();
+                    VL_SetPalette((byte*)&dimpal[0]);
+                    PlayMovie("shartitl", true);
+                    if (LastScan || IN_GetMouseButtons()) break;
 
-                  PlayMovie ("shartit2", true);
+                    PlayMovie("shartit2", true);
 
-                  if ( ( LastScan ) || ( IN_GetMouseButtons() ) )
-                     {
-                     break;
-                     }
-                  SD_Play (SD_LIGHTNINGSND);
-                  MenuFadeIn();
-                  I_Delay(30);
-                  SD_Play (SD_ACTORSQUISHSND);
-                  tempbuf=bufferofs;
-                  bufferofs=page1start; // fixed, was displayofs
-                  DrawNormalSprite(320-94,200-41,W_GetNumForName("rsac"));
-						VH_UpdateScreen(); // fixed, was missing
-                  bufferofs=tempbuf;
-                  I_Delay(30);
+                    if (LastScan || IN_GetMouseButtons()) break;
 
-                  if ( ( LastScan ) || ( IN_GetMouseButtons() ) )
-                     {
-                     break;
-                     }
+                    SD_Play(SD_LIGHTNINGSND);
+                    MenuFadeIn();
+                    I_Delay(30);
+                    SD_Play(SD_ACTORSQUISHSND);
+                    tempbuf = bufferofs;
+                    bufferofs = page1start; // fixed, was displayofs
+                    DrawNormalSprite(320 - 94, 200 - 41, W_GetNumForName("rsac"));
+                    VH_UpdateScreen(); // fixed, was missing
+                    bufferofs = tempbuf;
+                    I_Delay(30);
 
-					DoCreditScreen ();
-                  if ((!LastScan) && (!IN_GetMouseButtons()))
-                     CheckHighScore (0, 0, false);
+                    if (LastScan || IN_GetMouseButtons()) break;
+
+                    DoCreditScreen();
+                    if (!LastScan && !IN_GetMouseButtons()) CheckHighScore(0, 0, false);
 #if (SHAREWARE==0)
-                  if ((!LastScan) && (!IN_GetMouseButtons()))
-                     {
-                     DoMicroStoryScreen ();
-                     }
+                    if (!LastScan && !IN_GetMouseButtons()) DoMicroStoryScreen();
 #endif
-                  if (
-                      (!LastScan) &&
-                      (!IN_GetMouseButtons()) &&
-                      (lowmemory==0) &&
-                      (GameLevels.avail==false)
-                     )
-                     {
-                     if (demonumber==-1)
-                        demonumber=RandomNumber("GameLoop",0);
-                     for (i=0;i<4;i++)
-                        {
-                        demonumber=(demonumber+1)%4;
-                        if (DemoExists (demonumber+1) == true)
-                           break;
+                    if (!LastScan && !IN_GetMouseButtons() && !GameLevels.avail) {
+                        if (demonumber == -1) demonumber = RandomNumber("GameLoop", 0);
+                        for (i = 0; i < 4; i++) {
+                            demonumber = (demonumber + 1) % 4;
+                            if (DemoExists(demonumber + 1)) break;
                         }
-                     if (DemoExists (demonumber+1) == true)
-                        {
-                        ingame=true;
-                        LoadDemo (demonumber+1);
-                        break;
+                        if (DemoExists(demonumber + 1)) {
+                            ingame = true;
+                            LoadDemo(demonumber + 1);
+                            break;
                         }
-                     }
-                  }
-               }
+                    }
+                }
+            }
 
-            if (playstate != ex_demoplayback)
-               {
-               if (demoexit == true)
-                  {
-                  QuitGame();
-                  }
-               NoWait = false;
-               SwitchPalette(origpal,35);
-               CP_MainMenu();
-
-               }
+            if (playstate != ex_demoplayback) {
+                if (demoexit) QuitGame();
+                NoWait = false;
+                SwitchPalette(origpal, 35);
+                CP_MainMenu();
+            }
          break;
 
          case ex_resetgame:
-
-  // SetTextMode (  ); //12345678
 	    EnableScreenStretch();//bna++ shut on streech mode 
             InitCharacter();
 
@@ -2081,13 +2050,6 @@ void PollKeyboard (void) {
       autopressed = false;
       }
 
-#if 0
-   if ( modemgame == false )
-      {
-      CheckDevelopmentKeys();
-      }
-#endif
-
    if ( ( MSG.messageon == false ) && ( !quitactive ) )
       {
       if ( ( Keyboard[ buttonscan[ bt_message ] ] ) && ( BATTLEMODE ) )
@@ -2276,7 +2238,7 @@ void PollKeyboard (void) {
             }
          }
 
-    #if 0
+
       if ( Keyboard[ sc_M ] )
          {
          char str[ 50 ] = "Mouse Y-Rotation Input Scale ";
@@ -2292,7 +2254,7 @@ void PollKeyboard (void) {
          AddMessage( str, MSG_SYSTEM );
 
          }
-    #endif
+
       // Increase volume
       if ( Keyboard[ sc_CloseBracket ] )
          {
@@ -2328,9 +2290,8 @@ void PollKeyboard (void) {
             }
          }
 
-      // Decrease volume
-      if ( Keyboard[ sc_OpenBracket ] )
-         {
+      //volume
+      if ( Keyboard[ sc_OpenBracket ] ) {
          if ( Keyboard[ sc_RShift ] )
             {
             char str[ 50 ] = "Music Volume Level ";
@@ -2364,16 +2325,6 @@ void PollKeyboard (void) {
          }
 
       #if SAVE_SCREEN
-#if (DEVELOPMENT == 1)
-         if ( Keyboard[ sc_CapsLock ] && Keyboard[ sc_C ] )
-            {
-            SaveScreen( true );
-            }
-         else if ( Keyboard[ sc_CapsLock ] && Keyboard[ sc_X ] )
-            {
-            SaveScreen( false );
-            }
-#endif
          else if ( Keyboard[ sc_Alt] && Keyboard[ sc_C ] )
             {
             SaveScreen( false );

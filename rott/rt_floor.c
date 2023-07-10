@@ -190,105 +190,81 @@ int GetFloorCeilingLump(int num) {
 
    int lump;
 
-   //wip - generalize
-   /*
-   const char FlrCl[10] = "FLRCL";
-   const char ZeroTerm[1] = "\0";
+   //wip - generalize some more
+   char lumpname[9] = "FLRCL\0\0\0\0";
 
-   static char FlatNumStr[3] = "1\0";
-   char FinalName[9];
-
-   sprintf(FlatNumStr, "%d", num);
-
-   strcat(FinalName, FlrCl);
-   strcat(FinalName, FlatNumStr);
-   strcat(FinalName, ZeroTerm);
-
-   char* FinalNamePtr = &FinalName[0];
-
-   lump = W_GetNumForName(FinalNamePtr);
-
-   FinalNamePtr = "\0"; //clear out this string so we can start again on map reload*/
-
-
-   switch (num) {
-      case 1:
-         lump=W_GetNumForName("FLRCL1\0");
-         break;
-      case 2:
-         lump=W_GetNumForName("FLRCL2\0");
-         break;
-      case 3:
-         lump=W_GetNumForName("FLRCL3\0");
-         break;
-      case 4:
-         lump=W_GetNumForName("FLRCL4\0");
-         break;
-      case 5:
-         lump=W_GetNumForName("FLRCL5\0");
-         break;
-      case 6:
-         lump=W_GetNumForName("FLRCL6\0");
-         break;
-      case 7:
-         lump=W_GetNumForName("FLRCL7\0");
-         break;
-      case 8:
-         lump=W_GetNumForName("FLRCL8\0");
-         break;
-      case 9:
-         lump=W_GetNumForName("FLRCL9\0");
-         break;
-      case 10:
-         lump=W_GetNumForName("FLRCL10\0");
-         break;
-      case 11:
-         lump=W_GetNumForName("FLRCL11\0");
-         break;
-      case 12:
-         lump=W_GetNumForName("FLRCL12\0");
-         break;
-      case 13:
-         lump=W_GetNumForName("FLRCL13\0");
-         break;
-      case 14:
-         lump=W_GetNumForName("FLRCL14\0");
-         break;
-      case 15:
-         lump=W_GetNumForName("FLRCL15\0");
-         break;
-      case 16:
-         lump=W_GetNumForName("FLRCL16\0");
-         break;
-      default:
-         Error("Illegal Floor/Ceiling Tile = %d\n",num);
-         break;
-      }
+   if (num < 10) {
+       lumpname[5] = '0' + num;
+       lumpname[6] = '\0';
+   }
+   else if (num < 20) {
+       lumpname[5] = '1';
+       lumpname[6] = '0' + (num % 10);
+   }
+   else if (num < 30) {
+       lumpname[5] = '2';
+       lumpname[6] = '0' + (num % 10);
+   }
+   else if (num < 40) {
+       lumpname[5] = '3';
+       lumpname[6] = '0' + (num % 10);
+   }
+   else if (num < 50) {
+       lumpname[5] = '4';
+       lumpname[6] = '0' + (num % 10);
+   }
+   else if (num < 60) {
+       lumpname[5] = '5';
+       lumpname[6] = '0' + (num % 10);
+   }
+   else if (num < 70) {
+       lumpname[5] = '6';
+       lumpname[6] = '0' + (num % 10);
+   }
+   else if (num < 80) {
+       lumpname[5] = '7';
+       lumpname[6] = '0' + (num % 10);
+   }
+   else if (num < 90) {
+       lumpname[5] = '8';
+       lumpname[6] = '0' + (num % 10);
+   }
+   else if (num < 100) {
+       lumpname[5] = '9';
+       lumpname[6] = '0' + (num % 10);
+   }
+   lump = W_GetNumForName(lumpname);
    return lump;
 }
 
 /*
 ===================
 =
-= SkyExists
+= RT_SkyExists
 =
 ===================
 */
 
-boolean SkyExists(void) {
-   if (MAPSPOT(1,0,0) >= 234) return true;
-   else return false;
+#define TILE_FIRSTSKY   233
+#define TILE_LIGHTNING  377
+
+int32_t RT_SkyExists(void) {
+    int32_t skyvalue;
+
+    skyvalue = MAPSPOT(1, 0, 0) - TILE_FIRSTSKY;
+    if (skyvalue > 0) return skyvalue;
+    else return 0;
 }
 
 /*
 ===================
 =
-= SetPlaneViewSize
+= RT_SetPlaneViewSize
 =
 ===================
 */
 
-void SetPlaneViewSize (void)
+void RT_SetPlaneViewSize (void)
 {
    int      x;
    int      i;
@@ -297,38 +273,40 @@ void SetPlaneViewSize (void)
    int      ceilingnum;
    int      skytop;
    int      skybottom;
+   int16_t crud;
 
    sky=0;
 
    if (oldsky>0)
       {
-      SafeFree(skydata[0]);
+      SafeFree(skydata[0]);     //[TODO]: make Z_Free safe
       oldsky=-1;
       }
 
    lightning=false;
 
-	if (MAPSPOT(1,0,0) >= 234)
-    {
-    word crud;
-	 sky = (MAPSPOT(1,0,0) - 233);
-    if ((sky<1) || (sky>6))
-       Error("Illegal Sky Tile = %d\n",sky);
-    ceilingnum=1;
-	 crud=(word)MAPSPOT(1,0,1);
-	 if ((crud>=90) && (crud<=97))
-	    horizonheight=crud-89;
-    else if ((crud>=450) && (crud<=457))
-		 horizonheight=crud-450+9;
-	 else
-       Error("You must specify a valid horizon height sprite icon over the sky at (2,0) on map %d\n",gamestate.mapon);
+   sky = RT_SkyExists();
+   if (sky)
+   {
+       if ((sky < 1) || (sky > 6)) Error("Illegal Sky Tile = %d\n", sky);
+       ceilingnum = 1;
+       crud = (int16_t)MAPSPOT(1, 0, 1);
+       if ((crud >= 90) && (crud <= 97)) horizonheight = crud - 89;
+       else if ((crud >= 450) && (crud <= 457)) horizonheight = crud - 450 + 9;
+       else horizonheight = 9;
+       //I_Warning("RT_SetPlaneViewSize: missing or unknown horizon height icon");
 
-    // Check for lightnign icon
+      // Check for lightning icon
 
-	 crud=(word)MAPSPOT(4,0,1);
-	 if (crud==377)
-       lightning=true;
-    }
+       /*
+       crud=(word)MAPSPOT(4,0,1);
+       if (crud==377)
+         lightning=true;
+      */
+
+       lightning = (MAPSPOT(4, 0, 1) == TILE_LIGHTNING);
+   }
+
 	else
 	 ceilingnum = MAPSPOT(1,0,0)-197;
 

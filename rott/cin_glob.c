@@ -17,29 +17,5 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "cin_glob.h"
-#include "rt_in.h"
-#include "rt_draw.h"
-//MED
-#include "memcheck.h"
 
-void CinematicDelay ( void )
-{
-   CalcTics();
-}
-
-int GetCinematicTime ( void )
-{
-   return GetTicCount ();
-}
-
-boolean CinematicAbort( void )
-{
-   return (IN_CheckAck ());
-}
-
-void ClearCinematicAbort( void )
-{
-   IN_StartAck ();
-}
-
+//empty module -- dma

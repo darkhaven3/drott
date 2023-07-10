@@ -120,8 +120,8 @@ const int dirangle16[16] = {0,FINEANGLES/16,2*FINEANGLES/16,3*FINEANGLES/16,
 // math tables
 //
 
-short   tantable[FINEANGLES];
-int     sintable[FINEANGLES+FINEANGLEQUAD+1],
+int16_t   tantable[FINEANGLES];
+int32_t   sintable[FINEANGLES+FINEANGLEQUAD+1],
 		  *costable = sintable+(FINEANGLES/4);
 
 //
@@ -2562,7 +2562,7 @@ void DoLoadGameSequence(void) {
     FlipPage();
     FlipPage();
 
-    VL_CopyPlanarPageToMemory((byte*)bufferofs, destscreen);
+    VL_CopyPlanarPage((byte*)bufferofs, destscreen);
 
     CalcTics();
     for (i = 0; i < time; i += tics) {
@@ -2597,7 +2597,7 @@ void DoLoadGameSequence(void) {
 //******************************************************************************
 byte * RotatedImage;
 boolean RotateBufferStarted = false;
-void StartupRotateBuffer ( int masked)
+void StartupRotateBuffer (int masked)
 {
 	int k;////zxcv
    int a,b;
@@ -2645,7 +2645,6 @@ void StartupRotateBuffer ( int masked)
 
       if ((masked == false)&&(iGLOBAL_SCREENWIDTH >= 800)) {
 		DisableScreenStretch();
-		// SetTextMode (  );
 
 		k=(28*512);//14336;
 		   for (a=0;a<iGLOBAL_SCREENHEIGHT;a++){

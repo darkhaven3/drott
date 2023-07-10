@@ -1,1 +1,0 @@
-rott-rt_swift.o: rt_swift.c

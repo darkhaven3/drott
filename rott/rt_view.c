@@ -158,7 +158,7 @@ void UpdatePeriodicLighting (void);
 */
 void ResetFocalWidth ( void )
 {
-   focalwidth=iGLOBAL_FOCALWIDTH;//FOCALWIDTH;
+   focalwidth=iGLOBAL_FOCALWIDTH+iGLOBAL_FOCALWIDTH_USER;//FOCALWIDTH;
    SetViewDelta();
 }
 
@@ -171,7 +171,7 @@ void ResetFocalWidth ( void )
 */
 void ChangeFocalWidth ( int amount )
 {
-   focalwidth=iGLOBAL_FOCALWIDTH+amount;//FOCALWIDTH+amount;
+   focalwidth=iGLOBAL_FOCALWIDTH+iGLOBAL_FOCALWIDTH_USER+amount;//FOCALWIDTH+amount;
    SetViewDelta();
 }
 
@@ -299,163 +299,148 @@ viewdim_t R_CalcViewportDimensions(int viewsize_num, float ui_scale)
 ==========================
 */
 
-void SetViewSize (int size) {
-   int height;
-   int maxheight;
-   int screenx;
-   int screeny;
-   int topy;
-   /*
-  if (size>=10){
+void SetViewSize(int size) {
+    int height;
+    int maxheight;
+    int screenx;
+    int screeny;
+    int topy;
+    viewdim_t calcview;
 
-	   SetTextMode (  );
-	   screenx=screenx;
-	   return;
-   }
-*/
-        viewdim_t calcview;
+    for (int viewblock = 0; viewblock < MAXVIEWSIZES - 1; viewblock += 2) {
+        calcview = R_CalcViewportDimensions((int)viewblock / 2, 1.0);
+        viewsizes[viewblock] = calcview.size_x;
+        viewsizes[viewblock + 1] = calcview.size_y;
+    }
 
-        for (int viewblock = 0;     viewblock < MAXVIEWSIZES - 1;   viewblock += 2) {
-            calcview = R_CalcViewportDimensions((int)viewblock / 2, 1.0);
-            viewsizes[viewblock]     = calcview.size_x;
-            viewsizes[viewblock + 1] = calcview.size_y;
-        }
+    /*** original hacky shit here ***/
 
-        /*** original hacky shit here ***/
+    /*
+if ( iGLOBAL_SCREENWIDTH == 640) {
+        height = 0;//we use height as dummy cnt
+        viewsizes[height++]= 380; viewsizes[height++]= 336;
+        viewsizes[height++]= 428; viewsizes[height++]= 352;
+        viewsizes[height++]= 460; viewsizes[height++]= 368;
+        viewsizes[height++]= 492; viewsizes[height++]= 384;
+        viewsizes[height++]= 524; viewsizes[height++]= 400;
+        viewsizes[height++]= 556; viewsizes[height++]= 416;
+        viewsizes[height++]= 588; viewsizes[height++]= 432;
+        viewsizes[height++]= 640; viewsizes[height++]= 448;
+        viewsizes[height++]= 640; viewsizes[height++]= 464;
+        viewsizes[height++]= 640; viewsizes[height++]= 480;
+        viewsizes[height++]= 640; viewsizes[height++]= 480;
 
-        /*
-    if ( iGLOBAL_SCREENWIDTH == 640) {
-		    height = 0;//we use height as dummy cnt
-		    viewsizes[height++]= 380; viewsizes[height++]= 336;
-            viewsizes[height++]= 428; viewsizes[height++]= 352;
-            viewsizes[height++]= 460; viewsizes[height++]= 368;
-            viewsizes[height++]= 492; viewsizes[height++]= 384;
-            viewsizes[height++]= 524; viewsizes[height++]= 400;
-            viewsizes[height++]= 556; viewsizes[height++]= 416;
-            viewsizes[height++]= 588; viewsizes[height++]= 432;
-            viewsizes[height++]= 640; viewsizes[height++]= 448;
-            viewsizes[height++]= 640; viewsizes[height++]= 464;
-            viewsizes[height++]= 640; viewsizes[height++]= 480;
-            viewsizes[height++]= 640; viewsizes[height++]= 480;
+}else if ( iGLOBAL_SCREENWIDTH == 800) {
+    height = 0;
+    viewsizes[height++]= 556; viewsizes[height++]= 488;
+    viewsizes[height++]= 588; viewsizes[height++]= 504;
+    viewsizes[height++]= 620; viewsizes[height++]= 520;
+    viewsizes[height++]= 652; viewsizes[height++]= 536;
+    viewsizes[height++]= 684; viewsizes[height++]= 552;
+    viewsizes[height++]= 716; viewsizes[height++]= 568;
+    viewsizes[height++]= 748; viewsizes[height++]= 584;
+    viewsizes[height++]= 800; viewsizes[height++]= 600;
+    viewsizes[height++]= 800; viewsizes[height++]= 600;
+    viewsizes[height++]= 800; viewsizes[height++]= 600;
+    viewsizes[height++]= 800; viewsizes[height++]= 600;
+} */
 
-	}else if ( iGLOBAL_SCREENWIDTH == 800) {
-		height = 0;
-		viewsizes[height++]= 556; viewsizes[height++]= 488;
-        viewsizes[height++]= 588; viewsizes[height++]= 504;
-        viewsizes[height++]= 620; viewsizes[height++]= 520;
-        viewsizes[height++]= 652; viewsizes[height++]= 536;
-        viewsizes[height++]= 684; viewsizes[height++]= 552;
-        viewsizes[height++]= 716; viewsizes[height++]= 568;
-        viewsizes[height++]= 748; viewsizes[height++]= 584;
-        viewsizes[height++]= 800; viewsizes[height++]= 600;
-        viewsizes[height++]= 800; viewsizes[height++]= 600;
-        viewsizes[height++]= 800; viewsizes[height++]= 600;
-        viewsizes[height++]= 800; viewsizes[height++]= 600;
-	} */
-
-    /*** original hacky shit ends ***/
+/*** original hacky shit ends ***/
 
 
-	if ((size<0) || (size>=MAXVIEWSIZES)){//bna added
-        printf("Illegal screen size = %d\n",size);
-		size = 8;//set default value
-		viewsize = 8;
-	}
+    if ((size < 0) || (size >= MAXVIEWSIZES)) {//bna added
+        printf("Illegal screen size = %d\n", size);
+        size = 8;//set default value
+        viewsize = 8;
+    }
 
-   //if ((size<0) || (size>=MAXVIEWSIZES))
-   //   Error("Illegal screen size = %ld\n",size);
+    //if ((size<0) || (size>=MAXVIEWSIZES))
+    //   Error("Illegal screen size = %ld\n",size);
 
-   viewwidth  = viewsizes[ size << 1 ];         // must be divisable by 16
-   viewheight = viewsizes[ ( size << 1 ) + 1 ]; // must be even
+    viewwidth = viewsizes[size << 1];         // must be divisable by 16
+    viewheight = viewsizes[(size << 1) + 1]; // must be even
 
-   maxheight = iGLOBAL_SCREENHEIGHT;
-   topy      = 0;
+    maxheight = iGLOBAL_SCREENHEIGHT;
+    topy = 0;
 
-   // Only keep the kills flag
-   StatusBar &= ~( BOTTOM_STATUS_BAR | TOP_STATUS_BAR |
-      STATUS_PLAYER_STATS );
+    // Only keep the kills flag
+    StatusBar &= ~(BOTTOM_STATUS_BAR | TOP_STATUS_BAR |
+        STATUS_PLAYER_STATS);
 
-   if ( SHOW_KILLS() )
-      {
-      // Account for height of kill boxes
-      maxheight -= 24;
-      }
+    if (SHOW_KILLS())
+    {
+        // Account for height of kill boxes
+        maxheight -= 24;
+    }
 
-   if ( size < 9 )
-      {
-      StatusBar |= TOP_STATUS_BAR;
+    if (size < 9)
+    {
+        StatusBar |= TOP_STATUS_BAR;
 
-      // Account for height of top status bar
-      maxheight -= 16;
-      topy      += 16;
-      }
+        // Account for height of top status bar
+        maxheight -= 16;
+        topy += 16;
+    }
 
-//   if ( size == 7 ){maxheight -= 16;}//bna++
-//   if ( size <= 6 ){topy -= 8;}//bna++
+    //   if ( size == 7 ){maxheight -= 16;}//bna++
+    //   if ( size <= 6 ){topy -= 8;}//bna++
 
-   if ( size < 8 )
-      {
-      // Turn on health and ammo bar
-      StatusBar |= BOTTOM_STATUS_BAR;
+    if (size < 8)
+    {
+        // Turn on health and ammo bar
+        StatusBar |= BOTTOM_STATUS_BAR;
 
-      maxheight -= 16;
+        maxheight -= 16;
 
-      }
-   else if ( size < 10 )
-      {
-      // Turn on transparent health and ammo bar
-      StatusBar |= STATUS_PLAYER_STATS;
-      }
-   //   SetTextMode (  );
-   //   viewheight=viewheight;
-   height = viewheight;
-   if ( height > 168*iGLOBAL_SCREENHEIGHT/200 )
-   {
+    }
+    else if (size < 10)
+    {
+        // Turn on transparent health and ammo bar
+        StatusBar |= STATUS_PLAYER_STATS;
+    }
+    //   viewheight=viewheight;
+    height = viewheight;
+    if (height > 168 * iGLOBAL_SCREENHEIGHT / 200)
+    {
         // Prevent weapon from being scaled too big
-	    height = 168*iGLOBAL_SCREENHEIGHT/200;
-   }
+        height = 168 * iGLOBAL_SCREENHEIGHT / 200;
+    }
 
-   weaponscale = ( height << 16 ) / 168;//( height << 16 ) = 170 * 65536
-
-  
-   centerx     = viewwidth >> 1;
-   centery     = viewheight >> 1;
-   centeryfrac = (centery << 16);
-   yzangleconverter = ( 0xaf85 * viewheight ) / iGLOBAL_SCREENHEIGHT;
-
-   // Center the view horizontally
-   screenx = ( iGLOBAL_SCREENWIDTH - viewwidth ) >> 1;
-
-   if ( viewheight >= maxheight )
-      {
-      screeny = topy;
-      viewheight = maxheight;
-      }
-   else
-      {
-      // Center the view vertically
-      screeny = ( ( maxheight - viewheight ) >> 1 ) + topy;
-      }
-
-   // Calculate offset of view window
-
-   screenofs = screenx + ylookup[ screeny ];
+    weaponscale = (height << 16) / 168;//( height << 16 ) = 170 * 65536
 
 
-//
-// calculate trace angles and projection constants
-//
+    centerx = viewwidth >> 1;
+    centery = viewheight >> 1;
+    centeryfrac = (centery << 16);
+    yzangleconverter = (0xaf85 * viewheight) / iGLOBAL_SCREENHEIGHT;
 
-   ResetFocalWidth();
+    // Center the view horizontally
+    screenx = (iGLOBAL_SCREENWIDTH - viewwidth) >> 1;
+
+    if (viewheight >= maxheight)
+    {
+        screeny = topy;
+        viewheight = maxheight;
+    }
+    else
+    {
+        // Center the view vertically
+        screeny = ((maxheight - viewheight) >> 1) + topy;
+    }
+
+    // Calculate offset of view window
+
+    screenofs = screenx + ylookup[screeny];
 
 
-// Already being called in ResetFocalWidth
-//   SetViewDelta();
+    //
+    // calculate trace angles and projection constants
+    //
 
+    ResetFocalWidth();
+    CalcProjection();
 
-     CalcProjection();
-
-   }
+}
 
 
 //******************************************************************************

@@ -218,126 +218,96 @@ void V_ReDrawBkgnd(int x, int y, int width, int height, boolean shade) {
 // CacheLumpGroup ()
 //
 //******************************************************************************
-void CacheLumpGroup
-   (
-   char   *startlump,
-   pic_t **lumparray,
-   int     numberoflumps
-   )
-
-   {
-   int lumpnum;
-   int i;
-
-   lumpnum = W_GetNumForName( startlump );
-
-   for( i = 0; i < numberoflumps; i++ )
-      {
-      lumparray[ i ] = ( pic_t * )W_CacheLumpNum( lumpnum + i, PU_LEVEL, Cvt_pic_t, 1 );
-      }
-   }
+void CacheLumpGroup(char* startlump, pic_t** lumparray, int     numberoflumps) {
+    int lumpnum = W_GetNumForName(startlump);
+    for (int i = 0; i < numberoflumps; i++) lumparray[i] = (pic_t*)W_CacheLumpNum(lumpnum + i, PU_LEVEL, Cvt_pic_t, 1);
+}
 
 //******************************************************************************
 //
 // SetupPlayScreen ()
 //
 //******************************************************************************
-void SetupPlayScreen
-   (
-   void
-   )
+void SetupPlayScreen(void) {
+    int i;
+    int j;
+    int num;
 
-   {
-	int i;
-	int j;
-   int num;
+    erase = (pic_t*)W_CacheLumpName("erase", PU_LEVEL, Cvt_pic_t, 1);
+    eraseb = (pic_t*)W_CacheLumpName("eraseb", PU_LEVEL, Cvt_pic_t, 1);
 
-   erase  = ( pic_t * )W_CacheLumpName( "erase", PU_LEVEL, Cvt_pic_t, 1 );
-   eraseb = ( pic_t * )W_CacheLumpName( "eraseb", PU_LEVEL, Cvt_pic_t, 1 );
+    CacheLumpGroup("tmnum0", timenums, 10);
+    CacheLumpGroup("lfnum0", lifeptnums, 10);
+    CacheLumpGroup("lvnum0", lifenums, 10);
+    CacheLumpGroup("health1b", health, 6);
+    CacheLumpGroup("key1", keys, 4);
 
-   CacheLumpGroup( "tmnum0", timenums, 10 );
-   CacheLumpGroup( "lfnum0", lifeptnums, 10 );
-   CacheLumpGroup( "lvnum0", lifenums, 10 );
-   CacheLumpGroup( "health1b", health, 6 );
-   CacheLumpGroup( "key1", keys, 4 );
+    if (!BATTLEMODE) {
+        CacheLumpGroup("scnum0", scorenums, 10);
 
-   if ( !BATTLEMODE )
-      {
-      CacheLumpGroup( "scnum0", scorenums, 10 );
+        num = locplayerstate->player;
+        men[num] = (pic_t*)W_CacheLumpNum(W_GetNumForName("MAN1") +
+            num, PU_LEVEL, Cvt_pic_t, 1);
+    }
+    else {
+        int  man;
+        int  num100;
+        int  negnum;
+        int  negman;
 
-      num = locplayerstate->player;
-      men[ num ] = ( pic_t * )W_CacheLumpNum( W_GetNumForName( "MAN1" ) +
-         num, PU_LEVEL, Cvt_pic_t, 1 );
-      }
-   else
-      {
-      int  man;
-      int  num100;
-      int  negnum;
-      int  negman;
+        CacheLumpGroup("kilnum0", scorenums, 10);
 
-      CacheLumpGroup( "kilnum0", scorenums, 10 );
+        negnum = W_GetNumForName("botnpic1");
+        num = W_GetNumForName("botpic0");
+        num100 = W_GetNumForName("botopic1");
+        negman = W_GetNumForName("negman1");
+        man = W_GetNumForName("man1");
 
-      negnum  = W_GetNumForName( "botnpic1" );
-      num     = W_GetNumForName( "botpic0" );
-      num100  = W_GetNumForName( "botopic1" );
-      negman  = W_GetNumForName( "negman1" );
-      man     = W_GetNumForName( "man1" );
+        blankfragpic = (pic_t*)W_CacheLumpNum(num, PU_LEVEL, Cvt_pic_t, 1);
+        num++;
 
-      blankfragpic = ( pic_t * )W_CacheLumpNum( num, PU_LEVEL, Cvt_pic_t, 1 );
-      num++;
-
-      for( i = 0; i < numplayers; i++ )
-         {
-         j = PLAYERSTATE[ i ].player;
-         if ( !gamestate.teamplay )
-            {
-            fragpic[ j ]    = ( pic_t * )W_CacheLumpNum( num + j, PU_LEVEL, Cvt_pic_t, 1 );
-            frag100pic[ j ] = ( pic_t * )W_CacheLumpNum( num100 + j, PU_LEVEL, Cvt_pic_t, 1 );
-            negfragpic[ j ] = ( pic_t * )W_CacheLumpNum( negnum + j, PU_LEVEL, Cvt_pic_t, 1 );
+        for (i = 0; i < numplayers; i++) {
+            j = PLAYERSTATE[i].player;
+            if (!gamestate.teamplay) {
+                fragpic[j] = (pic_t*)W_CacheLumpNum(num + j, PU_LEVEL, Cvt_pic_t, 1);
+                frag100pic[j] = (pic_t*)W_CacheLumpNum(num100 + j, PU_LEVEL, Cvt_pic_t, 1);
+                negfragpic[j] = (pic_t*)W_CacheLumpNum(negnum + j, PU_LEVEL, Cvt_pic_t, 1);
             }
-         else
-            {
-            negfragpic[ j ] = ( pic_t * )W_CacheLumpName( "teamnpic", PU_LEVEL, Cvt_pic_t, 1 );
-            fragpic[ j ]    = ( pic_t * )W_CacheLumpName( "teampic", PU_LEVEL, Cvt_pic_t, 1 );
-            frag100pic[ j ] = fragpic[ j ];
+            else {
+                negfragpic[j] = (pic_t*)W_CacheLumpName("teamnpic", PU_LEVEL, Cvt_pic_t, 1);
+                fragpic[j] = (pic_t*)W_CacheLumpName("teampic", PU_LEVEL, Cvt_pic_t, 1);
+                frag100pic[j] = fragpic[j];
             }
 
-         menneg[ j ]     = ( pic_t * )W_CacheLumpNum( negman + j, PU_LEVEL, Cvt_pic_t, 1 );
-         men[ j ]        = ( pic_t * )W_CacheLumpNum( man + j, PU_LEVEL, Cvt_pic_t, 1 );
-         }
-      }
+            menneg[j] = (pic_t*)W_CacheLumpNum(negman + j, PU_LEVEL, Cvt_pic_t, 1);
+            men[j] = (pic_t*)W_CacheLumpNum(man + j, PU_LEVEL, Cvt_pic_t, 1);
+        }
+    }
 
-   powerpics   = W_GetNumForName( "GDMODEP" );
-   poweradjust = POWERUPTICS / 16;
+    powerpics = W_GetNumForName("GDMODEP");
+    poweradjust = POWERUPTICS / 16;
 
-   num   = W_GetNumForName( "INF_B" );
+    num = W_GetNumForName("INF_B");
 
-   // bullet weapons
-   ammo[0] = ( pic_t * )W_CacheLumpNum( num, PU_LEVEL, Cvt_pic_t, 1 );
-   ammo[1] = ( pic_t * )W_CacheLumpNum( num, PU_LEVEL, Cvt_pic_t, 1 );
-   ammo[2] = ( pic_t * )W_CacheLumpNum( num++, PU_LEVEL, Cvt_pic_t, 1 );
-
-
-   for(i=3;i < 13; i++ )
-      {
-      ammo[ i ] = ( pic_t * )W_CacheLumpNum( num++, PU_LEVEL, Cvt_pic_t, 1 );
-      }
-
-   ammo[13] = ( pic_t * )W_CacheLumpNum( num, PU_LEVEL, Cvt_pic_t, 1 );
-   ammo[14] = ( pic_t * )W_CacheLumpNum( num, PU_LEVEL, Cvt_pic_t, 1 );
-   ammo[15] = ( pic_t * )W_CacheLumpNum( num++, PU_LEVEL, Cvt_pic_t, 1 );
+    // bullet weapons
+    ammo[0] = (pic_t*)W_CacheLumpNum(num, PU_LEVEL, Cvt_pic_t, 1);
+    ammo[1] = (pic_t*)W_CacheLumpNum(num, PU_LEVEL, Cvt_pic_t, 1);
+    ammo[2] = (pic_t*)W_CacheLumpNum(num++, PU_LEVEL, Cvt_pic_t, 1);
 
 
-   for(i=16;i < 26; i++ )
-      {
-      ammo[ i ] = ( pic_t * )W_CacheLumpNum( num++, PU_LEVEL, Cvt_pic_t, 1 );
-      }
+    for (i = 3; i < 13; i++) ammo[i] = (pic_t*)W_CacheLumpNum(num++, PU_LEVEL, Cvt_pic_t, 1);
+
+    ammo[13] = (pic_t*)W_CacheLumpNum(num, PU_LEVEL, Cvt_pic_t, 1);
+    ammo[14] = (pic_t*)W_CacheLumpNum(num, PU_LEVEL, Cvt_pic_t, 1);
+    ammo[15] = (pic_t*)W_CacheLumpNum(num++, PU_LEVEL, Cvt_pic_t, 1);
 
 
-   oldplayerhealth  = -1;
-   oldpercenthealth = -1;
-   }
+    for (i = 16; i < 26; i++) ammo[i] = (pic_t*)W_CacheLumpNum(num++, PU_LEVEL, Cvt_pic_t, 1);
+
+
+    oldplayerhealth = -1;
+    oldpercenthealth = -1;
+}
 
 
 
@@ -347,26 +317,10 @@ void SetupPlayScreen
 //
 //******************************************************************************
 
-void GameMemToScreen
-   (
-   pic_t *source,
-   int   x,
-   int   y,
-   int   bufferofsonly
-   )
-
-   {
-   if ( bufferofsonly )
-      {
-      VL_MemToScreen( ( byte * )&source->data, source->width,
-         source->height, x, y );
-      }
-   else
-      {
-      GM_MemToScreen( ( byte * )&source->data, source->width,
-         source->height, x, y );
-      }
-   }
+void GameMemToScreen(pic_t* source, int x, int y, int bufferofsonly) {
+    if (bufferofsonly) VL_MemToScreen((byte*)&source->data, source->width, source->height, x, y);
+    else GM_MemToScreen((byte*)&source->data, source->width, source->height, x, y);
+}
 
 
 //******************************************************************************
@@ -4886,17 +4840,6 @@ boolean LoadTheGame (int num, gamestorage_t * game)
 	size=LoadBuffer(&altbuffer,&bufptr);
 	LoadPushWalls(altbuffer,size);
 	SafeFree(altbuffer);
-#if 0
-	// Animated Walls Tag
-
-	size=5;
-	LoadTag(&bufptr,"AWALL",size);
-
-	// Animated Walls
-	size=LoadBuffer(&altbuffer,&bufptr);
-	LoadAnimWalls(altbuffer,size);
-	SafeFree(altbuffer);
-#endif
 
 	// MaskedWalls Tag
 

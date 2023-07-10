@@ -418,15 +418,8 @@ static boolean MissileSound      =    true;
 
 
 boolean FirstExplosionState(statetype* state) {
-    if (DoPanicMapping()) {
-        if (state == &s_altexplosion1) return true;
-        else return false;
-    }
-
-    else {
         if ((state == &s_explosion1) || (state == &s_grexplosion1) || (state == &s_staticexplosion1)) return true;
         else return false;
-    }
 }
 
 
@@ -1021,31 +1014,19 @@ void ApplyGravity(objtype *ob)
 ===================
 */
 
-void NewState (objtype *ob, statetype *newstate)
+void NewState(objtype* ob, statetype* newstate)
 {
-   if (DoPanicMapping() &&
-       ((newstate == &s_explosion1) ||
-        (newstate == &s_grexplosion1) ||
-        (newstate == &s_staticexplosion1)
-       )
-      )
-      ob->state = &s_altexplosion1;
-   else{
-#if (BNACRASHPREVENT == 1)//crashed here when oscuro and larves were all killed
-		if (ob == 0){return;}
-#endif
-      ob->state = newstate;
-   }
-   SetVisiblePosition(ob,ob->x,ob->y);
-#if (BNACRASHPREVENT == 1)
-		if (ob->state == 0){return;}
-#endif
+    if (ob == 0) return;
 
-	ob->ticcount = (ob->state->tictime>>1);
-	ob->shapenum = ob->state->shapenum + ob->shapeoffset;
+    ob->state = newstate;
+    SetVisiblePosition(ob, ob->x, ob->y);
+
+    if (ob->state == 0) return;
+
+    ob->ticcount = (ob->state->tictime >> 1);
+    ob->shapenum = ob->state->shapenum + ob->shapeoffset;
 
 }
-
 
 /*
 =========================
@@ -1060,45 +1041,35 @@ void NewState (objtype *ob, statetype *newstate)
 
 
 
-void InitActorList (void)
-{
-	//====== NETWORK STUFF =======================================
-	memset(&DEADPLAYER[0],0,sizeof(DEADPLAYER));
-	NUMDEAD = 0;
+void InitActorList(void) {
+    //====== NETWORK STUFF =======================================
+    memset(&DEADPLAYER[0], 0, sizeof(DEADPLAYER));
+    NUMDEAD = 0;
 
+    //======= NULLIFY GLOBAL POINTERS ============================
+    LASTACTOR = FIRSTACTOR = NULL;
+    FIRSTFREE = LASTFREE = NULL;
+    firstactive = lastactive = NULL;
+    memset(firstareaactor, 0, sizeof(firstareaactor));
+    memset(lastareaactor, 0, sizeof(lastareaactor));
+    NUMSPAWNLOCATIONS = 0;
+    PARTICLE_GENERATOR = NULL;
+    EXPLOSIONS = NULL;
+    SNAKEEND = SNAKEHEAD = NULL;
+    SCREENEYE = NULL;
+    PLAYER0MISSILE = NULL;
 
-
-	//======= NULLIFY GLOBAL POINTERS ============================
-
-	LASTACTOR=FIRSTACTOR=NULL;
-	FIRSTFREE = LASTFREE = NULL;
-	firstactive = lastactive = NULL;
-	memset(firstareaactor,0,sizeof(firstareaactor));
-	memset(lastareaactor,0,sizeof(lastareaactor));
-   NUMSPAWNLOCATIONS = 0;
-
-
-	PARTICLE_GENERATOR = NULL;
-	EXPLOSIONS = NULL;
-	SNAKEEND=SNAKEHEAD=NULL;
-   SCREENEYE = NULL;
-   PLAYER0MISSILE = NULL;
-
-	//============================================================
-
-	objcount = 0;
-	memset(MISCVARS,0,sizeof(misc_stuff));
-   MISCVARS->gibgravity = -1;
-   MISCVARS->gibspeed = NORMALGIBSPEED;
-
-   memset(&RANDOMACTORTYPE[0],0,sizeof(RANDOMACTORTYPE));
-   FindAddresses();
-   MissileSound = true;
-   Masterdisk = false;
-
+    //============================================================
+    objcount = 0;
+    memset(MISCVARS, 0, sizeof(misc_stuff));
+    MISCVARS->gibgravity = -1;
+    MISCVARS->gibspeed = NORMALGIBSPEED;
+    memset(&RANDOMACTORTYPE[0], 0, sizeof(RANDOMACTORTYPE));
+    FindAddresses();
+    MissileSound = true;
+    Masterdisk = false;
 }
 
-//===========================================================================
 
 /*
 =========================
@@ -1114,46 +1085,32 @@ void InitActorList (void)
 =========================
 */
 
-void GetNewActor (void)
-   {
-   objtype *temp;
+void GetNewActor(void) {
+    objtype* temp;
 
-   if (!FIRSTFREE)
-      {
-      temp = (objtype*)Z_LevelMalloc(sizeof(objtype),PU_LEVELSTRUCT,NULL);
-      //SoftError("\nMalloc-ing actor");
-      //if (insetupgame)
-      //  SoftError("in setup");
-      }
+    if (!FIRSTFREE) temp = (objtype*)Z_LevelMalloc(sizeof(objtype), PU_LEVELSTRUCT, NULL);
+    else {
+        temp = LASTFREE;
+        RemoveFromFreeList(LASTFREE);
+    }
 
-   else
-      {
-      temp = LASTFREE;
-      //SoftError("\nfree actor available");
-      RemoveFromFreeList(LASTFREE);
-      }
+    if (temp) {
+        new = temp;
+        memset(new, 0, sizeof(*new));
 
-   if (temp)
-      {
-      new = temp;
-      memset(new,0,sizeof(*new));
+        if (FIRSTACTOR) {
+            new->prev = LASTACTOR;
+            LASTACTOR->next = new;
+        }
+        else FIRSTACTOR = new;
+        LASTACTOR = new;
 
-      if (FIRSTACTOR)
-         {
-         new->prev = LASTACTOR;
-         LASTACTOR->next = new;
-         }
-      else
-         FIRSTACTOR = new;
-      LASTACTOR = new;
-
-      new->door_to_open = -1;
-      new->soundhandle = -1;
-      objcount ++;
-      }
-   else
-      Error("Z_LevelMalloc failed in GetNewActor");
-   }
+        new->door_to_open = -1;
+        new->soundhandle = -1;
+        objcount++;
+    }
+    else Error("Z_LevelMalloc failed in GetNewActor");
+}
 
 
 
@@ -2909,132 +2866,70 @@ void T_Explosion(objtype* ob)
  //================== check surrounding actors ============================//
 
 
-   for(check = firstactive;check;check=check->nextactive)
-      {
-      if (check == ob)
-         continue;
+   for (check = firstactive; check; check = check->nextactive) {
+       if (check == ob) continue;
+       dx = abs(check->x - ob->x);
+       if (dx > blastradius) continue;
+       dy = abs(ob->y - check->y);
+       if (dy > blastradius) continue;
 
-//	  if (check == owner)
-//		continue;
+       dz = ((abs(ob->z - check->z)) << 10);
+       if (dz > blastradius) continue;
+       if (check->flags & FL_HEAD) continue;
+       if (check->flags & FL_DYING) continue;
+       if (!(check->flags & FL_SHOOTABLE)) continue;
+       if ((check->obclass >= roboguardobj) && (check->obclass != b_darkmonkobj)) continue;
+       if (!CheckLine(ob, check, SIGHT)) continue;
+       if (check->obclass == NMEsaucerobj) {
+           NewState(check, &s_explosion1);
+           check->flags &= ~FL_SHOOTABLE;
+           return;
+       }
 
-      dx = abs(check->x - ob->x);
-      if (dx > blastradius)
-         continue;
+       dist = Find_3D_Distance(dx, dy, dz);
+       SoftError("\ndist: %x\n", dist);
 
-      dy = abs(ob->y - check->y);
-      if (dy > blastradius)
-         continue;
+       scalefactor = FixedDiv2(1 << 16, FixedMul(dist, dist));
+       //scalefactor = FixedDiv2(1<<16,dist);
 
-      dz = ((abs(ob->z - check->z))<<10);
-      if (dz > blastradius)
-         continue;
+       if (scalefactor > 0x12000)
+           scalefactor = 0x12000;
+       pdamage = FixedMul(damage, scalefactor);
+       SoftError("\ndamage: %d, scalefactor: %x\n", pdamage, scalefactor);
+       impulse = FixedMul(EXPLOSION_IMPULSE, scalefactor);
+       if (check->obclass == playerobj) {
+           check->target = owner;
+           if (check->flags & FL_AV)
+               pdamage = 0;
+       }
 
+       if (check->obclass < roboguardobj)
+       {
+           SoftError("\nhitpoints before: %d", check->hitpoints);
+           DamageThing(check, pdamage);
+           SoftError("\nhitpoints after: %d", check->hitpoints);
+           if ((check->hitpoints <= 0) && (gamestate.violence == vl_excessive) &&
+               ((ob->obclass == p_firebombobj) ||
+                   ((dx < fatalradius) && (dy < fatalradius) && (dz < 20)))
+               )
+               check->flags |= FL_HBM;
 
-      if (check->flags & FL_HEAD)
-         continue;
-
-      if (check->flags & FL_DYING)
-         continue;
-
-      if (!(check->flags & FL_SHOOTABLE))
-         continue;
-
-
-
-      if ((check->obclass >= roboguardobj) && (check->obclass != b_darkmonkobj))
-			//(check->obclass <= wallopobj))
-         continue;
-
-
-      if (!CheckLine(ob,check,SIGHT))
-         continue;
-
-
-      if (check->obclass == NMEsaucerobj)
-         {
-         NewState(check,&s_explosion1);
-         check->flags &= ~FL_SHOOTABLE;
-         return;
-         }
-#if 0
-      dist = FindDistance(dx,dy);
-      scalefactor = (blastradius-dist)>>4;
-      if (scalefactor > 0xffff)
-         scalefactor = 0xffff;
-      pdamage = FixedMul(damage,scalefactor);
-#endif
-//#if 0
-     //magdx = abs(dx);
-     //magdy = abs(dy);
-
-      dist = Find_3D_Distance(dx,dy,dz);
-      SoftError("\ndist: %x\n",dist);
-
-
-      //if (dist < 0x10000)
-        // dist = 0x10000;
-
-      scalefactor = FixedDiv2(1<<16,FixedMul(dist,dist));
-     //scalefactor = FixedDiv2(1<<16,dist);
-
-      if (scalefactor > 0x12000)
-         scalefactor = 0x12000;
-      pdamage = FixedMul(damage,scalefactor);
-      SoftError("\ndamage: %d, scalefactor: %x\n",pdamage,scalefactor);
-//#endif
-      impulse = FixedMul(EXPLOSION_IMPULSE,scalefactor);
-      if (check->obclass == playerobj)
-         {
-         check->target = owner;
-         if (check->flags & FL_AV)
-            pdamage = 0;
-         }
-
-      if (check->obclass < roboguardobj)
-         {
-         SoftError("\nhitpoints before: %d",check->hitpoints);
-         DamageThing(check,pdamage);
-         SoftError("\nhitpoints after: %d",check->hitpoints);
-         if ((check->hitpoints <= 0) && (gamestate.violence == vl_excessive) &&
-             ((ob->obclass == p_firebombobj) ||
-             ((dx < fatalradius) && (dy < fatalradius) && (dz < 20)))
-            )
-            check->flags |= FL_HBM;
-
-         GetMomenta(check,ob,&momx,&momy,&momz,impulse);
-            //Debug("\nhitmomx = %d, hitmomy = %d",momx,momy);
-
-        /*if (M_ISACTOR(owner) &&
-            (owner->obclass == playerobj) &&
-            (check->hitpoints <=0)
-           )
-           GivePoints(starthitpoints[gamestate.difficulty][check->obclass]*5);
-        */
-         Collision(check,owner,momx,momy);
-         check->momentumz += (momz<<6);
-         if ((check->obclass == playerobj) && (check->flags & FL_DYING) &&
-             M_ISACTOR(owner))
-            {
-            if (owner->obclass == playerobj)
-               {
-               if (check->z != nominalheight)
-                  BATTLE_PlayerKilledPlayer(battle_kill_with_missile_in_air,owner->dirchoosetime,check->dirchoosetime);
-               else
-                  BATTLE_PlayerKilledPlayer(battle_kill_with_missile,owner->dirchoosetime,check->dirchoosetime);
+           GetMomenta(check, ob, &momx, &momy, &momz, impulse);
+           Collision(check, owner, momx, momy);
+           check->momentumz += (momz << 6);
+           if ((check->obclass == playerobj) && (check->flags & FL_DYING) && M_ISACTOR(owner)) {
+               if (owner->obclass == playerobj) {
+                   if (check->z != nominalheight) BATTLE_PlayerKilledPlayer(battle_kill_with_missile_in_air, owner->dirchoosetime, check->dirchoosetime);
+                   else BATTLE_PlayerKilledPlayer(battle_kill_with_missile, owner->dirchoosetime, check->dirchoosetime);
                }
-            else
-               BATTLE_CheckGameStatus(battle_player_killed,check->dirchoosetime);
-            }
-
-         }
-      else
-         {
-	     if (check->obclass != b_darkmonkobj) {
-		 SoftError("non-darkmonk actor %d being helped by explosion",check->obclass);
-	     }
-         check->hitpoints += pdamage;
-         }
-      }
+               else BATTLE_CheckGameStatus(battle_player_killed, check->dirchoosetime);
+           }
+       }
+       else {
+           if (check->obclass != b_darkmonkobj) SoftError("non-darkmonk actor %d being helped by explosion", check->obclass);
+           check->hitpoints += pdamage;
+       }
+   }
 
  //======================== check surrounding statics ================
 
@@ -3275,14 +3170,6 @@ void BeginEnemyFatality(objtype *ob,objtype *attacker)
 
    ob->flags |= FL_DYING;
    ob->soundhandle = -1;
-
-#if 0
-   if ((ob->obclass == blitzguardobj) &&
-       (ob->state->condition & SF_DOWN)
-      )
-
-      SD_Play(PlayerSnds[locplayerstate->player]);
-#endif
 
    if (Vicious_Annihilation(ob,attacker))
       return;
@@ -3599,23 +3486,11 @@ void SpawnParticles(objtype*ob,int which,int numparticles)
 
          }
 
-      if (lowmemory && (gibtype >= gt_rib) && (gibtype <= gt_limb))
-         gibtype = gt_organ;
-
-      if
-         (
-        // (gibtype >= gt_organ) && (gibtype <= gt_limb) &&
-         (MISCVARS->numgibs >= MAXGIBS)
-         )
-         return;
-
-
-
-      if (gibtype == gt_lsoul)
-         {
-         SpawnNewObj(ob->tilex,ob->tiley,&s_littlesoul,inertobj);
-         randphi = 0;
-         }
+      if (MISCVARS->numgibs >= MAXGIBS) return;
+      if (gibtype == gt_lsoul) {
+          SpawnNewObj(ob->tilex, ob->tiley, &s_littlesoul, inertobj);
+          randphi = 0;
+      }
 
 
    #if (SHAREWARE == 0)
@@ -9030,16 +8905,6 @@ findplayer:
          prevdir = ((prevdir+2) & 0xf);
 
          }
-   #if 0
-      SoftError("\n straight dir: %d\n queue dirs ",tdir);
-      for(count = 0;count < MISCVARS->NMEqueuesize;count++)
-         {
-         SoftError("\n dir %d: %d",MISCVARS->NMEqueuesize-count,
-                   ((ob->temp1 >> (4*count)) &0xf)
-                  );
-
-         }
-   #endif
       }
    else             // else goto next queue dir;
       {
@@ -10849,7 +10714,7 @@ void T_Use(objtype*ob)
   {
 #if (SHAREWARE == 0)
    case b_darianobj:
-    if (touchsprite && !DoPanicMapping())
+    if (touchsprite)
        touchsprite->flags |= FL_ACTIVE;
 	 if ((!sprites[PLAYER[0]->tilex][PLAYER[0]->tiley]) && (ob->areanumber == PLAYER[0]->areanumber))
 	  {SpawnNewObj(PLAYER[0]->tilex,PLAYER[0]->tiley,&s_dspear1,spearobj);

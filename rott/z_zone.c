@@ -29,13 +29,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "develop.h"
 #include "rt_net.h"
 
-#if (DEVELOPMENT == 1)
-#include "rt_main.h"
-#endif
 //MED
 #include "memcheck.h"
-
-int lowmemory=0;
 
 /*
 ==============================================================================
@@ -142,20 +137,6 @@ void Z_Init(int size, int min)
     levelzone = Z_AllocateZone(levelzonesize);
 
     if (!quiet) printf("Z_INIT: %ld bytes\n", (long int)(maxsize + levelzonesize));
-
-    if (maxsize < (min + (min >> 1))) {
-        lowmemory = 1;
-
-        printf("==============================================================================\n");
-        printf("WARNING: You are running ROTT with very little memory.  ROTT runs best with\n");
-        printf("8 Megabytes of memory and no TSR's loaded in memory.  If you can free up more\n");
-        printf("memory for ROTT then you should press CTRL-BREAK at this time. If you are\n");
-        printf("unable to do this you will experience momentary pauses in game-play whenever\n");
-        printf("you enter new areas of the game as well as an overall decreased performance.\n");
-        printf("                        Press any key to continue\n");
-        printf("==============================================================================\n");
-        getch();
-    }
 }
 
 /*

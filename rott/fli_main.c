@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "fli_util.h"
 #include "fli_def.h"
 #include "fli_main.h"
+#include "rt_in.h"
 //MED
 #include "memcheck.h"
 
@@ -446,7 +447,7 @@ static Ulong calc_end_time(Ulong millis)
 	/* Little helper subroutine to find out when to start on next
 	 * frame. */
 {
-return (GetCinematicTime() + ( (millis * CLOCKSPEED) / 4000l) );
+return (GetTicCount() + ( (millis * CLOCKSPEED) / 4000l) );
 }
 
 static ErrCode wait_til(Ulong end_time, Machine *machine)
@@ -457,10 +458,10 @@ static ErrCode wait_til(Ulong end_time, Machine *machine)
 {
    do
      {
-     if (CinematicAbort()!=0)
+     if (IN_CheckAck())
         return ErrCancel;
      }
-   while (GetCinematicTime() < end_time);
+   while (GetTicCount() < end_time);
 	return Success;
 }
 
