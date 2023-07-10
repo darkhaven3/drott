@@ -21,6 +21,8 @@ extern int iGLOBAL_AMMO_Y;
 extern int iGLOBAL_FOCALWIDTH;
 extern double dGLOBAL_FPFOCALWIDTH;
 
+extern int iGLOBAL_FOCALWIDTH_USER;
+
 void EnableScreenStretch(void);
 void DisableScreenStretch(void);
 

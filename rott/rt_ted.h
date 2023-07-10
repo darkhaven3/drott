@@ -44,43 +44,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define FL_W_INVERTED  0x10
 #define FL_S_FLIPPED   0x20
 
-
-
-#define MAXTEAMS 11
-
-typedef struct
-{
- int nummembers;
- int uniformcolor;
- int tilex,tiley;
- byte dir;
-
-} teamtype;
-
-extern teamtype TEAM[MAXPLAYERS];
-
-typedef struct
-{ thingtype   which;
-  byte        flags;
-  byte        hitpoints;
-  word        tile;
-  byte        tilex,tiley;
-
-
-} wall_t;
-
-typedef struct
-{
-  int  number;
-  char mapname[23];
-} mapinfo_t;
-
-typedef struct
-{
-  int  nummaps;
-  mapinfo_t maps[100];
-} mapfileinfo_t;
-
 #define MAXLEVELNAMELENGTH 23
 #define ALLOCATEDLEVELNAMELENGTH 24
 #define NUMPLANES        3
@@ -88,32 +51,54 @@ typedef struct
 
 #define MAP_SPECIAL_TOGGLE_PUSHWALLS 0x0001
 
-typedef struct
-   {
-   unsigned used;
-   unsigned CRC;
-   unsigned RLEWtag;
-   unsigned MapSpecials;
-   unsigned planestart[ NUMPLANES ];
-   unsigned planelength[ NUMPLANES ];
-   char     Name[ ALLOCATEDLEVELNAMELENGTH ];
-   } RTLMAP;
+#define MAXTEAMS 11
 
+typedef struct {
+	int nummembers;
+	int uniformcolor;
+	int tilex, tiley;
+	byte dir;
+}	teamtype;
 
-typedef struct
- {int x,y,dir;
- }_2dvec;
+typedef struct {
+	thingtype   which;
+	byte        flags;
+	byte        hitpoints;
+	word        tile;
+	byte        tilex, tiley;
+}	wall_t;
 
-extern _2dvec SPAWNLOC[MAXSPAWNLOCATIONS],FIRST,SECOND;
+typedef struct {
+	int  number;
+	char mapname[23];
+}	mapinfo_t;
 
-typedef struct
- {int time1;
-  int time2;
-  byte points_to_tilex;
-  byte points_to_tiley;
-  int linkindex;
- }str_clock;
+typedef struct {
+	int  nummaps;
+	mapinfo_t maps[100];
+}	mapfileinfo_t;
 
+typedef struct {
+	unsigned used;
+	unsigned CRC;
+	unsigned RLEWtag;
+	unsigned MapSpecials;
+	unsigned planestart[NUMPLANES];
+	unsigned planelength[NUMPLANES];
+	char     Name[ALLOCATEDLEVELNAMELENGTH];
+}	RTLMAP;
+
+typedef struct {
+	int x, y, dir;
+}	_2dvec;
+
+typedef struct {
+	int time1;
+	int time2;
+	byte points_to_tilex;
+	byte points_to_tiley;
+	int linkindex;
+}	str_clock;
 
 extern int  numareatiles[NUMAREAS+1];
 extern int  shapestart,shapestop;
@@ -138,14 +123,14 @@ extern boolean insetupgame;
 extern char LevelName[80];
 extern boolean ISRTL;
 
+extern teamtype TEAM[MAXPLAYERS];
+extern _2dvec SPAWNLOC[MAXSPAWNLOCATIONS], FIRST, SECOND;
+
 void PreCacheGroup(int,int,int); // added type
 void AssignTeams(void);
 void LoadTedMap( const char *extension, int mapnum );
 void SetupGameLevel(void);
-void ScanInfoPlane(void);
 void PreCacheLump( int lump, int level, int type ); // added type
-void SetupGameLevelAgain (void);
-void ScanInfoPlaneAgain (void);
 void PreCacheActor( int actor, int which );
 void PreCache( void );
 
@@ -159,7 +144,6 @@ void SetupPushWallLinks( void );
 void SetupDoors (void);
 void SetupDoorLinks (void);
 void SetupClocks (void);
-void SetupLinkedActors (void);
 void SetupLights(void);
 void SetupWindows ( void );
 
@@ -178,7 +162,5 @@ void Illuminate();
 int GetSongForLevel ( void );
 void CheckHolidays(void);
 boolean IsChristmas(void);
-
-boolean DoPanicMapping (void);
 
 #endif

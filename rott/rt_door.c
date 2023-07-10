@@ -746,13 +746,9 @@ void TriggerStuff(void)
             break;
             }
          }
-#if (BNACRASHPREVENT == 1)
-	  //SetTextMode (  ); qwert
 	  //	CRASH IN SHAREWARE 'ride em cowboy' BNA FIX
       // DONT ALLOW BAD touchplate ( == 0 ) see rt_playr.c
-	  if (touchplate[i] == 0) {continue;}
-#endif
-
+	  if (touchplate[i] == 0) continue;
       if (!TRIGGER[i])
          continue;
 
@@ -4075,28 +4071,11 @@ void LoadPushWalls(byte * bufptr, int sz)
      new.tilex=new.x>>16;
      new.tiley=new.y>>16;
 
-     if ((new.tilex!=pw->tilex) || (new.tiley!=pw->tiley))
-        {
-        ClearActorat(pw);
-        tilemap[pw->tilex][pw->tiley] = 0;
-        if (pw->state!=pw_moving)
-           {
-#if 0
-           if (pw->dir==nodir)
-              {
-              if (tilemap[pw->tilex+1][pw->tiley]==0)
-                 pw->dir=east;
-              else if (tilemap[pw->tilex-1][pw->tiley]==0)
-                 pw->dir=west;
-              else if (tilemap[pw->tilex][pw->tiley+1]==0)
-                 pw->dir=south;
-              else
-                 pw->dir=north;
-              }
-#endif
-           ConnectPushWall(i);
-           }
-        }
+     if ((new.tilex != pw->tilex) || (new.tiley != pw->tiley)) {
+         ClearActorat(pw);
+         tilemap[pw->tilex][pw->tiley] = 0;
+         if (pw->state != pw_moving) ConnectPushWall(i);
+     }
 
 //   fixup area if needed
 

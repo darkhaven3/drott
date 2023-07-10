@@ -25,13 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef CIN_GLOB_H
 #define CIN_GLOB_H
 
-#define DUMP 0
-
-#define CLOCKSPEED (VBLCOUNTER)
-
-void CinematicDelay( void );
-int GetCinematicTime( void );
-boolean CinematicAbort( void );
-void ClearCinematicAbort( void );
+#define CLOCKSPEED VBLCOUNTER
 
 #endif

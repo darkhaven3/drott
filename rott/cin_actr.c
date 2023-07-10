@@ -23,11 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cin_actr.h"
 #include "cin_efct.h"
 #include "modexlib.h"
-//MED
-#include "memcheck.h"
+#include "memcheck.h"   //MED
 
-actortype * firstcinematicactor;
-actortype * lastcinematicactor;
+actortype* firstcinematicactor;
+actortype* lastcinematicactor;
 
 
 // LOCALS
@@ -43,18 +42,14 @@ static int numcinematicactors;
 ===============
 */
 
-void AddCinematicActor ( actortype * actor )
-{
-   if (!firstcinematicactor)
-      {
-      firstcinematicactor  = actor;
-      }
-   else
-      {
-      actor->prev = lastcinematicactor;
-      lastcinematicactor->next = actor;
-      }
-   lastcinematicactor = actor;
+void AddCinematicActor(actortype* actor) {
+    if (!firstcinematicactor) firstcinematicactor = actor;
+    else {
+        actor->prev = lastcinematicactor;
+        lastcinematicactor->next = actor;
+    }
+
+    lastcinematicactor = actor;
 }
 
 

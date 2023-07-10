@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cin_actr.h"
 #include "cin_evnt.h"
 #include "cin_efct.h"
+#include "rt_in.h"
 //MED
 #include "memcheck.h"
 
@@ -50,7 +51,7 @@ static int profiletics=-1;
 =
 ================
 */
-void ProfileMachine ( void )
+void ProfileMachine(void)
 {
    int i;
    int time;
@@ -58,16 +59,12 @@ void ProfileMachine ( void )
 
    if (profiletics>0)
       return;
-   time=GetCinematicTime();
-   for (i=0;i<4;i++)
-      {
-      ProfileDisplay();
-      }
-   endtime=GetCinematicTime();
+   time=GetTicCount();
+   for (i=0;i<4;i++) ProfileDisplay();
+   endtime=GetTicCount();
 
    profiletics = (endtime-time)>>2;
-   if (profiletics<1)
-      profiletics=1;
+   if (profiletics<1) profiletics=1;
 }
 
 /*
@@ -84,7 +81,7 @@ void StartupCinematic ( void )
    cinematicdone=false;
    cinematictime=0;
    GetCinematicTics ();
-   ClearCinematicAbort();
+   IN_StartAck();	//ClearCinematicAbort
    ProfileMachine();
 }
 
@@ -194,11 +191,9 @@ void GetCinematicTics ( void )
 {
    int time;
 
-   time=GetCinematicTime();
-   while (time==cinematictictime)
-      {
-      time=GetCinematicTime();
-      }
+   time=GetTicCount();
+   while (time==cinematictictime) time=GetTicCount();
+
    cinematictics=(time-cinematictictime);
    cinematictictime=time;
    cinematictics=profiletics;
@@ -217,10 +212,7 @@ void PlayMovie ( char * name, boolean uselumpy )
    GetCinematicTics();
    while (cinematicdone==false)
       {
-      cinematicdone=CinematicAbort();
-#if DUMP
-      printf("time=%ld\n",cinematictime);
-#endif
+	   cinematicdone = IN_CheckAck();
       for (i=0;i<cinematictics;i++)
          {
          UpdateCinematicEvents ( cinematictime );

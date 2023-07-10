@@ -85,25 +85,16 @@ typedef struct {
 } ExplosionInfoType;
 
 //
-// function prototypes
+// function prototypes from other modules
 //
 
-//externals
-extern void VH_UpdateScreen (void);
-
-//locals
-void SetColorLightLevel(int x, int y, visobj_t* sprite, int dir, int color, int fullbright);
-void DrawRotatedScreen(int cx, int cy, byte* destscreen, int angle, int scale, int masked);     // :thinking:
-void InterpolateMaskedWall(visobj_t* plane);
-void InterpolateDoor(visobj_t* plane);
-void InterpolateWall(visobj_t* plane);
+extern void VH_UpdateScreen(void);
 
 //
 // global variables
 //
 
 int iG_masked;
-int whereami=-1;
 int playerview = 0;
 
 byte * shadingtable;
@@ -112,8 +103,8 @@ word   tilemap[MAPSIZE][MAPSIZE]; // wall values only
 byte   spotvis[MAPSIZE][MAPSIZE];
 byte   mapseen[MAPSIZE][MAPSIZE];
 
-unsigned long * lights;
-int         wstart;
+uint32_t*   lights;
+int32_t     wstart;
 
 
 const int dirangle8[9] = {0,FINEANGLES/8,2*FINEANGLES/8,3*FINEANGLES/8,4*FINEANGLES/8,
@@ -129,8 +120,8 @@ const int dirangle16[16] = {0,FINEANGLES/16,2*FINEANGLES/16,3*FINEANGLES/16,
 // math tables
 //
 
-short   tantable[FINEANGLES];
-int     sintable[FINEANGLES+FINEANGLEQUAD+1],
+int16_t   tantable[FINEANGLES];
+int32_t   sintable[FINEANGLES+FINEANGLEQUAD+1],
 		  *costable = sintable+(FINEANGLES/4);
 
 //
@@ -147,7 +138,7 @@ int     tics;
 // ray tracing variables
 //
 
-long    xintercept,yintercept;
+int32_t    xintercept,yintercept;
 
 int doublestep=0;
 int hp_startfrac;
@@ -642,8 +633,6 @@ int       CalcHeight (void)
         fixed  gxt,gyt,nx;
    long            gx,gy;
 
-   whereami=0;
-
    gx = xintercept-viewx;
    gxt = FixedMul(gx,viewcos);
 
@@ -658,58 +647,6 @@ int       CalcHeight (void)
 	return (heightnumerator/nx);
 }
 
-
-
-#if 0
-//==========================================================================
-
-//******************************************************************************
-//
-// NextPlaneptr
-//
-//******************************************************************************
-
-void NextPlaneptr ( void )
-{
-   if (planeptr < &planelist[MAXPLANES-1]) // don't let it overflo'
-  		planeptr++;
-}
-
-//******************************************************************************
-//
-// RestPlaneptr
-//
-//******************************************************************************
-
-void ResetPlaneptr ( void )
-{
-   planeptr = &planelist[0];
-}
-
-//******************************************************************************
-//
-// NextVisptr
-//
-//******************************************************************************
-
-void NextVisptr ( void )
-{
-   if (visptr < &vislist[MAXVISIBLE-1]) // don't let it overflo'
-  		visptr++;
-}
-
-//******************************************************************************
-//
-// ResetVisptr
-//
-//******************************************************************************
-
-void ResetVisptr ( void )
-{
-   visptr = &vislist[0];
-}
-
-#endif
 
 //==========================================================================
 
@@ -727,8 +664,6 @@ int  StatRotate (statobj_t *temp)
 {
 	int    angle;
 	int    dx,dy;
-
-   whereami=2;
 
 	dx = temp->x - player->x;
 	dy = player->y - temp->y;
@@ -762,8 +697,6 @@ int   CalcRotate (objtype *ob)
 	int    dx,dy;
 	int    rotation;
 
-   whereami=1;
-
 	// this isn't exactly correct, as it should vary by a trig value'
 	// but it is close enough with only eight rotations
 	/*
@@ -777,9 +710,6 @@ int   CalcRotate (objtype *ob)
 
 	if ((ob->obclass >= p_bazookaobj) || (ob->obclass == missileobj))
 	  {angle = viewangle - ob->angle;
-		#if (0)
-		 Debug("\nviewangle: %d, angle: %d",viewangle,angle);
-		#endif
 	  }
 	else if ((ob->obclass > wallopobj) && (ob->obclass != b_darksnakeobj))
 		angle =  (viewangle-ANG180)- ob->angle;
@@ -805,98 +735,12 @@ int   CalcRotate (objtype *ob)
 
 	if (ob->state->rotate == 16)
 	  {rotation = angle/(ANGLES/16);
-		#if (0)
-		 Debug("\nrotation: %d", rotation);
-		#endif
 		return rotation;
 	  }
 	rotation = angle/(ANGLES/8);
 	return rotation;
 
 }
-
-
-
-#if 0
-/*
-=====================
-=
-= DrawMaskedWalls
-=
-=====================
-*/
-
-void DrawMaskedWalls (void)
-{
-
-
-  int   i,numvisible;
-  int   gx,gy;
-  unsigned short int  *tilespot;
-  byte   *visspot;
-  boolean result;
-  statobj_t *statptr;
-  objtype   *obj;
-  maskedwallobj_t* tmwall;
-
-	whereami=6;
-
-//
-// place maskwall objects
-//
-  for(tmwall=FIRSTMASKEDWALL;tmwall;tmwall=tmwall->next)
-	  {
-	  if (spotvis[tmwall->tilex][tmwall->tiley])
-		  {
-		  mapseen[tmwall->tilex][tmwall->tiley]=1;
-		  if (tmwall->vertical)
-			  {
-			  gx=(tmwall->tilex<<16)+0x8000;
-			  gy=(tmwall->tiley<<16);
-			  visptr->texturestart=0;
-			  visptr->textureend=0;
-			  if (viewx<gx)
-				  result=TransformPlane(gx,gy,gx,gy+0xffff,visptr);
-			  else
-				  result=TransformPlane(gx,gy+0xffff,gx,gy,visptr);
-			  visptr->shapenum=tmwall->bottomtexture;
-			  visptr->altshapenum=tmwall->midtexture;
-			  visptr->viewx=tmwall->toptexture;
-			  visptr->shapesize=2;
-			  }
-		  else
-			  {
-			  gx=(tmwall->tilex<<16);
-			  gy=(tmwall->tiley<<16)+0x8000;
-			  visptr->texturestart=0;
-			  visptr->textureend=0;
-			  if (viewy<gy)
-				  result=TransformPlane(gx+0xffff,gy,gx,gy,visptr);
-			  else
-				  result=TransformPlane(gx,gy,gx+0xffff,gy,visptr);
-			  visptr->shapenum=tmwall->bottomtexture;
-			  visptr->altshapenum=tmwall->midtexture;
-			  visptr->viewx=tmwall->toptexture;
-			  visptr->shapesize=2;
-			  }
-		  if ((tmwall->flags&MW_TOPFLIPPING) &&
-            (nonbobpheight>64)
-			  )
-			  {
-			  visptr->viewx++;
-			  }
-		  else if ((tmwall->flags&MW_BOTTOMFLIPPING) &&
-                 (nonbobpheight>maxheight-32)
-					 )
-			  {
-			  visptr->shapenum++;
-			  }
-		  if ((visptr < &vislist[MAXVISIBLE-1]) && (result==true)) // don't let it overflo'
-			  visptr++;
-		  }
-	  }
-}
-#endif
 
 /*
 ======================
@@ -912,15 +756,12 @@ void DrawMaskedWalls (void)
 /*--------------------------------------------------------------------------*/
 int CompareHeights(s1p,s2p) visobj_t **s1p,**s2p;
 {
-   whereami=3;
    return SGN((*s1p)->viewheight-(*s2p)->viewheight);
 }
 
 void SwitchPointers(s1p,s2p) visobj_t **s1p,**s2p;
 {
    visobj_t * temp;
-
-   whereami=4;
    temp=*s1p;
    *s1p=*s2p;
    *s2p=temp;
@@ -930,8 +771,6 @@ void SwitchPointers(s1p,s2p) visobj_t **s1p,**s2p;
 void SortVisibleList( int numvisible, visobj_t * vlist )
 {
    int i;
-
-   whereami=5;
    for (i=0;i<numvisible;i++)
       sortedvislist[i]=&(vlist[i]);
    hsort((char *)&(sortedvislist[0]),numvisible,sizeof(visobj_t *),&CompareHeights,&SwitchPointers);
@@ -950,9 +789,7 @@ void SortVisibleList( int numvisible, visobj_t * vlist )
 #define HF_1 (24)
 #define HF_2 (72)
 
-void DrawScaleds (void)
-{
-
+void DrawScaleds(void) {
 
   int   i,numvisible;
   int   gx,gy;
@@ -962,8 +799,6 @@ void DrawScaleds (void)
   statobj_t *statptr;
   objtype   *obj;
   maskedwallobj_t* tmwall;
-
-	whereami=6;
 
 //
 // place maskwall objects
@@ -1075,21 +910,9 @@ void DrawScaleds (void)
 			 else if (statptr->flags&FL_COLORED)
 				 {
 				 visptr->shapesize=0;
-#if (DEVELOPMENT == 1)
-				 if ((statptr->hitpoints>=0) &&
-					 (statptr->hitpoints<MAXPLAYERCOLORS))
-					 {
-#endif
 					 SetColorLightLevel(statptr->x,statptr->y,visptr,
                                    0,statptr->hitpoints,
                                    (statptr->flags&FL_FULLLIGHT));
-#if (DEVELOPMENT == 1)
-					 }
-				 else
-                {
-                Error("Illegal color map for sprite type %d\n",statptr->itemnumber);
-					 }
-#endif
 				 }
           else
 				 {
@@ -1194,21 +1017,9 @@ void DrawScaleds (void)
 				  playertype *pstate;
 
 				  M_LINKSTATE(obj,pstate);
-#if (DEVELOPMENT == 1)
-				  if ((pstate->uniformcolor>=0) &&
-					  (pstate->uniformcolor<MAXPLAYERCOLORS))
-					  {
-#endif
 					  SetColorLightLevel(obj->x,obj->y,visptr,
                                     obj->dir,pstate->uniformcolor,
                                     (obj->flags&FL_FULLLIGHT) );
-#if (DEVELOPMENT == 1)
-					  }
-				  else
-					  {
-					  Error("Illegal color map for players\n");
-					  }
-#endif
 				  }
 			  else
               SetSpriteLightLevel(obj->x,obj->y,visptr,obj->dir,(obj->flags&FL_FULLLIGHT));
@@ -1327,8 +1138,6 @@ void DrawPlayerWeapon (void)
  int ydisp=0;
  int female,black;
  int altshape=0;
-
-   whereami=7;
 
  SoftError("\n attackframe: %d, weaponframe: %d, weapondowntics: %d"
            " weaponuptics: %d",locplayerstate->attackframe,
@@ -1508,11 +1317,6 @@ void DrawPlayerWeapon (void)
 
 void AdaptDetail ( void )
 {
-#if PROFILE
-   return;
-#else
-
-   whereami=8;
    if ((preindex<0) || (preindex>2))
       Error("preindex out of range\n");
    pretics[preindex]=(pretics[0]+pretics[1]+pretics[2]+(tics<<16)+0x8000)>>2;
@@ -1532,7 +1336,6 @@ void AdaptDetail ( void )
    preindex++;
    if (preindex>2)
       preindex=0;
-#endif
 }
 
 
@@ -1548,22 +1351,7 @@ void AdaptDetail ( void )
 extern void I_Sleep (int ms);
 void CalcTics (void)
 {
-
-#if PROFILE
-   tics=PROFILETICS;
-   GetTicCount()+=PROFILETICS;
-   oldtime=GetTicCount();
-   return;
-#else
-#if (DEVELOPMENT == 1)
-   int i;
-#endif
    volatile int tc;
-
-   whereami=9;
-//   SoftError("InCalcTics\n");
-//   SoftError("CT GetTicCount()=%ld\n",GetTicCount());
-//   SoftError("CT oldtime=%ld\n",oldtime);
 
 //
 // calculate tics since last refresh for adaptive timing
@@ -1572,14 +1360,6 @@ void CalcTics (void)
    tc=GetTicCount();
 	while (tc==oldtime) { tc=GetTicCount(); I_Sleep(1);} /* endwhile */
    tics=tc-oldtime;
-
-//   SoftError("CT GetTicCount()=%ld\n",GetTicCount());
-//   if (tics>MAXTICS)
-//      {
-//      tc-=(tics-MAXTICS);
-//      GetTicCount() = tc;
-//     tics = MAXTICS;
-//      }
 
    if (demoplayback || demorecord)
       {
@@ -1591,35 +1371,6 @@ void CalcTics (void)
          }
       }
    oldtime=tc;
-#if (DEVELOPMENT == 1)
-   if (graphicsmode==true)
-      {
-      int drawntics;
-
-      VGAWRITEMAP(1);
-      drawntics=tics;
-      if (drawntics>MAXDRAWNTICS)
-         drawntics=MAXDRAWNTICS;
-      for (i=0;i<drawntics;i++)
-         *((byte *)displayofs+screenofs+(SCREENBWIDE*3)+i)=egacolor[15];
-      }
-/*
-      if (drawtime>MAXDRAWNTICS)
-         drawtime=MAXDRAWNTICS;
-      for (i=0;i<drawtime;i++)
-         *((byte *)displayofs+screenofs+(SCREENBWIDE*5)+i)=egacolor[2];
-      if (walltime>MAXDRAWNTICS)
-         walltime=MAXDRAWNTICS;
-      for (i=0;i<walltime;i++)
-         *((byte *)displayofs+screenofs+(SCREENBWIDE*7)+i)=egacolor[14];
-      if (actortime>MAXDRAWNTICS)
-         actortime=MAXDRAWNTICS;
-      for (i=0;i<actortime;i++)
-         *((byte *)displayofs+screenofs+(SCREENBWIDE*9)+i)=egacolor[4];
-      }
-*/
-#endif
-#endif
 
 }
 
@@ -1636,8 +1387,6 @@ void SetSpriteLightLevel (int x, int y, visobj_t * sprite, int dir, int fullbrig
    int i;
    int lv;
    int intercept;
-
-   whereami=10;
 
 	if (MISCVARS->GASON==1)
 		{
@@ -1696,8 +1445,6 @@ void SetColorLightLevel (int x, int y, visobj_t * sprite, int dir, int color, in
    int height;
    byte * map;
 
-
-   whereami=11;
    height=sprite->viewheight<<1;
    map=playermaps[color];
 	if (MISCVARS->GASON==1)
@@ -1755,7 +1502,6 @@ void SetWallLightLevel (wallcast_t * post)
    int lv;
    int i;
 
-   whereami=12;
 	if (MISCVARS->GASON==1)
 		{
 		shadingtable=greenmap+(MISCVARS->gasindex<<8);
@@ -1840,7 +1586,6 @@ void DrawWallPost ( wallcast_t * post, byte * buf)
    byte * src;
    byte * src2;
 
-   whereami=42;
    if (post->lump)
       src=W_CacheLumpNum(post->lump,PU_CACHE, CvtNull, 1);
 	if (post->alttile!=0)
@@ -1951,8 +1696,6 @@ void   DrawWalls (void)
    char * buf;
    int plane;
    wallcast_t * post;
-
-   whereami=13;
    
    plane = 0;
    buf = (byte*)(bufferofs);    //was originally in both if() branches below
@@ -1987,7 +1730,6 @@ void TransformDoors( void )
    int gx,gy;
    visobj_t visdoorlist[MAXVISIBLEDOORS],*doorptr;
 
-   whereami=14;
    doorptr=&visdoorlist[0];
 //
 // place door objects
@@ -2073,7 +1815,6 @@ void TransformPushWalls( void )
   int numvisible;
   boolean result;
 
-   whereami=15;
   savedptr=visptr;
   //
   // place pwall objects
@@ -2205,7 +1946,6 @@ void WallRefresh (void)
 	int mag;
    int yzangle;
 
-   whereami=16;
    firstcoloffset=(firstcoloffset+(tics<<8))&65535;
 
    dtime = 0;
@@ -2385,7 +2125,6 @@ void InterpolateWall (visobj_t * plane)
    int height;
    byte * buf;
 
-   whereami=17;
    dx=(plane->x2-plane->x1+1);
    if (plane->h1<=0 || plane->h2<=0 || dx==0)
       return;
@@ -2449,7 +2188,6 @@ void InterpolateDoor (visobj_t * plane)
    patch_t *p;
    int pl;
 
-   whereami=18;
    dx=(plane->x2-plane->x1+1);
    if (plane->h1<=0 || plane->h2<=0 || dx==0)
       return;
@@ -2539,7 +2277,6 @@ void InterpolateMaskedWall (visobj_t * plane)
    boolean drawbottom,drawmiddle,drawtop;
    int topoffset;
 
-   whereami=19;
    dx=(plane->x2-plane->x1+1);
    if (plane->h1<=0 || plane->h2<=0 || dx==0)
       return;
@@ -2640,7 +2377,6 @@ void DrawPlayerLocation ( void )
 
    CurrentFont=tinyfont;
 
-   whereami=20;
    for (i=0;i<18;i++)
       memset((byte *)bufferofs+(ylookup[i+PLY])+PLX,0,6);
 
@@ -2670,7 +2406,6 @@ void DrawPlayerLocation ( void )
 void ThreeDRefresh(void) {
     objtype* tempptr;
 
-    whereami = 21;
     tempptr = player;
 
     // Erase old messages
@@ -2741,7 +2476,6 @@ void ThreeDRefresh(void) {
 //******************************************************************************
 
 void FlipPage(void) {
-   whereami=22;
    if ( (SHAKETICS != 0xFFFF) && !inmenu && !GamePaused && !fizzlein ) ScreenShake();
    XFlipPage();
 }
@@ -2828,7 +2562,7 @@ void DoLoadGameSequence(void) {
     FlipPage();
     FlipPage();
 
-    VL_CopyPlanarPageToMemory((byte*)bufferofs, destscreen);
+    VL_CopyPlanarPage((byte*)bufferofs, destscreen);
 
     CalcTics();
     for (i = 0; i < time; i += tics) {
@@ -2863,7 +2597,7 @@ void DoLoadGameSequence(void) {
 //******************************************************************************
 byte * RotatedImage;
 boolean RotateBufferStarted = false;
-void StartupRotateBuffer ( int masked)
+void StartupRotateBuffer (int masked)
 {
 	int k;////zxcv
    int a,b;
@@ -2911,7 +2645,6 @@ void StartupRotateBuffer ( int masked)
 
       if ((masked == false)&&(iGLOBAL_SCREENWIDTH >= 800)) {
 		DisableScreenStretch();
-		// SetTextMode (  );
 
 		k=(28*512);//14336;
 		   for (a=0;a<iGLOBAL_SCREENHEIGHT;a++){

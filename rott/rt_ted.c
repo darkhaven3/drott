@@ -179,15 +179,8 @@ int GetLumpForTile(int tile);
 */
 #define SGN(x)          ((x>0) ? (1) : ((x==0) ? (0) : (-1)))
 
-/*--------------------------------------------------------------------------*/
-int CompareTags(s1p,s2p) cachetype *s1p,*s2p;
-{
-// Sort according to lump
-   if (DoPanicMapping()==true)
-      return SGN(s1p->cachelevel-s2p->cachelevel);
-// Sort according to cachelevel
-   else
-      return SGN(s1p->lump-s2p->lump);
+int CompareTags(cachetype* s1p, cachetype* s2p) {
+    return SGN(s1p->lump - s2p->lump);
 }
 
 void SwitchCacheEntries(s1p,s2p) cachetype *s1p,*s2p;
@@ -199,15 +192,10 @@ void SwitchCacheEntries(s1p,s2p) cachetype *s1p,*s2p;
    *s2p=temp;
 }
 
-
-
 void SortPreCache( void )
 {
    hsort((char *)cachelist,cacheindex,sizeof(cachetype),&CompareTags,&SwitchCacheEntries);
 }
-
-//========================================
-
 
 /*
 ======================
@@ -235,11 +223,9 @@ void SetupPreCache( void )
 =
 ======================
 */
-void ShutdownPreCache( void )
-{
-
-   CachingStarted=false;
-   SafeFree((byte *)cachelist);
+void ShutdownPreCache(void) {
+    CachingStarted = false;
+    SafeFree((byte*)cachelist);
 }
 
 
@@ -251,29 +237,20 @@ void ShutdownPreCache( void )
 =
 ======================
 */
-void PreCacheLump( int lump, int level, int type ) // added type
-{
-   int i;
+void PreCacheLump(int lump, int level, int type) {
+    int i;
 
-   if (CachingStarted==false)
-      return;
-   if (!W_LumpLength(lump))
-      {
-#if (PRECACHETEST == 1)
-      SoftError("Tried to precache a label, lump = %ld tag=%ld maskednum=%ld\n",lump, level, maskednum);
-#endif
-      return;
-      }
-   for (i=1;i<cacheindex;i++)
-      if (cachelist[i].lump==lump)
-         return;
-   cachelist[cacheindex].lump=lump;
-   cachelist[cacheindex].cachelevel=level;
-   cachelist[cacheindex++].type=type;
-   if (cacheindex==MAXPRECACHE)
-      Error("MaxPreCache reached\n");
+    if (!CachingStarted) return;
+    if (!W_LumpLength(lump)) return;
+
+    for (i = 1; i < cacheindex; i++)
+        if (cachelist[i].lump == lump) return;
+
+    cachelist[cacheindex].lump = lump;
+    cachelist[cacheindex].cachelevel = level;
+    cachelist[cacheindex++].type = type;
+    if (cacheindex == MAXPRECACHE) Error("MaxPreCache reached\n");
 }
-
 
 
 /*
@@ -284,43 +261,32 @@ void PreCacheLump( int lump, int level, int type ) // added type
 =
 ======================
 */
-void PreCacheGroup( int start, int end, int type ) // added type
-{
-	int i;
-   int j;
-   int k;
-   int found;
+void PreCacheGroup(int start, int end, int type) {
+    int i;
+    int j;
+    int k;
+    int found;
 
-   if (CachingStarted==false)
-      return;
-   k=cacheindex;
-   for (j=start;j<=end;j++)
-      {
-      if (!W_LumpLength(j))
-         {
-#if (PRECACHETEST == 1)
-         SoftError("Tried to precache a label, lump = %ld\n",j);
-#endif
-         continue;
-         }
-      found=0;
-      for (i=1;i<k;i++)
-         if (cachelist[i].lump==j)
-            {
-            found=1;
-            break;
-				}
-      if (found==0)
-         {
-         cachelist[cacheindex].lump=j;
-         cachelist[cacheindex].cachelevel=PU_CACHEACTORS;
-         cachelist[cacheindex++].type=type;
+    if (!CachingStarted) return;
+    k = cacheindex;
 
-         if (cacheindex==MAXPRECACHE)
-            Error("MaxPreCache reached\n");
-			}
-      }
+    for (j = start; j <= end; j++) {
+        if (!W_LumpLength(j)) continue;
 
+        found = 0;
+        for (i = 1; i < k; i++)
+            if (cachelist[i].lump == j) {
+                found = 1;
+                break;
+            }
+        if (found == 0) {
+            cachelist[cacheindex].lump = j;
+            cachelist[cacheindex].cachelevel = PU_CACHEACTORS;
+            cachelist[cacheindex++].type = type;
+
+            if (cacheindex == MAXPRECACHE) Error("MaxPreCache reached\n");
+        }
+    }
 }
 
 
@@ -332,21 +298,20 @@ void PreCacheGroup( int start, int end, int type ) // added type
 =
 ======================
 */
-void PreCachePlayers(void )
-{
-	int start;
-	int end;
-	int i;
-	playertype*pstate;
+void PreCachePlayers(void) {
+    int start;
+    int end;
+    int i;
+    playertype* pstate;
 
-	for(i=0;i<numplayers;i++)
-	 {if (i!=consoleplayer) // don't cache consoleplayer
-		 {pstate = &PLAYERSTATE[i];
-        start=W_GetNumForName("CASSHO11")+(pstate->player*REMOTEOFFSET);
-        end  =W_GetNumForName("CASWDEAD")+(pstate->player*REMOTEOFFSET);
-		  PreCacheGroup(start,end,cache_patch_t);
-		 }
-	 }
+    for (i = 0; i < numplayers; i++) {
+        if (i != consoleplayer) {           // don't cache consoleplayer
+            pstate = &PLAYERSTATE[i];
+            start = W_GetNumForName("CASSHO11") + (pstate->player * REMOTEOFFSET);
+            end = W_GetNumForName("CASWDEAD") + (pstate->player * REMOTEOFFSET);
+            PreCacheGroup(start, end, cache_patch_t);
+        }
+    }
 }
 
 
@@ -832,123 +797,71 @@ void PreCacheActor( int actor, int which )
 =
 ======================
 */
-void MiscPreCache( void )
+void MiscPreCache(void)
 {
-   int start;
-   int end;
+    int start;
+    int end;
 
-	//essential sounds
+    //essential sounds
 
-   SD_PreCacheSoundGroup(SD_HITWALLSND,SD_PLAYERDWHURTSND);
-	SD_PreCacheSoundGroup(SD_RICOCHET1SND,SD_RICOCHET3SND);
-	SD_PreCacheSound(SD_ATKPISTOLSND);
-	SD_PreCacheSoundGroup(SD_PLAYERBURNEDSND,SD_PLAYERLANDSND);
-	SD_PreCacheSoundGroup(SD_EXPLODEFLOORSND,SD_EXPLODESND);
+    SD_PreCacheSoundGroup(SD_HITWALLSND, SD_PLAYERDWHURTSND);
+    SD_PreCacheSoundGroup(SD_RICOCHET1SND, SD_RICOCHET3SND);
+    SD_PreCacheSound(SD_ATKPISTOLSND);
+    SD_PreCacheSoundGroup(SD_PLAYERBURNEDSND, SD_PLAYERLANDSND);
+    SD_PreCacheSoundGroup(SD_EXPLODEFLOORSND, SD_EXPLODESND);
 
-   if (lightning==true)
-      SD_PreCacheSound(SD_LIGHTNINGSND);
+    if (lightning == true)
+        SD_PreCacheSound(SD_LIGHTNINGSND);
 
-   SD_PreCacheSound(SD_BODYLANDSND);
-   SD_PreCacheSound(SD_GIBSPLASHSND);
-   SD_PreCacheSound(SD_ACTORLANDSND);
-   SD_PreCacheSound(SD_ACTORSQUISHSND);
-
-
-   // cache in bullet hole graphics
-   start=W_GetNumForName("BULLETHO");
-   end=W_GetNumForName("ALTBHO");
-	PreCacheGroup(start,end,cache_transpatch_t);
+    SD_PreCacheSound(SD_BODYLANDSND);
+    SD_PreCacheSound(SD_GIBSPLASHSND);
+    SD_PreCacheSound(SD_ACTORLANDSND);
+    SD_PreCacheSound(SD_ACTORSQUISHSND);
 
 
-   // cache in explosions
-
-   if (DoPanicMapping()==true)
-      {
-      start=W_GetNumForName("EXPLOS1");
-      end  =W_GetNumForName("EXPLOS20");
-      PreCacheGroup(start,end,cache_patch_t);
-      }
-   else
-      {
-      start=W_GetNumForName("EXPLOS1");
-      end  =W_GetNumForName("GREXP25");
-      PreCacheGroup(start,end,cache_patch_t);
-      }
-
-	// cache in misc player sprites
-	start=W_GetNumForName("BLOODS1");
-	end  =W_GetNumForName("PLATFRM5");
-	PreCacheGroup(start,end,cache_patch_t);
-
-   // cache in missile smoke
-	start=W_GetNumForName("MISSMO11");
-	end  =W_GetNumForName("MISSMO14");
-   PreCacheGroup(start,end,cache_patch_t);
-
-#if (DEVELOPMENT == 1)
-	// cache in all weapon sounds
-   SD_PreCacheSoundGroup(SD_ATKPISTOLSND,SD_LOSEMODESND);
-
-	// cache in misc player weapons
-#if (SHAREWARE == 0)
-   start=W_GetNumForName("KNIFE1");
-   end  =W_GetNumForName("DOGPAW4");
-   PreCacheGroup(start,end,cache_patch_t);
-	// cache in kinetic sphere
-   start=W_GetNumForName("KSPHERE1");
-	end  =W_GetNumForName("KSPHERE4");
-   PreCacheGroup(start,end,cache_patch_t);
-
-#else
-   start=W_GetNumForName("MPIST11");
-   end  =W_GetNumForName("GODHAND8");
-   PreCacheGroup(start,end,cache_patch_t);
-#endif
+    // cache in bullet hole graphics
+    start = W_GetNumForName("BULLETHO");
+    end = W_GetNumForName("ALTBHO");
+    PreCacheGroup(start, end, cache_transpatch_t);
 
 
-   // cache in god mode stuff
+    // cache in explosions
+    start = W_GetNumForName("EXPLOS1");
+    end = W_GetNumForName("GREXP25");
+    PreCacheGroup(start, end, cache_patch_t);
 
-	PreCacheGroup(W_GetNumForName("VAPO1"),
-	              W_GetNumForName("LITSOUL"),
-	              cache_patch_t);
+    // cache in misc player sprites
+    start = W_GetNumForName("BLOODS1");
+    end = W_GetNumForName("PLATFRM5");
+    PreCacheGroup(start, end, cache_patch_t);
 
-	PreCacheGroup(W_GetNumForName("GODFIRE1"),
-					  W_GetNumForName("GODFIRE4"),
-					  cache_patch_t);
+    // cache in missile smoke
+    start = W_GetNumForName("MISSMO11");
+    end = W_GetNumForName("MISSMO14");
+    PreCacheGroup(start, end, cache_patch_t);
 
+    // cache in player's gun
 
-#endif
-   // cache in player's gun
+    // cache in rubble
+    start = W_GetNumForName("RUBBLE1");
+    end = W_GetNumForName("RUBBLE10");
+    PreCacheGroup(start, end, cache_patch_t);
 
-   // cache in rubble
-   start=W_GetNumForName("RUBBLE1");
-	end  =W_GetNumForName("RUBBLE10");
-   PreCacheGroup(start,end,cache_patch_t);
+    // cache in guts
+    start = W_GetNumForName("GUTS1");
+    end = W_GetNumForName("GUTS12");
+    PreCacheGroup(start, end, cache_patch_t);
 
-   // cache in guts
-   start=W_GetNumForName("GUTS1");
-   end  =W_GetNumForName("GUTS12");
-   PreCacheGroup(start,end,cache_patch_t);
+    // cache in player missile
+    start = W_GetNumForName("BJMISS1");
+    end = W_GetNumForName("BJMISS16");
+    PreCacheGroup(start, end, cache_patch_t);
 
-   // cache in player missile
-   start=W_GetNumForName("BJMISS1");
-	end  =W_GetNumForName("BJMISS16");
-   PreCacheGroup(start,end,cache_patch_t);
-
-   if (gamestate.violence >= vl_high)
-      {                                  // cache in all gibs
-      if (DoPanicMapping()==true)
-         {
-         start = W_GetNumForName("ORGAN1");
-         end = W_GetNumForName("ORGAN12");
-         }
-      else
-         {
-         start = W_GetNumForName("PART1");
-         end = W_GetNumForName("GEYE3");
-         }
-      PreCacheGroup(start,end,cache_patch_t);
-      }
+    if (gamestate.violence >= vl_high) {     // cache in all gibs
+        start = W_GetNumForName("PART1");
+        end = W_GetNumForName("GEYE3");
+        PreCacheGroup(start, end, cache_patch_t);
+    }
 }
 
 
@@ -960,20 +873,14 @@ void MiscPreCache( void )
 ========================
 */
 
-boolean IsChristmas(void)
-   {
-   struct dosdate_t date;
+boolean IsChristmas(void) {
+    struct dosdate_t date;
 
-   _dos_getdate(&date);
+    _dos_getdate(&date);
 
-   if (((date.day == 24) || (date.day == 25)) &&      //Christmas
-       (date.month == 12)
-      )
-      return true;
-
-   return false;
-
-   }
+    if (((date.day == 24) || (date.day == 25)) && (date.month == 12)) return true;
+    return false;
+}
 
 
 /*
@@ -1024,97 +931,87 @@ void CheckHolidays(void)
 ======================
 */
 extern boolean dopefish;
-void DrawPreCache( void )
-{
-   if (loadedgame==false)
-      {
-      char temp[80];
-      int width, height, num;
-      char buf[30];
 
-      if ( BATTLEMODE )
-			{
-         VL_DrawPostPic (W_GetNumForName("trilogo"));
-         VWB_TBar ( 30, 23, 260, 82 );
-         ShowBattleOptions( false, 56, 26 );
+void DrawPreCache(void) {
+    if (!loadedgame) {
+        char temp[80];
+        int width, height, num;
+        char buf[30];
 
-         DrawPlayers ();
-         }
-      else
-         {
-         pic_t * pic;
-         pic=(pic_t *)W_CacheLumpName("mmbk",PU_CACHE, Cvt_pic_t, 1);
-         VWB_DrawPic (0, 0, pic);
+        if (BATTLEMODE) {
+            VL_DrawPostPic(W_GetNumForName("trilogo"));
+            VWB_TBar(30, 23, 260, 82);
+            ShowBattleOptions(false, 56, 26);
+            DrawPlayers();
+        }
+        else {
+            pic_t* pic;
+            pic = (pic_t*)W_CacheLumpName("mmbk", PU_CACHE, Cvt_pic_t, 1);
+            VWB_DrawPic(0, 0, pic);
+            CheckHolidays();
+        }
 
-         CheckHolidays();
-         }
+        DrawNormalSprite(PRECACHEBARX, PRECACHEBARY, W_GetNumForName("cachebar"));
 
-      DrawNormalSprite (PRECACHEBARX, PRECACHEBARY, W_GetNumForName ("cachebar"));
+        CurrentFont = smallfont;
 
-      CurrentFont=smallfont;
+        PrintY = PRECACHEESTRINGY;
+        PrintX = PRECACHEESTRINGX;
 
-      PrintY = PRECACHEESTRINGY;
-      PrintX = PRECACHEESTRINGX;
+        memset(&buf[0], 0, sizeof(buf));
 
-      memset (&buf[0], 0, sizeof (buf));
+        if (!BATTLEMODE) {
+            memcpy(&buf[0], "EPISODE ", 8);
+            itoa(gamestate.episode, &buf[8], 10);
+        }
+        else memcpy(&buf[0], "COMM-BAT", 8);
 
-      if ( !BATTLEMODE )
-      {
-         memcpy (&buf[0], "EPISODE ", 8);
-         itoa (gamestate.episode,&buf[8],10);
-      }
-      else
-			memcpy (&buf[0], "COMM-BAT", 8);
-
-      US_MeasureStr (&width, &height, "%s", &buf[0]);
-      VWB_TBar (PrintX-2, PrintY-2, width+4, height+4);
-      US_BufPrint (&buf[0]);
+        US_MeasureStr(&width, &height, "%s", &buf[0]);
+        VWB_TBar(PrintX - 2, PrintY - 2, width + 4, height + 4);
+        US_BufPrint(&buf[0]);
 
 
-      PrintY = PRECACHEASTRINGY;
+        PrintY = PRECACHEASTRINGY;
 
-      memset (&buf[0], 0, sizeof (buf));
-      memcpy (&buf[0], "AREA ", 5);
+        memset(&buf[0], 0, sizeof(buf));
+        memcpy(&buf[0], "AREA ", 5);
 
-      if ( !BATTLEMODE )
-         {
-         itoa( GetLevel( gamestate.episode, gamestate.mapon ),
-            &buf[ 5 ], 10 );
-         }
-      else
-         {
-         itoa( gamestate.mapon + 1, &buf[ 5 ], 10 );
-         }
-      US_MeasureStr (&width, &height, "%s", &buf[0]);
-      PrintX = (300-width);
-      VWB_TBar (PrintX-2, PrintY-2, width+4, height+4);
-      US_BufPrint (&buf[0]);
+        if (!BATTLEMODE) {
+            itoa(GetLevel(gamestate.episode, gamestate.mapon),
+                &buf[5], 10);
+        }
+        else itoa(gamestate.mapon + 1, &buf[5], 10);
+
+        US_MeasureStr(&width, &height, "%s", &buf[0]);
+        PrintX = (300 - width);
+        VWB_TBar(PrintX - 2, PrintY - 2, width + 4, height + 4);
+        US_BufPrint(&buf[0]);
 
 
-      PrintY = PRECACHESTRINGY;
+        PrintY = PRECACHESTRINGY;
 
-      num = (RandomNumber ("PreCacheString", 0)) % MAXSILLYSTRINGS;
+        num = (RandomNumber("PreCacheString", 0)) % MAXSILLYSTRINGS;
 
-      if ((dopefish==true) || (tedlevel == true))
-         strcpy (temp, &(CacheStrings[num][0]));
-      else
-         strcpy (temp, &(LevelName[0]));
+        if ((dopefish == true) || (tedlevel == true))
+            strcpy(temp, &(CacheStrings[num][0]));
+        else
+            strcpy(temp, &(LevelName[0]));
 
-      US_MeasureStr (&width, &height, "%s", &temp[0]);
+        US_MeasureStr(&width, &height, "%s", &temp[0]);
 
-      PrintX = (320-width) >> 1;
-      PrintY = PRECACHESTRINGY;
-      VWB_TBar (PrintX-2, PrintY-2, width+4, height+4);
+        PrintX = (320 - width) >> 1;
+        PrintY = PRECACHESTRINGY;
+        VWB_TBar(PrintX - 2, PrintY - 2, width + 4, height + 4);
 
-      US_BufPrint (&temp[0]);
+        US_BufPrint(&temp[0]);
 
-      VH_UpdateScreen();
+        VH_UpdateScreen();
 
-      MenuFadeIn ();
-      }
+        MenuFadeIn();
+    }
 }
 
-#define CACHETICDELAY (6)
+#define CACHETICDELAY 6
 /*
 ======================
 =
@@ -1123,8 +1020,7 @@ void DrawPreCache( void )
 =
 ======================
 */
-void PreCache( void )
-{
+void PreCache(void) {
    int i;
 	int total;
    byte * dummy;
@@ -1142,34 +1038,19 @@ void PreCache( void )
    Gs = (iGLOBAL_SCREENWIDTH*100/320);
    Gs = Gs / 100;
 
-//SetTextMode (  );
-
-/*
-#define  PRECACHEBARX 28
-#define  PRECACHEBARY 178
-
-#define  PRECACHELED1X 9
-#define  PRECACHELED1Y 8
-
-#define  PRECACHELED2X 9
-#define  PRECACHELED2Y 12
-*/
-
-   if (CachingStarted==false)
-      {
-      if (loadedgame==false)
-         {
-         ClearGraphicsScreen();
-         MenuFadeIn ();
-         }
-      return;
-      }
+   if (!CachingStarted) {
+       if (!loadedgame) {
+           ClearGraphicsScreen();
+           MenuFadeIn();
+       }
+       return;
+   }
 
 	MiscPreCache();
 
    SortPreCache();
 
-   if (loadedgame==false)
+   if (!loadedgame)
       {
 		maxheapsize=Z_HeapSize();
       total=0;
@@ -1274,32 +1155,6 @@ DisableScreenStretch();
          while (!IN_CheckAck ())
             ;
          }
- //  EnableScreenStretch();
-#if (DEVELOPMENT == 1)
-      tempbuf=bufferofs;
-      bufferofs=displayofs;
-      CurrentFont = smallfont;
-      US_CenterWindow(30,6);
-      PrintY+=6;
-      US_Print("Max  Heap Size:");
-      US_PrintUnsigned(maxheapsize);
-		US_Print("\n");
-      US_Print("Used Heap Size:");
-      US_PrintUnsigned(newheap);
-      US_Print("\n");
-      US_Print("Percentage Used:");
-      US_PrintUnsigned(newheap*100/maxheapsize);
-		US_Print("\n");
-      US_Print("TotalPrecached:");
-      US_PrintUnsigned(total);
-      bufferofs=tempbuf;
-      I_Delay (40);
-#endif
-#if (PRECACHETEST == 1)
-      SoftError("Max  Heap Size: %ld\n",maxheapsize);
-      SoftError("Used Heap Size: %ld\n",newheap);
-      SoftError("TotalPrecached: %ld\n",total);
-#endif
       }
    else
       {
@@ -1317,9 +1172,6 @@ DisableScreenStretch();
       MapDebug("Map Number %d\n",gamestate.mapon);
       MapDebug("sizeoflevel=%d\n",Z_UsedLevelHeap());
       }
-#if (PRECACHETEST == 1)
-   SoftError("<<<<<<<<<<<<<<<<<<<<<<<Precaching done\n");
-#endif
 }
 
 
@@ -1884,33 +1736,13 @@ void LoadAlternateMap (AlternateInformation *info, int mapnum)
 =
 ======================
 */
-void LoadROTTMap
-   (
-   int mapnum
-   )
-
-   {
-   if ( tedlevel == true )
-      {
-      LoadTedMap( "rot", mapnum );
-      }
-   else if ( ( BATTLEMODE ) && ( BattleLevels.avail == true ) )
-      {
-      LoadAlternateMap( &BattleLevels, mapnum );
-      }
-   else if ( GameLevels.avail == true )
-      {
-      LoadAlternateMap( &GameLevels, mapnum );
-      }
-   else if ( BATTLEMODE )
-      {
-      ReadROTTMap( BATTMAPS, mapnum );
-      }
-   else
-      {
-      ReadROTTMap( ROTTMAPS, mapnum );
-      }
-   }
+void LoadROTTMap(int mapnum) {
+    if (tedlevel) LoadTedMap("rot", mapnum);
+    else if (BATTLEMODE && BattleLevels.avail) LoadAlternateMap(&BattleLevels, mapnum);
+    else if (GameLevels.avail) LoadAlternateMap(&GameLevels, mapnum);
+    else if (BATTLEMODE) ReadROTTMap(BATTMAPS, mapnum);
+    else ReadROTTMap(ROTTMAPS, mapnum);
+}
 
 
 void CountAreaTiles(void)
@@ -1953,91 +1785,63 @@ void CountAreaTiles(void)
 =
 ==================
 */
-void SetupWalls( void )
-   {
-   int   i,j,lump,index;
-	word   *map,tile;
-   wall_t * tempwall;
+void SetupWalls(void) {
+    int   lump, index;
+    word* map, tile;
+    wall_t* tempwall;
 
 
-	for (i=0;i<MAXWALLTILES;i++)
-      memset(&walls[i],0,sizeof(wall_t));
+    for (int i = 0; i < MAXWALLTILES; i++) memset(&walls[i], 0, sizeof(wall_t));
 
-	map = mapplanes[0];
-	for (j=0;j<mapheight;j++)
-      {
-	   for(i=0;i<mapwidth;i++)
-			{
-         if ((i>=0) && (i<=3) && (j==0))
-			   {
-			   map++;
-			   continue;
-			   }
-			if ((loadedgame == false) && (MAPSPOT(i,j,2) == 0xeeee))
-				{_2Dpoint *tdptr;
+    map = mapplanes[0];
+    for (int j = 0; j < mapheight; j++) {
+        for (int i = 0; i < mapwidth; i++) {
+            if ((i >= 0) && (i <= 3) && (!j)) {
+                map++;
+                continue;
+            }
+            if (!loadedgame && (MAPSPOT(i, j, 2) == 0xeeee)) {
+                _2Dpoint* tdptr;
 
-				 tdptr = &(MISCVARS->EPOP[MISCVARS->nextpop]);
-				 tdptr->x = i;
-				 tdptr->y = j;
-				 MISCVARS->nextpop ++;
-				 MISCVARS->popsleft ++;
-			   }
-		   tile= *map++;
+                tdptr = &(MISCVARS->EPOP[MISCVARS->nextpop]);
+                tdptr->x = i;
+                tdptr->y = j;
+                MISCVARS->nextpop++;
+                MISCVARS->popsleft++;
+            }
+            tile = *map++;
 
-         if ((tile > 89) ||
-             ((tile > 32) && (tile < 36)) ||
-             (tile == 44) ||
-             (tile == 45) ||
-             (tile == 0)
-            )
-            {
-            tilemap[i][j] = 0;
-            continue;
+            if ((tile > 89) || ((tile > 32) && (tile < 36)) || (tile == 44) || (tile == 45) || (tile == 0)) {
+                tilemap[i][j] = 0;
+                continue;
             }
 
-         if (tile <= 32)
-            {
-            index = tile;
-#if 0
-            if (tile==12)
-               {
-               if (MAPSPOT(i,j,2)==0)
-                  MAPSPOT(i,j,2)=21;
-               }
-#endif
-            }
-         else
-            index = tile-3;
+            if (tile <= 32) index = tile;
+            else index = tile - 3;
 
-         if ((tile > 75) && (tile <= 79))
-            {
-            lump = tilemap[i][j] = GetLumpForTile(tile);
-            PreCacheLump(lump,PU_CACHEWALLS,cache_pic_t);
-            PreCacheLump(elevatorstart+5,PU_CACHEWALLS,cache_pic_t);
-            PreCacheLump(elevatorstart+6,PU_CACHEWALLS,cache_pic_t);
-            PreCacheLump(elevatorstart+7,PU_CACHEWALLS,cache_pic_t);
-            tilemap[i][j]|=0x2000;
-            if (MAPSPOT(i,j,2)==0)
-               MAPSPOT(i,j,2)=21;
+            if ((tile > 75) && (tile <= 79)) {
+                lump = tilemap[i][j] = GetLumpForTile(tile);
+                PreCacheLump(lump, PU_CACHEWALLS, cache_pic_t);
+                PreCacheLump(elevatorstart + 5, PU_CACHEWALLS, cache_pic_t);
+                PreCacheLump(elevatorstart + 6, PU_CACHEWALLS, cache_pic_t);
+                PreCacheLump(elevatorstart + 7, PU_CACHEWALLS, cache_pic_t);
+                tilemap[i][j] |= 0x2000;
+                if (!MAPSPOT(i, j, 2)) MAPSPOT(i, j, 2) = 21;
             }
-         else if ((tile >= 47) && (tile <= 48))
-            {
-            lump = tilemap[i][j] = GetLumpForTile(tile);
-            InitWall(lump,index,i,j);
-            tilemap[i][j]|=0x2000;
-            if (MAPSPOT(i,j,2)==0)
-               MAPSPOT(i,j,2)=21;
+            else if ((tile >= 47) && (tile <= 48)) {
+                lump = tilemap[i][j] = GetLumpForTile(tile);
+                InitWall(lump, index, i, j);
+                tilemap[i][j] |= 0x2000;
+                if (!MAPSPOT(i, j, 2)) MAPSPOT(i, j, 2) = 21;
             }
-         else
-            {
-            lump = tilemap[i][j] = GetLumpForTile(tile);
-            InitWall(lump,index,i,j);
-            if (MAPSPOT(i,j,2))
-               tilemap[i][j]|=0x2000;
+            else {
+                lump = tilemap[i][j] = GetLumpForTile(tile);
+                InitWall(lump, index, i, j);
+                if (MAPSPOT(i, j, 2)) tilemap[i][j] |= 0x2000;
             }
-         }
-      }
-   }
+        }
+    }
+}
 
 
 /*
@@ -2047,37 +1851,31 @@ void SetupWalls( void )
 =
 ===============
 */
-word GetNearestAreaNumber ( int tilex, int tiley )
+word GetNearestAreaNumber(int tilex, int tiley)
 {
-	int up,dn,lt,rt;
-   int tile;
+    int up, dn, lt, rt;
+    int tile;
 
-  	tile=MAPSPOT(tilex,tiley,0)-AREATILE;
+    tile = MAPSPOT(tilex, tiley, 0) - AREATILE;
 
-  	if ((tile<=NUMAREAS) && (tile>0))
-      return (tile+AREATILE);
+    if ((tile <= NUMAREAS) && (tile > 0))
+        return (tile + AREATILE);
 
-	up=MAPSPOT(tilex,tiley-1,0)-AREATILE;
-	dn=MAPSPOT(tilex,tiley+1,0)-AREATILE;
-	lt=MAPSPOT(tilex-1,tiley,0)-AREATILE;
-	rt=MAPSPOT(tilex+1,tiley,0)-AREATILE;
+    up = MAPSPOT(tilex, tiley - 1, 0) - AREATILE;
+    dn = MAPSPOT(tilex, tiley + 1, 0) - AREATILE;
+    lt = MAPSPOT(tilex - 1, tiley, 0) - AREATILE;
+    rt = MAPSPOT(tilex + 1, tiley, 0) - AREATILE;
 
-	up = ((up>0) && (up<=NUMAREAS));
-	dn = ((dn>0) && (dn<=NUMAREAS));
-	lt = ((lt>0) && (lt<=NUMAREAS));
-	rt = ((rt>0) && (rt<=NUMAREAS));
+    up = ((up > 0) && (up <= NUMAREAS));
+    dn = ((dn > 0) && (dn <= NUMAREAS));
+    lt = ((lt > 0) && (lt <= NUMAREAS));
+    rt = ((rt > 0) && (rt <= NUMAREAS));
 
-	if (rt)
-		return (MAPSPOT(tilex+1,tiley,0) + AREATILE);
-	else if (lt)
-		return (MAPSPOT(tilex-1,tiley,0) + AREATILE);
-	else if (up)
-		return (MAPSPOT(tilex,tiley-1,0) + AREATILE);
-	else if (dn)
-		return (MAPSPOT(tilex,tiley+1,0) + AREATILE);
-//	else
-//		Error("GetNearestAreaNumber: Couldn't fix up area at x=%ld y=%ld\n",tilex,tiley);
-   return (NUMAREAS+AREATILE-1);
+    if (rt) return (MAPSPOT(tilex + 1, tiley, 0) + AREATILE);
+    else if (lt) return (MAPSPOT(tilex - 1, tiley, 0) + AREATILE);
+    else if (up) return (MAPSPOT(tilex, tiley - 1, 0) + AREATILE);
+    else if (dn) return (MAPSPOT(tilex, tiley + 1, 0) + AREATILE);
+    return (NUMAREAS + AREATILE - 1);
 }
 
 /*
@@ -2087,35 +1885,21 @@ word GetNearestAreaNumber ( int tilex, int tiley )
 =
 ===============
 */
-void SetupWindows ( void )
-{
-   int i,j;
-   boolean skythere;
+void SetupWindows(void) {
+    int32_t skythere = RT_SkyExists();
 
-   skythere = SkyExists();
+    for (int j = 0; j < mapheight; j++) {
+        for (int i = 0; i < mapwidth; i++) {
+            if ((i >= 0) && (i <= 3) && !j) continue;
+            if (IsWindow(i, j)) {
+                actorat[i][j] = 0;
+                if (skythere) tilemap[i][j] |= 0x2000;
+                else MAPSPOT(i, j, 2) = 0;
 
-	for (j=0;j<mapheight;j++)
-      {
-	   for(i=0;i<mapwidth;i++)
-         {
-         if ((i>=0) && (i<=3) && (j==0))
-			   continue;
-         if (IsWindow(i,j))
-            {
-            actorat[i][j]=0;
-            if (skythere==true)
-               {
-               tilemap[i][j]|=0x2000;
-               }
-            else
-               {
-               MAPSPOT(i,j,2)=0;
-               }
-            MAPSPOT(i,j,0)=(word)(GetNearestAreaNumber(i,j));
+                MAPSPOT(i, j, 0) = (word)(GetNearestAreaNumber(i, j));
             }
-         }
-      }
-
+        }
+    }
 }
 
 
@@ -2127,69 +1911,35 @@ void SetupWindows ( void )
 ==================
 */
 
-int GetWallIndex( int texture )
+#define WALLINDEX_HIGH_MASK 0x1000
+
+const uint8_t WallIndexHigh[17] = { 41, 90, 91, 42,
+                                    92, 93, 94, 95,
+                                    96, 97, 98, 99,
+                                    100,101,102,103,104};
+
+int GetWallIndex(int texture)
 {
-	int wallstart;
-   int exitstart;
+    int wallstart;
+    int exitstart;
 
-	wallstart=W_GetNumForName("WALLSTRT");
-	exitstart=W_GetNumForName("EXITSTRT");
-	elevatorstart = W_GetNumForName("ELEVSTRT");
+    wallstart = W_GetNumForName("WALLSTRT");
+    exitstart = W_GetNumForName("EXITSTRT");
+    elevatorstart = W_GetNumForName("ELEVSTRT");
 
-   if (texture&0x1000)
-      {
-      texture&=~0x1000;
-      if (texture==0)
-         return 41;
-      else if (texture==1)
-         return 90;
-      else if (texture==2)
-         return 91;
-      else if (texture==3)
-         return 42;
-      else if (texture==4)
-         return 92;
-      else if (texture==5)
-         return 93;
-      else if (texture==6)
-         return 94;
-      else if (texture==7)
-         return 95;
-      else if (texture==8)
-         return 96;
-      else if (texture==9)
-         return 97;
-      else if (texture==10)
-         return 98;
-      else if (texture==11)
-         return 99;
-      else if (texture==12)
-         return 100;
-      else if (texture==13)
-         return 101;
-      else if (texture==14)
-         return 102;
-      else if (texture==15)
-         return 103;
-		else if (texture==16)
-         return 104;
-      }
-   else if (texture > elevatorstart)
-      return (texture - elevatorstart + 68);
-//	else if (texture > specialstart)
-//      return (texture - specialstart + 41);
-   else if (texture > exitstart)
-      return (texture - exitstart + 43);
-   else
-      {
-		if (texture>wallstart+63)
-         return (texture - (wallstart + 63) + 76 );
-      else if (texture>wallstart+40)
-         return (texture - (wallstart + 40) + 45 );
-      else
-         return (texture - wallstart);
-      }
-   return 0x8000;
+    if (texture & WALLINDEX_HIGH_MASK) {
+        texture &= ~WALLINDEX_HIGH_MASK;
+
+        return WallIndexHigh[texture];
+    }
+    else if (texture > elevatorstart) return (texture - elevatorstart + 68);
+    else if (texture > exitstart) return (texture - exitstart + 43);
+    else {
+        if (texture > wallstart + 63) return (texture - (wallstart + 63) + 76);
+        else if (texture > wallstart + 40) return (texture - (wallstart + 40) + 45);
+        else return (texture - wallstart);
+    }
+    return 0x8000;
 }
 
 /*
@@ -2199,79 +1949,72 @@ int GetWallIndex( int texture )
 =
 ==================
 */
-void SetupAnimatedWalls( void )
-{
-	int   i,j;
-	word   *map,tile;
-   wall_t * tempwall;
+void SetupAnimatedWalls(void) {
+    word* map, tile;
+    wall_t* tempwall;
 
-	InitAnimatedWallList();
-	map = mapplanes[0];
-	for (j=0;j<mapheight;j++)
-      {
-	   for(i=0;i<mapwidth;i++)
-		   {
-         if ((i>=0) && (i<=3) && (j==0))
-			   {
-			   map++;
-			   continue;
-			   }
-			tile= *map++;
-			if (tile == 44)
-			   {
-			   actorat[i][j]= &walls[tile-3];
-			   tempwall = (wall_t*)actorat[i][j];
-			   tempwall->which = WALL;
-			 	tempwall->tile = tile-3;
-			   tempwall->flags = FL_W_DAMAGE;
-    	      SetupAnimatedWall(0);
-				tilemap[i][j]=0;
-            tilemap[i][j]|=0x1000;
-			   }
-			else if (tile == 45)
-			   {
-				actorat[i][j]= &walls[tile-3];
-				tempwall = (wall_t*)actorat[i][j];
-				tempwall->which = WALL;
-				tempwall->tile = tile-3;
-    	      SetupAnimatedWall(3);
-				tilemap[i][j]=3;
-            tilemap[i][j]|=0x1000;
-			   }
-			else if ((tile >= 106) && (tile <= 107))
-			   {
-			   actorat[i][j]= &walls[tile-16];
-			   tempwall = (wall_t*)actorat[i][j];
-			   tempwall->which = WALL;
-			   tempwall->tile = tile-16;
-	         SetupAnimatedWall(tile-105);
-            tilemap[i][j]=tile-105;
-            tilemap[i][j]|=0x1000;
+    InitAnimatedWallList();
+    map = mapplanes[0];
+    for (int j = 0; j < mapheight; j++)
+    {
+        for (int i = 0; i < mapwidth; i++)
+        {
+            if ((i >= 0) && (i <= 3) && (j == 0)) {
+                map++;
+                continue;
             }
-			else if ((tile >= 224) && (tile <= 233))
-			   {
-			   actorat[i][j]= &walls[tile-224+92];
-			   tempwall = (wall_t*)actorat[i][j];
-			   tempwall->which = WALL;
-			   tempwall->tile = tile-224+94;
-            if (tile==233)
-               tempwall->flags = FL_W_DAMAGE;
-	         SetupAnimatedWall(tile-224+4);
-            tilemap[i][j]=tile-224+4;
-            tilemap[i][j]|=0x1000;
+            tile = *map++;
+
+            if (tile == 44) {
+                actorat[i][j] = &walls[tile - 3];
+                tempwall = (wall_t*)actorat[i][j];
+                tempwall->which = WALL;
+                tempwall->tile = tile - 3;
+                tempwall->flags = FL_W_DAMAGE;
+                SetupAnimatedWall(0);
+                tilemap[i][j] = 0;
+                tilemap[i][j] |= 0x1000;
             }
-			else if ((tile >= 242) && (tile <= 244))
-				{
-			   actorat[i][j]= &walls[tile-242+102];
-			   tempwall = (wall_t*)actorat[i][j];
-			   tempwall->which = WALL;
-			   tempwall->tile = tile-242+102;
-	         SetupAnimatedWall(tile-242+14);
-            tilemap[i][j]=tile-242+14;
-            tilemap[i][j]|=0x1000;
+            else if (tile == 45) {
+                actorat[i][j] = &walls[tile - 3];
+                tempwall = (wall_t*)actorat[i][j];
+                tempwall->which = WALL;
+                tempwall->tile = tile - 3;
+                SetupAnimatedWall(3);
+                tilemap[i][j] = 3;
+                tilemap[i][j] |= 0x1000;
             }
-         }
-		}
+            else if ((tile >= 106) && (tile <= 107)) {
+                actorat[i][j] = &walls[tile - 16];
+                tempwall = (wall_t*)actorat[i][j];
+                tempwall->which = WALL;
+                tempwall->tile = tile - 16;
+                SetupAnimatedWall(tile - 105);
+                tilemap[i][j] = tile - 105;
+                tilemap[i][j] |= 0x1000;
+            }
+            else if ((tile >= 224) && (tile <= 233)) {
+                actorat[i][j] = &walls[tile - 224 + 92];
+                tempwall = (wall_t*)actorat[i][j];
+                tempwall->which = WALL;
+                tempwall->tile = tile - 224 + 94;
+                if (tile == 233)
+                    tempwall->flags = FL_W_DAMAGE;
+                SetupAnimatedWall(tile - 224 + 4);
+                tilemap[i][j] = tile - 224 + 4;
+                tilemap[i][j] |= 0x1000;
+            }
+            else if ((tile >= 242) && (tile <= 244)) {
+                actorat[i][j] = &walls[tile - 242 + 102];
+                tempwall = (wall_t*)actorat[i][j];
+                tempwall->which = WALL;
+                tempwall->tile = tile - 242 + 102;
+                SetupAnimatedWall(tile - 242 + 14);
+                tilemap[i][j] = tile - 242 + 14;
+                tilemap[i][j] |= 0x1000;
+            }
+        }
+    }
 }
 
 
@@ -2283,8 +2026,7 @@ void SetupAnimatedWalls( void )
 ==================
 */
 
-void SetupSwitches( void )
-{
+void SetupSwitches(void) {
 	int   i,j;
 	word   *map,tile;
 
@@ -2339,9 +2081,6 @@ void RespawnPlayerobj(objtype *ob)
          numchecked ++;
          rand = (rand + 1) % NUMSPAWNLOCATIONS;
          }
-#if (DEVELOPMENT == 1)
-      SoftError("\nno spawn locations available, using FindEmptyTile");
-#endif
       nx = SPAWNLOC[rand].x;
       ny = SPAWNLOC[rand].y;
       ndir = SPAWNLOC[rand].dir;
@@ -2360,6 +2099,7 @@ void RespawnPlayerobj(objtype *ob)
 
 
 }
+
 
 #define SetupSpecificFlagTeamAt(whichteam, spawnlocindex) \
 {int newx,newy;                                           \
@@ -2821,76 +2561,12 @@ void SetupMaskedWalls( void )
                      Error ("Illegal Maskedwall platform value at x=%d y=%d\n",i,j);
                      break;
 						}
-#if 0
-               if (IsPlatform(i+1,j))
-                  {
-                  if ( (IsPlatform(i,j+1)) || (IsPlatform(i,j-1)) )
-			            SpawnStatic(i,j,83,MAPSPOT(i,j,2));
-                  }
-               else if (IsPlatform(i-1,j))
-                  {
-                  if ( (IsPlatform(i,j+1)) || (IsPlatform(i,j-1)) )
-			            SpawnStatic(i,j,83,MAPSPOT(i,j,2));
-                  }
-#endif
                }
             else
                Error("You have what appears to be a platform ontop\n a wall at x=%d y=%d\n",i,j);
             }
          }
 }
-
-/*
-int GetAreaNumber ( int tilex, int tiley, int dir );
-void RemoveDangerWalls
-   (
-   void
-   )
-
-   {
-   int   i;
-   int   j;
-   word *map;
-   word  tile;
-
-   map = mapplanes[ 1 ];
-
-   for( j = 0; j < mapheight; j++ )
-      {
-      for( i = 0; i < mapwidth; i++ )
-	      {
-         tile = *map++;
-         switch( tile )
-		      {
-            case 256:
-		      case 257:
-		      case 258:
-		      case 259:
-               if ( MAPSPOT( i, j, 2 ) == 0 )
-                  {
-                  MAPSPOT( i, j, 0 ) = ( word )( GetAreaNumber( i, j,
-                     ( tile - 256 ) << 1 ) + AREATILE );
-                  MAPSPOT( i, j, 1 ) = 0;
-                  }
-		         break;
-
-            case 300:
-		      case 318:
-		      case 336:
-		      case 354:
-               if ( MAPSPOT( i, j, 2 ) == 0 )
-                  {
-                  MAPSPOT( i, j, 0 ) = ( word )( GetAreaNumber( i, j,
-                     ( ( tile - 300 ) / 9 ) + AREATILE ) );
-                  MAPSPOT( i, j, 1 ) = 0;
-                  }
-		         break;
-            }
-         }
-      }
-   }
-*/
-
 
 /*
 ==================
@@ -3714,15 +3390,6 @@ void SetupInanimateActors (void)
                SpawnSpring(i,j);
                break;
 
-#if 0
-            case 460:
-//               if ( gamestate.Product != ROTT_SHAREWARE )
-                  {
-                  SpawnNewObj(i,j,&s_wind,inertobj);
-                  }
-               break;
-#endif
-
             case 462:
             case 463:
             case 464:
@@ -4284,152 +3951,6 @@ int GetLumpForTile(int tile)
       }
    return -1;
    }
-
-
-
-
-#if (DEVELOPMENT == 1)
-
-
-/*
-==================
-=
-= Insane Dump
-=
-==================
-*/
-
-void InsaneDump(void)
-{
-   int i,j,level;
-   word *map,tile;
-   int tally[1000];
-   int inlevel[1000][10];
-
-   if (TILESTATS==false)
-      return;
-
-   OpenMapDebug();
-
-
-// WALLS
-   memset(tally,0,sizeof(tally));
-   memset(inlevel,0,sizeof(inlevel));
-   MapDebug("=======================\n");
-   MapDebug("= WALLS\n");
-   MapDebug("=======================\n");
-   mapheight = mapwidth = 128;
-   BATTLEMODE = 1;
-   for(level=0;level<8;level ++)
-    {
-     GetEpisode(level);
-     LoadROTTMap(level);
-     map = mapplanes[0];
-     for (j=0;j<mapheight;j++)
-      {
-	   for(i=0;i<mapwidth;i++)
-         {tile = *map++;
-         if (IsWall(i,j)==true)
-            {tally[tile]++;
-             inlevel[tile][level]=1;
-            }
-
-         }
-      }
-    }
-
-   MapDebug("Wall #   Frequency    Levels\n");
-   MapDebug("----------------------------\n");
-   for (i=0;i<1000;i++)
-     if (i < 90)
-       {MapDebug("%4d      %4d       %s",i,tally[i],
-                 W_GetNameForNum(GetLumpForTile(i)));
-        MapDebug("     ");
-        for(level=0;level < 10;level ++)
-          if (inlevel[i][level])
-           MapDebug("%d,",level);
-        MapDebug("\n");
-       }
-
-
-
-
-
-// Doors
-   memset(tally,0,sizeof(tally));
-   memset(inlevel,0,sizeof(inlevel));
-   MapDebug("=======================\n");
-   MapDebug("= DOORS\n");
-   MapDebug("=======================\n");
-   for(level=0;level<10;level ++)
-    {
-     GetEpisode(level);
-     LoadROTTMap(level);
-     map = mapplanes[0];
-     for (j=0;j<mapheight;j++)
-      {
-	   for(i=0;i<mapwidth;i++)
-         {tile = *map++;
-         if (IsDoor(i,j)==true)
-            {tally[tile]++;
-             inlevel[tile][level]=1;
-            }
-
-         }
-      }
-    }
-
-   MapDebug("Door #   Frequency    Levels\n");
-   MapDebug("----------------------------\n");
-   for (i=0;i<1000;i++)
-     if (tally[i]!=0)
-       {MapDebug("%4d      %4d         ",i,tally[i]);
-        for(level=0;level < 10;level ++)
-          if (inlevel[i][level])
-           MapDebug("%d,",level);
-        MapDebug("\n");
-
-       }
-
-// MaskedWalls
-   memset(tally,0,sizeof(tally));
-   memset(inlevel,0,sizeof(inlevel));
-   MapDebug("=======================\n");
-   MapDebug("= MASKED WALLS\n");
-   MapDebug("=======================\n");
-   for(level=0;level<10;level ++)
-    {
-     GetEpisode(level);
-     LoadROTTMap(level);
-     map = mapplanes[0];
-     for (j=0;j<mapheight;j++)
-      {
-	   for(i=0;i<mapwidth;i++)
-         {tile = *map++;
-         if ((IsMaskedWall(i,j)) && (!IsPlatform(i,j)))
-            {tally[tile]++;
-             inlevel[tile][level]=1;
-            }
-
-         }
-      }
-    }
-
-   MapDebug("MWall #   Frequency    Levels\n");
-   MapDebug("----------------------------\n");
-   for (i=0;i<1000;i++)
-     if (tally[i]!=0)
-       {MapDebug("%4d      %4d         ",i,tally[i]);
-        for(level=0;level < 10;level ++)
-          if (inlevel[i][level])
-           MapDebug("%d,",level);
-        MapDebug("\n");
-
-       }
-
-}
-
-#endif
 
 /*
 ==================
@@ -5049,109 +4570,79 @@ void DoSharewareConversionBackgroundPlane (void)
 =
 ========================================
 */
-void DoLowMemoryConversionBackgroundPlane (void)
-   {
-   int i,j;
-   word * map;
+void DoLowMemoryConversionBackgroundPlane(void)
+{
+    int i, j;
+    word* map;
 
 
-	for (j=0;j<mapheight;j++)
-      {
-      for(i=0;i<mapwidth;i++)
-			{
-         map=&(mapplanes[0][MAPSIZE*(j)+(i)]);
-         switch (*map)
+    for (j = 0; j < mapheight; j++)
+    {
+        for (i = 0; i < mapwidth; i++)
+        {
+            map = &(mapplanes[0][MAPSIZE * (j)+(i)]);
+            switch (*map)
             {
-            //Walls
+                //Walls
 
             case 2:
             case 3:
             case 4:
-               *map = 1;
-               break;
+                *map = 1;
+                break;
 
             case 6:
             case 7:
             case 8:
-               *map = 5;
-               break;
+                *map = 5;
+                break;
 
             case 14:
             case 15:
             case 16:
-               *map = 13;
-               break;
+                *map = 13;
+                break;
 
             case 18:
             case 19:
             case 20:
-               *map = 17;
-               break;
+                *map = 17;
+                break;
 
             case 26:
             case 27:
             case 28:
-               *map = 25;
-               break;
+                *map = 25;
+                break;
 
             case 30:
             case 31:
             case 32:
-               *map = 29;
-               break;
-
-#if 0
-            case 37:
-            case 38:
-            case 39:
-               *map = 36;
-               break;
-
-            case 41:
-            case 42:
-            case 43:
-               *map = 40;
-               break;
-#endif
-
+                *map = 29;
+                break;
             case 50:
             case 51:
             case 52:
-               *map = 49;
-               break;
-
-#if 0
-            case 55:
-            case 56:
-            case 57:
-               *map = 54;
-               break;
-
-            case 59:
-            case 60:
-            case 61:
-               *map = 58;
-               break;
-#endif
-
+                *map = 49;
+                break;
             case 66:
             case 67:
             case 68:
-               *map = 65;
-               break;
+                *map = 65;
+                break;
 
             case 70:
             case 71:
-               *map = 69;
-               break;
+                *map = 69;
+                break;
 
             case 81:
             case 82:
             case 84:
-               *map = 83;
-               break;
+                *map = 83;
+                break;
 
-            // Masked Walls
+                // Masked Walls
             case 158:
             case 159:
             case 160:
@@ -5159,17 +4650,17 @@ void DoLowMemoryConversionBackgroundPlane (void)
             case 169:
             case 176:
             case 178:
-               *map=177;
-               break;
+                *map = 177;
+                break;
             case 162:
             case 163:
             case 164:
             case 166:
             case 167:
-               *map=165;
-               break;
+                *map = 165;
+                break;
 
-            //Doors
+                //Doors
             case 90:
             case 91:
             case 92:
@@ -5186,10 +4677,10 @@ void DoLowMemoryConversionBackgroundPlane (void)
             case 154:
             case 155:
             case 156:
-               *map = 101;
-               break;
+                *map = 101;
+                break;
 
-            //Animating Walls
+                //Animating Walls
             case 22:
             case 23:
             case 24:
@@ -5201,60 +4692,15 @@ void DoLowMemoryConversionBackgroundPlane (void)
             case 242:
             case 243:
             case 244:
-               *map = 21;
-               break;
+                *map = 21;
+                break;
             case 233:
-               *map = 44;
-               break;
-
-#if 0
-            //Skys
-            case 234:
-            case 235:
-            case 236:
-            case 237:
-            case 238:
-            case 239:
-               *map=(*(&(mapplanes[0][MAPSIZE*(0)+(0)]))) + 18;
-               break;
-#endif
+                *map = 44;
+                break;
             }
-         }
-      }
-   }
-
-
-/*
-========================================
-=
-= DoLowMemoryConversionIconPlane
-=
-========================================
-*/
-void DoLowMemoryConversionIconPlane (void)
-   {
-#if 0
-   int i,j;
-   word * map;
-
-
-	for (j=0;j<mapheight;j++)
-      {
-      for(i=0;i<mapwidth;i++)
-			{
-         map=&(mapplanes[2][MAPSIZE*(j)+(i)]);
-         switch (*map)
-            {
-            case 13:
-               *(&(mapplanes[0][MAPSIZE*(j)+(i)]))=21;
-               *map=0;
-               break;
-            }
-         }
-      }
-#endif
-   }
-
+        }
+    }
+}
 
 
 /*
@@ -5564,43 +5010,6 @@ void DoRegisterConversionBackgroundPlane (void)
       }
    }
 
-
-
-/*
-========================================
-=
-= DoRegisterConversionForegroundPlane
-=
-========================================
-*/
-void DoRegisterConversionForegroundPlane (void)
-   {
-//   int i,j;
-//   word * map;
-
-
-#if 0
-	for (j=0;j<mapheight;j++)
-      {
-      for(i=0;i<mapwidth;i++)
-			{
-         map=&MAPSPOT(i,j,1);
-         switch (*map)
-            {
-            //sprites
-            case 42:
-            case 43:
-            case 63:
-            case 64:
-               *map = 43;
-               break;
-
-            }
-         }
-      }
-#endif
-   }
-
 /*
 ==================
 =
@@ -5614,35 +5023,6 @@ void DoSharewareConversion (void)
    DoSharewareConversionForegroundPlane ();
 }
 
-
-/*
-==================
-=
-= DoRegisterConversion
-=
-==================
-*/
-void DoRegisterConversion (void)
-{
-   DoRegisterConversionBackgroundPlane ();
-   DoRegisterConversionForegroundPlane ();
-}
-
-/*
-=======================
-=
-= DoPanicMapping
-=
-=======================
-*/
-boolean DoPanicMapping (void)
-   {
-   if ((lowmemory==true) && (modemgame==false) && (demorecord==false) && (demoplayback==false))
-      return true;
-   else
-      return false;
-   }
-
 /*
 =======================
 =
@@ -5653,9 +5033,8 @@ boolean DoPanicMapping (void)
 void DoLowMemoryConversion (void)
    {
    DoLowMemoryConversionBackgroundPlane ();
-   if ((modemgame==false) && (demorecord==false) && (demoplayback==false))
+   if (!modemgame && !demorecord && !demoplayback)
       DoLowMemoryConversionForegroundPlane ();
-   DoLowMemoryConversionIconPlane ();
    }
 
 
@@ -5671,24 +5050,6 @@ void SetupGameLevel (void)
 {
 	int crud;
 	int i;
-
-#if 0
-   mapwidth = mapheight = 128;
-
-   InsaneDump();
-   /*
-   for(i=0;i<11;i++)
-     {GetEpisode(i);
-      LoadROTTMap(i);
-      MapDebug("\n//================================//");
-      MapDebug("\n//   SHAREWARE LEVEL %d            //",i);
-      MapDebug("\n//================================//\n\n");
-
-      PrintTileStats();
-     }
-   */
-   Error("okay");
-#endif
 
 	insetupgame=true;
 
@@ -5711,24 +5072,14 @@ void SetupGameLevel (void)
 		GetEpisode (gamestate.mapon);
 		LoadROTTMap(gamestate.mapon);
 		}
-   if (DoPanicMapping())
-      {
-      DoLowMemoryConversion();
-      }
-   if ( gamestate.Product == ROTT_SHAREWARE )
-      {
-      DoSharewareConversion ();
-      }
-   else
-      {
-      DoRegisterConversion ();
-      }
-   if ( (NewGame) || (lastlevelloaded!=gamestate.mapon) )
-		{
-		SetupPreCache();
-		lastlevelloaded=gamestate.mapon;
-      MU_StartSong(song_level);
-		}
+
+   if (gamestate.Product == ROTT_SHAREWARE) DoSharewareConversion ();
+   else DoRegisterConversionBackgroundPlane();
+   if (NewGame || (lastlevelloaded != gamestate.mapon)) {
+       SetupPreCache();
+       lastlevelloaded = gamestate.mapon;
+       MU_StartSong(song_level);
+   }
    shapestart = W_GetNumForName("SHAPSTRT");
    shapestop = W_GetNumForName("SHAPSTOP");
 	gunsstart=W_GetNumForName("GUNSTART");
@@ -5766,11 +5117,10 @@ void SetupGameLevel (void)
 	InitAreas();
 	InitDoorList();
 	InitElevators();
-	if (loadedgame==false)
-		{
-		InitStaticList ();
-		InitActorList();
-		}
+    if (!loadedgame) {
+        InitStaticList();
+        InitActorList();
+    }
 	memset (tilemap,0,sizeof(tilemap));
 	memset (actorat,0,sizeof(actorat));
 	memset (sprites,0,sizeof(sprites));
@@ -5855,24 +5205,10 @@ void SetupGameLevel (void)
 
 	LoftSprites();
 
-	SetPlaneViewSize();
-	if (loadedgame==false)
-		{
+	RT_SetPlaneViewSize();
+	if (!loadedgame) {
 		ConnectAreas();
-#if (DEVELOPMENT == 1)
-#if (PRECACHETEST == 1)
-		SoftError("Start PreCaching\n");
-#endif
-#endif
-#if (DEVELOPMENT == 1)
-      PrintMapStats();
-#endif
 		PreCache();
-#if (DEVELOPMENT == 1)
-#if (PRECACHETEST == 1)
-		SoftError("Done PreCaching\n");
-#endif
-#endif
 		SetupPlayScreen();
 		SetupScreen(false);
 	}

@@ -275,19 +275,6 @@ void VL_CopyPlanarPage ( byte * src, byte * dest ) {
 }
 
 /*
-=======================
-=
-= VL_CopyPlanarPageToMemory
-= + vacate dos support -- b1
-=
-=======================
-*/
-void VL_CopyPlanarPageToMemory ( byte * src, byte * dest ) {
-      memcpy(dest,src,screensize);
-	  //[stub] replace with VL_CopyPlanarPage or equivalent
-}
-
-/*
 =================
 =
 = VL_ClearBuffer
@@ -322,7 +309,6 @@ void VL_ClearVideo(byte color) {
 void VH_UpdateScreen(void) {
 	if (StretchScreen) StretchMemPicture();
 	SDL_BlitScaled(VL_GetVideoSurface(), &blit_rect, argbbuffer, &scaled_rect);
-	//SDL_LowerBlit(VL_GetVideoSurface(), &blit_rect, argbbuffer, &blit_rect);
 	SDL_UpdateTexture(texture, NULL, argbbuffer->pixels, argbbuffer->pitch);
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);

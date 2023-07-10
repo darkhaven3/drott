@@ -28,9 +28,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "w_wad.h"
 #include "z_zone.h"
 #include <string.h>
-
+#include "rt_draw.h"
 #include "modexlib.h"
 #include "fli_glob.h"
+#include "rt_in.h"
 //MED
 #include "memcheck.h"
 
@@ -270,7 +271,6 @@ void DrawFlic ( flicevent * flic ) {
    char flicname[40];
 
    curpal = SafeMalloc (768);
-   CinematicGetPalette (curpal);
 
    DrawFadeout();
 
@@ -286,12 +286,10 @@ void DrawFlic ( flicevent * flic ) {
        }
 
        if (flic->loop==true)
-          ClearCinematicAbort();
+          IN_StartAck();
 
    DrawFadeout();
    DrawBlankScreen();
-
-   CinematicSetPalette (curpal);
    SafeFree (curpal);
 
    GetCinematicTics ();
@@ -551,7 +549,6 @@ void DrawPalette (paletteevent * event)
 
    pal=W_CacheLumpName(event->name,PU_CACHE, CvtNull, 1);
    XFlipPage ();
-   CinematicSetPalette (pal);
 }
 
 /*
@@ -583,7 +580,6 @@ void DrawFadeout ( void )
    byte newpal[768];
    int      i,j;
 
-   CinematicGetPalette (&origpal[0]);
    for (j = 0; j < FADEOUTTIME; j++)
       {
       for (i = 0; i < 768; i++)
@@ -591,8 +587,7 @@ void DrawFadeout ( void )
          newpal[i] = ( origpal[i] * (FADEOUTTIME - j - 1) ) / FADEOUTTIME;
          }
       WaitVBL();
-      CinematicSetPalette (&newpal[0]);
-      CinematicDelay();
+      CalcTics();   //CinematicDelay
       }
    VL_ClearVideo (0);
    GetCinematicTics ();

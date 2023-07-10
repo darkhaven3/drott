@@ -31,12 +31,14 @@ extern int		mr_ystep;
 extern int		mr_xfrac;
 extern int		mr_yfrac;
 
-extern int     sky;      //Whether Parallax is on or off
+extern int     sky;      //if 0, sky is disabled. if not, which sky number is it
+
 void DrawPlanes (void);
-void SetPlaneViewSize( void );
+void RT_SetPlaneViewSize(void);
 void MakeSkyTile (byte * tile);
-void DrawFullSky( void );
-boolean SkyExists (void);
+void DrawFullSky(void);
+
+int32_t RT_SkyExists(void);
 
 #endif
 
