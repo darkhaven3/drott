@@ -26,10 +26,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //***************************************************************************
 
-#define MAXTOUCHPLATES 64
-#define MAXMASKED      300  // max masked walls
-#define MAXDOORS       150  // max number of sliding doors
-#define MAXPWALLS      150  // max number of pushwalls
+#define MAXTOUCHPLATES 1024	 // max touchplates             - originally 64.  todo: remove completely
+#define MAXMASKED      1024  // max masked walls			- originally 300.	"
+#define MAXDOORS       1024  // max number of sliding doors - originally 150.	"
+#define MAXPWALLS      1024  // max number of pushwalls		- originally 150.	"
 #define DF_TIMED       0x01
 #define DF_ELEVLOCKED  0x02
 #define DF_MULTI       0x04

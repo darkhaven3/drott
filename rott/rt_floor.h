@@ -34,11 +34,11 @@ extern int		mr_yfrac;
 extern int     sky;      //if 0, sky is disabled. if not, which sky number is it
 
 void DrawPlanes (void);
-void RT_SetPlaneViewSize(void);
+void F_SetPlaneViewSize(void);
 void MakeSkyTile (byte * tile);
 void DrawFullSky(void);
 
-int32_t RT_SkyExists(void);
+int32_t F_SkyExists(void);
 
 #endif
 

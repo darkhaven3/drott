@@ -53,7 +53,7 @@ void SetRottScreenRes (int Width, int Height)
 		iGLOBAL_AMMO_X = 300;
 		iGLOBAL_AMMO_Y = 184;
 
-		dTopYZANGLELIMIT = (44*FINEANGLES/360);;
+		dTopYZANGLELIMIT = (44*FINEANGLES/360);
 	}
 	if (iGLOBAL_SCREENWIDTH == 640) {
 		iGLOBAL_FOCALWIDTH = 180;
@@ -63,17 +63,17 @@ void SetRottScreenRes (int Width, int Height)
 		iGLOBAL_AMMO_X = 600;//300*2;
 		iGLOBAL_AMMO_Y = 464;//480-16;
 
-		dTopYZANGLELIMIT = (42*FINEANGLES/360);;
+		dTopYZANGLELIMIT = (42*FINEANGLES/360);
 	}
 	if (iGLOBAL_SCREENWIDTH == 800) {
-		iGLOBAL_FOCALWIDTH = 200;
-		dGLOBAL_FPFOCALWIDTH = 200.0 ;
+		iGLOBAL_FOCALWIDTH = 160;
+		dGLOBAL_FPFOCALWIDTH = 160.0 ;
 		iGLOBAL_HEALTH_X = 40;//20*2;
 		iGLOBAL_HEALTH_Y = 585;//(185/200)*600;
 		iGLOBAL_AMMO_X = 750;//(300/320)*800;
 		iGLOBAL_AMMO_Y = 584;//600-16;
 	
-		dTopYZANGLELIMIT = (90*FINEANGLES/360);;
+		dTopYZANGLELIMIT = (90*FINEANGLES/360);
 	}
 
 	else {
@@ -84,8 +84,8 @@ void SetRottScreenRes (int Width, int Height)
 		int ScaleFactorX = (int)(RoundedScreenWidth / 320);
 		int ScaleFactorY = (int)(RoundedScreenHeight / 200);
 
-		iGLOBAL_FOCALWIDTH = 220;
-		dGLOBAL_FPFOCALWIDTH = 220.0;
+		iGLOBAL_FOCALWIDTH = 160;
+		dGLOBAL_FPFOCALWIDTH = 160.0;
 
 		iGLOBAL_HEALTH_X = 20 * ScaleFactorX;
 		iGLOBAL_HEALTH_Y = (185/200)*RoundedScreenHeight;
@@ -100,6 +100,7 @@ void SetRottScreenRes (int Width, int Height)
 //----------------------------------------------------------------------
 //luckey for me that I am not programmin a 386 or the next
 //4 function would never have worked. bna++
+//todo: fix this :(
 extern int     viewsize;
 void MoveScreenUpLeft()
 {
@@ -169,4 +170,18 @@ void MoveScreenDownRight()
 	}
 }
 
+//todo: refactor the above four functions into something generic
+void BumpScreen(void) {
+#if 0
+	uint32_t startX   = (-3) + (rand() % 3) * 3;
+	uint32_t startY   = (-3) + (rand() % 3) * 3;
+	uint32_t startOfs = startY * iGLOBAL_SCREENWIDTH + startX;
+	uint8_t* Ycnt;
+	uint8_t* buf = (uint8_t*) bufferofs;
 
+	buf += (((iGLOBAL_SCREENHEIGHT - viewheight) / 2) * iGLOBAL_SCREENWIDTH) + (iGLOBAL_SCREENWIDTH - viewwidth) / 2;
+
+	if (viewsize == 8) buf += 8 * iGLOBAL_SCREENWIDTH;
+
+#endif
+}

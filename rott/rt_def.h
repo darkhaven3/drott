@@ -368,9 +368,11 @@ typedef int32_t fixed32_t;
 
 /* boolean is serialized at the moment, and watcomc made it a byte. */
 
-typedef unsigned char boolean;
+typedef uint8_t boolean;
+
 enum {
-  false, true
+	false,
+	true
 };
 
 typedef enum {
@@ -385,102 +387,107 @@ typedef enum {
 		  nodir
 } dirtype;
 
-typedef enum
- {SPRITE,
-  WALL,
-  ACTOR,
-  DOOR,
-  PWALL,
-  MWALL
- }
- thingtype;
+typedef struct {
+	int32_t momx;
+	int32_t momy;
+} vector2_t;
 
-enum    {
-		  bt_nobutton=-1,
-		  bt_attack=0,
-		  bt_strafe=1,
-		  bt_run=2,
-		  bt_use=3,
-		  bt_lookup=4,
-		  bt_lookdown=5,
-		  bt_swapweapon=6,
-		  bt_dropweapon=7,
-		  bt_horizonup=8,
-        bt_horizondown=9,
-        bt_pistol=10,
-        bt_dualpistol=11,
-        bt_mp40=12,
-        bt_missileweapon=13,
-        bt_autorun=14,
-		  bt_recordsound=15,
-		  bt_strafeleft=16,
-		  bt_straferight=17,
-        bt_turnaround=18,
-        bt_aimbutton=19,
-        di_north=20,
-        di_east=21,
-        di_south=22,
-        di_west=23,
-        bt_map=24,
-        bt_message=25,
-        bt_directmsg=26,
-        NUMBUTTONS
-};
+typedef enum {
+	SPRITE,
+	WALL,
+	ACTOR,
+	DOOR,
+	PWALL,
+	MWALL
+} thingtype;
+
+ enum {
+	 bt_nobutton = -1,
+	 bt_attack = 0,
+	 bt_strafe = 1,
+	 bt_run = 2,
+	 bt_use = 3,
+	 bt_lookup = 4,
+	 bt_lookdown = 5,
+	 bt_swapweapon = 6,
+	 bt_dropweapon = 7,
+	 bt_horizonup = 8,
+	 bt_horizondown = 9,
+	 bt_pistol = 10,
+	 bt_dualpistol = 11,
+	 bt_mp40 = 12,
+	 bt_missileweapon = 13,
+	 bt_autorun = 14,
+	 bt_recordsound = 15,
+	 bt_strafeleft = 16,
+	 bt_straferight = 17,
+	 bt_turnaround = 18,
+	 bt_aimbutton = 19,
+	 di_north = 20,
+	 di_east = 21,
+	 di_south = 22,
+	 di_west = 23,
+	 bt_map = 24,
+	 bt_message = 25,
+	 bt_directmsg = 26,
+	 NUMBUTTONS
+ };
 
 
-typedef enum    { wp_pistol,
-						wp_twopistol,
-						wp_mp40,
-						wp_bazooka,
-						wp_heatseeker,
-                  wp_drunk,
-                  wp_firebomb,
-                  wp_firewall,
-						wp_godhand,
+typedef enum {
+	wp_pistol,
+	wp_twopistol,
+	wp_mp40,
+	wp_bazooka,
+	wp_heatseeker,
+	wp_drunk,
+	wp_firebomb,
+	wp_firewall,
+	wp_godhand,
 
 #if (SHAREWARE == 0)
-                  wp_split,
-						wp_kes,
-						wp_bat,
-                  wp_dog
+	wp_split,
+	wp_kes,
+	wp_bat,
+	wp_dog
 #endif
 
-                } weapontype;
+} weapontype;
 
 
 
-enum    {
-						gd_baby,
-						gd_easy,
-						gd_medium,
-						gd_hard
+enum {
+	gd_baby,
+	gd_easy,
+	gd_medium,
+	gd_hard
 };
 
 
-typedef enum    {
-		  ex_stillplaying,
-		  ex_completed,
-		  ex_died,
-		  ex_warped,
-		  ex_resetgame,
-		  ex_loadedgame,
-		  ex_victorious,
-		  ex_abort,
-		  ex_demodone,
-		  ex_skiplevel,
-		  ex_secretlevel,
-        ex_secretdone,
-        ex_titles,
-		  ex_demorecord,
-		  ex_demoplayback,
+typedef enum {
+	ex_stillplaying,
+	ex_completed,
+	ex_died,
+	ex_warped,
+	ex_resetgame,
+	ex_loadedgame,
+	ex_victorious,
+	ex_abort,
+	ex_demodone,
+	ex_skiplevel,
+	ex_secretlevel,
+	ex_secretdone,
+	ex_titles,
+	ex_demorecord,
+	ex_demoplayback,
 
-		  ex_bossdied,
-		  ex_gameover,
-		  ex_battledone
+	ex_bossdied,
+	ex_gameover,
+	ex_battledone
 } exit_t;
 
 // Types for cache lumps (for endian converters)
-enum    {
+enum {
 	cache_other,
 	cache_pic_t,
 	cache_lpic_t,

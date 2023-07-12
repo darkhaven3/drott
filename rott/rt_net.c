@@ -2569,12 +2569,10 @@ void SendPlayerDescription( void )
 //
 //****************************************************************************
 
-void SendGameDescription( void )
-{
+void SendGameDescription(void) {
    byte * temp;
    COM_GameMasterType * desc;
    int length;
-   int i;
 
    length=sizeof(COM_GameMasterType);
    temp=SafeMalloc(length);
@@ -2598,26 +2596,17 @@ void SendGameDescription( void )
    desc->ludicrousgibs=battlegibs;
    ludicrousgibs=battlegibs;
 //   SetRNGindex ( gamestate.randomseed );
-	for (i=0;i<numplayers;i++)
-      {
-      if (gamestate.Product == ROTT_SHAREWARE)
-         PLAYERSTATE[i].player = 0;
-		desc->players[i].character    =PLAYERSTATE[i].player;
-		desc->players[i].uniformcolor =PLAYERSTATE[i].uniformcolor;
-      strcpy ( &(desc->players[i].codename[0]),&(PLAYERSTATE[i].codename[0]));
-      }
+   for (int i = 0; i < numplayers; i++) {
+       if (gamestate.Product == ROTT_SHAREWARE) PLAYERSTATE[i].player = 0;
+       desc->players[i].character = PLAYERSTATE[i].player;
+       desc->players[i].uniformcolor = PLAYERSTATE[i].uniformcolor;
+       strcpy(&(desc->players[i].codename[0]), &(PLAYERSTATE[i].codename[0]));
+   }
 
-   if (!networkgame)
-      AssignTeams();
+   if (!networkgame) AssignTeams();
 
-   if (IsServer==false)
-      {
-      WritePacket(temp,length,server);
-      }
-   else
-      {
-      BroadcastServerPacket(temp,length); // Send to all
-      }
+   if (!IsServer) WritePacket(temp,length,server);
+   else BroadcastServerPacket(temp,length); // Send to all
 
    SafeFree(temp);
 }
@@ -2628,8 +2617,7 @@ void SendGameDescription( void )
 //
 //****************************************************************************
 
-void SetGameDescription( void * pkt )
-{
+void SetGameDescription( void * pkt ) {
    COM_GameMasterType * desc;
    word localcrc;
    int i;
