@@ -42,6 +42,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_rand.h"
 #include "memcheck.h"   //MED
 
+#define TILE_FIRSTSKY   233
+#define TILE_LIGHTNING  377
+
 //
 // global variables
 //
@@ -182,73 +185,29 @@ void MakeSkyData (void) {
 /*
 ===================
 =
-= GetFloorCeilingLump
+= F_GetFlat
 =
 ===================
 */
-int GetFloorCeilingLump(int num) {
+int32_t F_GetFlat(int32_t num) {
+    int32_t lump;
 
-   int lump;
+    char lumpname[9] = "FLRCL\0\0\0\0";
+    itoa(num, &lumpname[5], 10);
 
-   //wip - generalize some more
-   char lumpname[9] = "FLRCL\0\0\0\0";
-
-   if (num < 10) {
-       lumpname[5] = '0' + num;
-       lumpname[6] = '\0';
-   }
-   else if (num < 20) {
-       lumpname[5] = '1';
-       lumpname[6] = '0' + (num % 10);
-   }
-   else if (num < 30) {
-       lumpname[5] = '2';
-       lumpname[6] = '0' + (num % 10);
-   }
-   else if (num < 40) {
-       lumpname[5] = '3';
-       lumpname[6] = '0' + (num % 10);
-   }
-   else if (num < 50) {
-       lumpname[5] = '4';
-       lumpname[6] = '0' + (num % 10);
-   }
-   else if (num < 60) {
-       lumpname[5] = '5';
-       lumpname[6] = '0' + (num % 10);
-   }
-   else if (num < 70) {
-       lumpname[5] = '6';
-       lumpname[6] = '0' + (num % 10);
-   }
-   else if (num < 80) {
-       lumpname[5] = '7';
-       lumpname[6] = '0' + (num % 10);
-   }
-   else if (num < 90) {
-       lumpname[5] = '8';
-       lumpname[6] = '0' + (num % 10);
-   }
-   else if (num < 100) {
-       lumpname[5] = '9';
-       lumpname[6] = '0' + (num % 10);
-   }
-   lump = W_GetNumForName(lumpname);
-   return lump;
+    lump = W_GetNumForName(lumpname);
+    return lump;
 }
 
 /*
 ===================
 =
-= RT_SkyExists
+= F_SkyExists
 =
 ===================
 */
 
-#define TILE_FIRSTSKY   233
-#define TILE_LIGHTNING  377
-
-int32_t RT_SkyExists(void) {
+int32_t F_SkyExists(void) {
     int32_t skyvalue;
 
     skyvalue = MAPSPOT(1, 0, 0) - TILE_FIRSTSKY;
@@ -264,118 +223,101 @@ int32_t RT_SkyExists(void) {
 ===================
 */
 
-void RT_SetPlaneViewSize (void)
+void F_SetPlaneViewSize(void)
 {
-   int      x;
-   int      i;
-   int      s;
-   int      floornum;
-   int      ceilingnum;
-   int      skytop;
-   int      skybottom;
-   int16_t crud;
+    int      x;
+    int      i;
+    int      s;
+    int      floornum;
+    int      ceilingnum;
+    int      skytop;
+    int      skybottom;
+    int16_t crud;
 
-   sky=0;
+    sky = 0;
 
-   if (oldsky>0)
-      {
-      SafeFree(skydata[0]);     //[TODO]: make Z_Free safe
-      oldsky=-1;
-      }
+    if (oldsky > 0) {
+        SafeFree(skydata[0]);     //[TODO]: make Z_Free safe
+        oldsky = -1;
+    }
 
-   lightning=false;
+    lightning = false;
 
-   sky = RT_SkyExists();
-   if (sky)
-   {
-       if ((sky < 1) || (sky > 6)) Error("Illegal Sky Tile = %d\n", sky);
-       ceilingnum = 1;
-       crud = (int16_t)MAPSPOT(1, 0, 1);
-       if ((crud >= 90) && (crud <= 97)) horizonheight = crud - 89;
-       else if ((crud >= 450) && (crud <= 457)) horizonheight = crud - 450 + 9;
-       else horizonheight = 9;
-       //I_Warning("RT_SetPlaneViewSize: missing or unknown horizon height icon");
+    sky = F_SkyExists();
+    if (sky)
+    {
+        if ((sky < 1) || (sky > 6)) Error("Illegal Sky Tile = %d\n", sky);
+        ceilingnum = 1;
+        crud = (int16_t)MAPSPOT(1, 0, 1);
+        if ((crud >= 90) && (crud <= 97)) horizonheight = crud - 89;
+        else if ((crud >= 450) && (crud <= 457)) horizonheight = crud - 450 + 9;
+        else horizonheight = 9;
+        //I_Warning("F_SetPlaneViewSize: missing or unknown horizon height icon");
 
-      // Check for lightning icon
+        lightning = (MAPSPOT(4, 0, 1) == TILE_LIGHTNING);
+    }
 
-       /*
-       crud=(word)MAPSPOT(4,0,1);
-       if (crud==377)
-         lightning=true;
-      */
+    else ceilingnum = MAPSPOT(1, 0, 0) - 197;
 
-       lightning = (MAPSPOT(4, 0, 1) == TILE_LIGHTNING);
-   }
+    floornum = MAPSPOT(0, 0, 0) - (179);
 
-	else
-	 ceilingnum = MAPSPOT(1,0,0)-197;
+    floornum = F_GetFlat(floornum);
+    floor = W_CacheLumpNum(floornum, PU_LEVELSTRUCT, Cvt_patch_t, 1);
+    floor += 8;
 
-	floornum = MAPSPOT(0,0,0)-(179);
+    if (!sky) { // Don't cache in if not used
+        ceilingnum = F_GetFlat(ceilingnum);
+        ceiling = W_CacheLumpNum(ceilingnum, PU_LEVELSTRUCT, Cvt_patch_t, 1);
+        ceiling += 8;
+    }
+    else  ceiling = NULL;
 
-   floornum = GetFloorCeilingLump ( floornum );
-   //ceilingnum = GetFloorCeilingLump ( ceilingnum );
+    s = W_GetNumForName("SKYSTART");
 
-   floor = W_CacheLumpNum(floornum,PU_LEVELSTRUCT, Cvt_patch_t, 1);
-   floor +=8;
+    switch (sky)
+    {
+    case 1:
+        skytop = s + 1;
+        skybottom = s + 2;
+        break;
+    case 2:
+        skytop = s + 3;
+        skybottom = s + 4;
+        break;
+    case 3:
+        skytop = s + 5;
+        skybottom = s + 6;
+        break;
+    case 4:
+        skytop = s + 7;
+        skybottom = s + 8;
+        break;
+    case 5:
+        skytop = s + 9;
+        skybottom = s + 10;
+        break;
+    case 6:
+        skytop = s + 11;
+        skybottom = s + 12;
+        break;
+    }
+    if (sky != 0)
+    {
+        skydata[0] = W_CacheLumpNum(skytop, PU_STATIC, CvtNull, 1);
+        skydata[1] = W_CacheLumpNum(skybottom, PU_STATIC, CvtNull, 1);
+        centerskypost = MINSKYHEIGHT - (horizonheight * 6);
+        oldsky = sky;
+        MakeSkyData();
+        W_CacheLumpNum(skytop, PU_CACHE, CvtNull, 1);
+        W_CacheLumpNum(skybottom, PU_CACHE, CvtNull, 1);
+        x = 511;
 
-   if (sky==0)  // Don't cache in if not used
-      {
-      ceilingnum = GetFloorCeilingLump ( ceilingnum );
-      ceiling = W_CacheLumpNum(ceilingnum,PU_LEVELSTRUCT, Cvt_patch_t, 1);
-      ceiling +=8;
-      } else {
-      	ceiling = NULL;
-      }
-
-	s = W_GetNumForName("SKYSTART");
-
-   switch (sky)
-      {
-      case 1:
-         skytop=s+1;
-         skybottom=s+2;
-         break;
-      case 2:
-         skytop=s+3;
-         skybottom=s+4;
-         break;
-      case 3:
-         skytop=s+5;
-         skybottom=s+6;
-         break;
-      case 4:
-         skytop=s+7;
-         skybottom=s+8;
-         break;
-      case 5:
-         skytop=s+9;
-         skybottom=s+10;
-         break;
-      case 6:
-         skytop=s+11;
-         skybottom=s+12;
-         break;
-      }
-      if (sky!=0)
-         {
-         skydata[0]=W_CacheLumpNum(skytop,PU_STATIC, CvtNull, 1);
-         skydata[1]=W_CacheLumpNum(skybottom,PU_STATIC, CvtNull, 1);
-         centerskypost=MINSKYHEIGHT-(horizonheight*6);
-         oldsky=sky;
-         MakeSkyData();
-         W_CacheLumpNum(skytop,PU_CACHE, CvtNull, 1);
-         W_CacheLumpNum(skybottom,PU_CACHE, CvtNull, 1);
-         x=511;
-         for (i=0;i<MAXSKYSEGS;i++)
-            {
-            skysegs[i]=skydata[0]+((x>>1)*400)+centerskypost;
+        for (i = 0; i < MAXSKYSEGS; i++) {
+            skysegs[i] = skydata[0] + ((x >> 1) * 400) + centerskypost;
             x--;
-            if (x==-1)
-               {
-               x=511;
-               }
-            } /* endfor */
-         }
+            if (x == -1) x = 511;
+        }
+    }
 }
 
 /*
@@ -385,8 +327,7 @@ void RT_SetPlaneViewSize (void)
 =
 ==========================
 */
-void SetFCLightLevel(int height)
-{
+void SetFCLightLevel(int height) {
     int i;
 
     if (MISCVARS->GASON == 1) {
@@ -411,8 +352,7 @@ void SetFCLightLevel(int height)
 
 
 
-void DrawHLine (int xleft, int xright, int yp)
-{
+void DrawHLine (int xleft, int xright, int yp) {
    int plane;
    byte * buf;
    byte * dest;
@@ -422,37 +362,26 @@ void DrawHLine (int xleft, int xright, int yp)
 //   int length;
    int ofs;
 
-   if (yp==centery)
-      return;
-   if (yp>centery)
-      {
-      int hd;
+   if (yp==centery) return;
+   if (yp > centery) {
+       int hd = yp - centery;
+       buf = floor;
+       height = (hd << 13) / (maxheight - pheight + 32);
+   }
+   else {
+       int hd = centery - yp;
 
-      buf=floor;
-      hd=yp-centery;
-      height=(hd<<13)/(maxheight-pheight+32);
-      }
-   else
-      {
-      int hd;
-
-      /* ROTT bug? It'd draw when there was no ceiling. - SBF */
-      if (ceiling == NULL) return;
-      
-      buf=ceiling;
-      
-      hd=centery-yp;
-      height=(hd<<13)/pheight;
-      }
+       /* ROTT bug? It'd draw when there was no ceiling. - SBF */
+       if (ceiling == NULL) return;
+       buf = ceiling;
+       height = (hd << 13) / pheight;
+   }
    SetFCLightLevel(height>>(8-HEIGHTFRACTION-1));
 	mr_xstep = ((viewsin<<8)/(height));
 	mr_ystep = ((viewcos<<8)/(height));
 
-	startxfrac = ((viewx>>1) + FixedMulShift(mr_ystep,scale,2))-
-                FixedMulShift(mr_xstep,(centerx-xleft),2);
-
-	startyfrac = ((viewy>>1) - FixedMulShift(mr_xstep,scale,2))-
-                FixedMulShift(mr_ystep,(centerx-xleft),2);
+	startxfrac = ((viewx>>1) + FixedMulShift(mr_ystep,scale,2))-FixedMulShift(mr_xstep,(centerx-xleft),2);
+	startyfrac = ((viewy>>1) - FixedMulShift(mr_xstep,scale,2))-FixedMulShift(mr_ystep,(centerx-xleft),2);
 
    dest=(byte *)bufferofs+ylookup[yp];
 

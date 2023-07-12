@@ -4783,9 +4783,7 @@ boolean LoadTheGame (int num, gamestorage_t * game)
 	gamestate.mapon=game->area;
 
    mapcrc=GetMapCRC (gamestate.mapon);
-
-   if (mapcrc!=game->mapcrc)
-      return false;
+   if (mapcrc != game->mapcrc) return false;
 
 /////////////////////////////////////////////////////////////////////////////
 // Load in rest of saved game file beyond this point

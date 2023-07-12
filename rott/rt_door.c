@@ -66,6 +66,26 @@ Every time a door opens or closes the areabyplayer matrix gets recalculated.
 
 // Global Variables
 
+#define CountTile(x,y) \
+{                       \
+ if (oldarea == AREANUMBER(x,y))\
+    {if (CheckTile(x,y))         \
+        numemptytiles ++;                   \
+                                             \
+     areanumbercount++;                       \
+     if (areanumbercount == numareatiles[oldarea])\
+        return numemptytiles;                     \
+    }                                              \
+                                                    \
+}                                                   \
+
+#define CheckSet(x,y)      \
+{if (CheckTile(x,y) && (oldarea == AREANUMBER(x,y))) \
+   {*stilex = x;    \
+    *stiley = y;    \
+    return;              \
+   } \
+}                     \
 
 #define ELEVATORMUSICTIME   560
 
@@ -105,38 +125,23 @@ static void (*touchactions[NUMTOUCHPLATEACTIONS])(long) =
 						  ActivateLight,
 						  DeactivateLight};
 
-#if ((DEVELOPMENT == 1))
-#if ((LOADSAVETEST == 1))
-static char*touchstrings[NUMTOUCHPLATEACTIONS] =
-						 {"ActivatePushWall",
-						  "ActivateMoveWall",
-						  "LinkedOpenDoor",
-						  "LinkedCloseDoor",
-						  "EnableObject",
-						  "DisableObject",
-						  "ActivateLight",
-						  "DeactivateLight"
-						 };
-#endif
-#endif
-#if ((DEVELOPMENT == 1))
-#if ((ELEVATORTEST == 1))
-
-static char*elevstring[NUMELEVATORACTIONS] =
-						{"ready at source",
-						 "ready at destination",
-						 "moving to source",
-						 "moving to destination",
-						 "doorclosing"
-						};
-#endif
-#endif
+//direction basis for moving tiles
+const vector2_t TileNormals[8] = {
+    { 1,  0},    //E
+    { 1, -1},    //NE
+    { 0, -1},    //N
+    {-1, -1},    //NW
+    {-1,  0},    //W
+    {-1,  1},    //SW
+    { 0,  1},    //S
+    { 1,  1}     //SE
+};
 
 void UtilizeDoor (int door,void (*action)(int));
 void UseDoor (int door);
 void Teleport(elevator_t*eptr,int destination);
 void ConnectPushWall (int pwall);
-void SetupPushWall (int pwall);
+void RT_SetupPushwall(int32_t pwall);
 void WallMoving (int pwall);
 int SetNextAction(elevator_t*eptr,int action);
 
@@ -148,16 +153,14 @@ int SetNextAction(elevator_t*eptr,int action);
 ===============
 */
 
-//jesus christ what is this
-void MakeMaskedWallActive(maskedwallobj_t* tmwall)
- {if (!FIRSTMASKEDWALL)
-	 FIRSTMASKEDWALL	= tmwall;
-  else
-	  {tmwall->prev = LASTMASKEDWALL;
-		LASTMASKEDWALL->next = tmwall;
-	  }
-  LASTMASKEDWALL = tmwall;
- }
+void MakeMaskedWallActive(maskedwallobj_t* tmwall) {
+    if (!FIRSTMASKEDWALL) FIRSTMASKEDWALL = tmwall;
+    else {
+        tmwall->prev = LASTMASKEDWALL;
+        LASTMASKEDWALL->next = tmwall;
+    }
+    LASTMASKEDWALL = tmwall;
+}
 
 /*
 ===============
@@ -167,21 +170,15 @@ void MakeMaskedWallActive(maskedwallobj_t* tmwall)
 ===============
 */
 
-void MakeMaskedWallInactive(maskedwallobj_t* tmwall)
-{
- if (tmwall == LASTMASKEDWALL)
-	LASTMASKEDWALL = tmwall->prev;
- else
-	tmwall->next->prev = tmwall->prev;
+void MakeMaskedWallInactive(maskedwallobj_t* tmwall) {
+    if (tmwall == LASTMASKEDWALL) LASTMASKEDWALL = tmwall->prev;
+    else tmwall->next->prev = tmwall->prev;
 
- if (tmwall == FIRSTMASKEDWALL)
-	FIRSTMASKEDWALL = tmwall->next;
- else
-	tmwall->prev->next = tmwall->next;
+    if (tmwall == FIRSTMASKEDWALL) FIRSTMASKEDWALL = tmwall->next;
+    else tmwall->prev->next = tmwall->next;
 
- tmwall->prev = NULL;
- tmwall->next = NULL;
-
+    tmwall->prev = NULL;
+    tmwall->next = NULL;
 }
 
 
@@ -193,16 +190,13 @@ void MakeMaskedWallInactive(maskedwallobj_t* tmwall)
 ===============
 */
 
-void ActivateAnimMaskedWall(animmaskedwallobj_t* amwall)
-{
-   if (!FIRSTANIMMASKEDWALL)
-	   FIRSTANIMMASKEDWALL	= amwall;
-   else
-	   {
-      amwall->prev = LASTANIMMASKEDWALL;
-		LASTANIMMASKEDWALL->next = amwall;
-	   }
-   LASTANIMMASKEDWALL = amwall;
+void ActivateAnimMaskedWall(animmaskedwallobj_t* amwall) {
+    if (!FIRSTANIMMASKEDWALL) FIRSTANIMMASKEDWALL = amwall;
+    else {
+        amwall->prev = LASTANIMMASKEDWALL;
+        LASTANIMMASKEDWALL->next = amwall;
+    }
+    LASTANIMMASKEDWALL = amwall;
 }
 
 /*
@@ -214,122 +208,96 @@ void ActivateAnimMaskedWall(animmaskedwallobj_t* amwall)
 */
 
 
-void DeactivateAnimMaskedWall(animmaskedwallobj_t* amwall)
-{
- if (amwall == LASTANIMMASKEDWALL)
-	LASTANIMMASKEDWALL = amwall->prev;
- else
-	amwall->next->prev = amwall->prev;
+void DeactivateAnimMaskedWall(animmaskedwallobj_t* amwall) {
+    if (amwall == LASTANIMMASKEDWALL) LASTANIMMASKEDWALL = amwall->prev;
+    else amwall->next->prev = amwall->prev;
 
- if (amwall == FIRSTANIMMASKEDWALL)
-	FIRSTANIMMASKEDWALL = amwall->next;
- else
-	amwall->prev->next = amwall->next;
+    if (amwall == FIRSTANIMMASKEDWALL) FIRSTANIMMASKEDWALL = amwall->next;
+    else amwall->prev->next = amwall->next;
 
- amwall->prev = NULL;
- amwall->next = NULL;
-
+    amwall->prev = NULL;
+    amwall->next = NULL;
 }
 
 
-int PlatformHeight(int tilex,int tiley)
-   {
-   int platform;
+int PlatformHeight(int tilex, int tiley) {
+    int platform;
 
-   if (!IsPlatform(tilex,tiley))
-      return nominalheight;
+    if (!IsPlatform(tilex, tiley)) return nominalheight;
+    platform = MAPSPOT(tilex, tiley, 2);
 
-   platform = MAPSPOT(tilex,tiley,2);
-
-   switch(platform)
-      {
-      case 1:
-         return -10;
-      case 4:
-         return nominalheight;
-      case 5:
-      case 6:
-         return nominalheight - 64;
-      case 7:
-         return nominalheight;
-      case 8:
-      case 9:
-         return -10;
-      }
-
-   return -1000;
-   }
-
-void SpawnAnimatedMaskedWall ( int num )
-{
-   animmaskedwallobj_t * temp;
-
-	temp = (animmaskedwallobj_t *)Z_LevelMalloc(sizeof(animmaskedwallobj_t),PU_LEVELSTRUCT,NULL);
-   if (!temp)
-      Error("SpawnAnimatedMaskedWall: Failed on allocation of animated masked wall");
-   temp->num=num;
-   temp->count=AMW_NUMFRAMES;
-   temp->ticcount=AMW_TICCOUNT;
-   temp->next=NULL;
-   temp->prev=NULL;
-   ActivateAnimMaskedWall(temp);
+    switch (platform) {
+    case 1:
+        return -10;
+    case 4:
+        return nominalheight;
+    case 5:
+    case 6:
+        return nominalheight - 64;
+    case 7:
+        return nominalheight;
+    case 8:
+    case 9:
+        return -10;
+    }
+    return -1000;
 }
 
-void KillAnimatedMaskedWall ( animmaskedwallobj_t * temp )
-{
-   DeactivateAnimMaskedWall(temp);
-   Z_Free(temp);
+void SpawnAnimatedMaskedWall(int num) {
+    animmaskedwallobj_t* temp = (animmaskedwallobj_t*)Z_LevelMalloc(sizeof(animmaskedwallobj_t), PU_LEVELSTRUCT, NULL);
+
+    if (!temp) Error("SpawnAnimatedMaskedWall: Failed on allocation of animated masked wall");
+    temp->num = num;
+    temp->count = AMW_NUMFRAMES;
+    temp->ticcount = AMW_TICCOUNT;
+    temp->next = NULL;
+    temp->prev = NULL;
+    ActivateAnimMaskedWall(temp);
+}
+
+void KillAnimatedMaskedWall(animmaskedwallobj_t* temp) {
+    DeactivateAnimMaskedWall(temp);
+    Z_Free(temp);
 }
 
 
-void DoAnimatedMaskedWalls ( void )
-{
-   boolean done;
-   animmaskedwallobj_t * temp;
+void DoAnimatedMaskedWalls(void) {
+    boolean done;
+    animmaskedwallobj_t* temp;
 
-   for(temp=FIRSTANIMMASKEDWALL;temp;)
-      {
-      done=false;
-      temp->ticcount-=tics;
-      while (temp->ticcount<0)
-         {
-         temp->ticcount+=AMW_TICCOUNT;
-         temp->count--;
-         maskobjlist[temp->num]->bottomtexture++;
-         if (temp->count==0)
-            {
-            done=true;
-            break;
+    for (temp = FIRSTANIMMASKEDWALL; temp;) {
+        done = false;
+        temp->ticcount -= tics;
+        while (temp->ticcount < 0) {
+            temp->ticcount += AMW_TICCOUNT;
+            temp->count--;
+            maskobjlist[temp->num]->bottomtexture++;
+            if (temp->count == 0) {
+                done = true;
+                break;
             }
-         }
-      if (done==true)
-         {
-         animmaskedwallobj_t * temp2;
-
-         temp2=temp->next;
-         KillAnimatedMaskedWall(temp);
-         temp=temp2;
-         }
-      else
-         temp=temp->next;
-      }
+        }
+        if (done) {
+            animmaskedwallobj_t* temp2 = temp->next;
+            KillAnimatedMaskedWall(temp);
+            temp = temp2;
+        }
+        else temp = temp->next;
+    }
 }
 
 
-int GetIndexForAction(void (*action)(long))
-{int i;
+int GetIndexForAction(void (*action)(long)) {
+    for (int i = 0; i < NUMTOUCHPLATEACTIONS; i++)
+        if (action == touchactions[i]) return i;
 
- for(i=0;i<NUMTOUCHPLATEACTIONS;i++)
-  if (action == touchactions[i])
-	 return i;
-
- Error("Touchplate Action Not Matched");
- return -1;
+    Error("Touchplate Action Not Matched");
+    return -1;
 }
 
 
-void SaveTouchPlates(byte ** buffer,int *size)
-{int i,k;
+void SaveTouchPlates(byte ** buffer,int *size) {
+    int i,k;
  byte * tptr;
  touchplatetype *temp;
  saved_touch_type dummy;
@@ -346,96 +314,31 @@ void SaveTouchPlates(byte ** buffer,int *size)
  memcpy(tptr,&numactions[0],sizeof(numactions));
  tptr+=sizeof(numactions);
 
- #if ((DEVELOPMENT == 1))
- #if (LOADSAVETEST == 1)
-	Debug("\n\nSAVE INFO\n");
-	Debug("---------");
+ for(i=0;i<lasttouch;i++) {
 
-	Debug("\n\nTOUCHINDICES\n");
-	Debug("------------\n\n");
-	for(i=0;i<MAPSIZE;i++)
-	 for(j=0;j< MAPSIZE;j++)
-		if (touchindices[i][j])
-		  Debug("\ntouchindices[%3d][%3d]: %d",i,j,touchindices[i][j]);
-
-	Debug("\n\nTRIGGER: ");
-	for(i=0;i<(sizeof(TRIGGER)/sizeof(TRIGGER[0]));i++)
-	  if (TRIGGER[i])
-		 Debug("%1d",TRIGGER[i]);
-	Debug("\n\nNUMACTIONS PER TOUCHPLATE\n");
-	Debug("-------------------------\n\n");
-	for(i=0;i<(sizeof(numactions)/sizeof(numactions[0]));i++)
-	  if (numactions[i])
-	  Debug("\n %2d: %2d",i,numactions[i]);
- #endif
- #endif
-
- for(i=0;i<lasttouch;i++)
-	 {
-    #if ((DEVELOPMENT == 1))
-    #if (LOADSAVETEST == 1)
-	  Debug("\n\nTOUCHPLATE[%2d]\n",i);
-	  Debug("--------------\n\n");
-	 #endif
-	 #endif
-
-	 for(k=0,temp=touchplate[i];temp;k++,temp = temp->nextaction)
-		 {
+	 for(k=0,temp=touchplate[i];temp;k++,temp = temp->nextaction) {
 		 dummy.tictime = temp->tictime;
 		 dummy.ticcount = temp->ticcount;
 		 dummy.triggered = temp->triggered;
 		 dummy.done = temp->done;
 		 dummy.complete = temp->complete;
 
-		 if (temp->action)
-			dummy.actionindex = GetIndexForAction(temp->action);
-		 else
-			dummy.actionindex = -1;
+		 if (temp->action) dummy.actionindex = GetIndexForAction(temp->action);
+		 else dummy.actionindex = -1;
 
-		 if (temp->swapaction)
-			dummy.swapactionindex = GetIndexForAction(temp->swapaction);
-		 else
-			dummy.swapactionindex = -1;
-		 if ((dummy.actionindex > 5) || (dummy.swapactionindex > 5)) // means whichobj holds pointer to actor
-			{
-			statobj_t *tstat;
+		 if (temp->swapaction) dummy.swapactionindex = GetIndexForAction(temp->swapaction);
+		 else dummy.swapactionindex = -1;
+         if ((dummy.actionindex > 5) || (dummy.swapactionindex > 5)) {      // means whichobj holds pointer to actor
+             statobj_t* tstat = (statobj_t*)(temp->whichobj);
+             dummy.whichobj = (tstat->whichstat | FL_TSTAT);
+         }
 
-			tstat = (statobj_t*)(temp->whichobj);
-			dummy.whichobj = (tstat->whichstat|FL_TSTAT);
-			}
+         else if ((dummy.actionindex > 3) || (dummy.swapactionindex > 3)) {
+             objtype* tactor = (objtype*)(temp->whichobj);
+             dummy.whichobj = (tactor->whichactor | FL_TACT);
+         }
 
-		 else if ((dummy.actionindex > 3) || (dummy.swapactionindex > 3))
-
-			{
-			objtype *tactor;
-
-			tactor = (objtype*)(temp->whichobj);
-			dummy.whichobj = (tactor->whichactor|FL_TACT);
-			}
-
-		 else
-			dummy.whichobj = temp->whichobj;
-
-       #if ((DEVELOPMENT == 1))
-       #if (LOADSAVETEST == 1)
-		  Debug("action node %d: tictime: %d, ticcount: %d ",k,dummy.tictime,dummy.ticcount);
-		  if (dummy.actionindex == -1)
-			 Debug("action: -1,");
-		  else
-			 Debug("action: %13s,",touchstrings[dummy.actionindex]);
-
-		  if (dummy.swapactionindex == -1)
-			 Debug("swapaction: -1,");
-		  else
-			 Debug("swapaction: %13s,",touchstrings[dummy.swapactionindex]);
-
-		  if (dummy.whichobj & FL_TACT)
-			 Debug("whichobj (actor): %4x\n",(dummy.whichobj & ~FL_TACT));
-		  else
-			 Debug("whichobj (nonactor): %4x\n",dummy.whichobj);
-		 #endif
-		 #endif
-
+		 else dummy.whichobj = temp->whichobj;
 
 		 memcpy(tptr,&dummy,sizeof(saved_touch_type));
 		 tptr+=sizeof(saved_touch_type);
@@ -443,556 +346,372 @@ void SaveTouchPlates(byte ** buffer,int *size)
 	 }
 }
 
-statobj_t* GetStatForIndex(int index)
-{statobj_t *temp;
+statobj_t* GetStatForIndex(int index) {
+    statobj_t* temp;
 
- for(temp = FIRSTSTAT;temp;temp=temp->statnext)
-	if (temp->whichstat == index)
-	  return temp;
+    for (temp = FIRSTSTAT; temp; temp = temp->statnext)
+        if (temp->whichstat == index) return temp;
 
- SoftError("\nstat not found in GetStatForIndex");
- return NULL;
+    SoftError("\nstat not found in GetStatForIndex");
+    return NULL;
 
 }
 
 
-void LoadTouchPlates(byte * buffer, int size)
-{touchplatetype *temp;
- int i,savedactions,loadedactions,index=0;
- saved_touch_type dummy;
+void LoadTouchPlates(byte* buffer, int size) {
+    touchplatetype* temp;
+    int i, savedactions, loadedactions, index = 0;
+    saved_touch_type dummy;
 
- savedactions = (size-sizeof(TRIGGER)-sizeof(numactions))/sizeof(saved_touch_type);
- memset(touchplate,0,sizeof(touchplate));
- memset(lastaction,0,sizeof(lastaction));
- memset(numactions,0,sizeof(numactions));
- totalactions = 0;
+    savedactions = (size - sizeof(TRIGGER) - sizeof(numactions)) / sizeof(saved_touch_type);
+    memset(touchplate, 0, sizeof(touchplate));
+    memset(lastaction, 0, sizeof(lastaction));
+    memset(numactions, 0, sizeof(numactions));
+    totalactions = 0;
 
- memcpy(&TRIGGER[0],buffer,sizeof(TRIGGER));
- buffer += sizeof(TRIGGER);
+    memcpy(&TRIGGER[0], buffer, sizeof(TRIGGER));
+    buffer += sizeof(TRIGGER);
 
- memcpy(&numactions[0],buffer,sizeof(numactions));
- buffer += sizeof(numactions);
+    memcpy(&numactions[0], buffer, sizeof(numactions));
+    buffer += sizeof(numactions);
 
- for(loadedactions=0,index=0,i=0;i<savedactions;i++)
-  {memcpy(&dummy,buffer,sizeof(saved_touch_type));
-	temp = (touchplatetype*)Z_LevelMalloc(sizeof(touchplatetype),PU_LEVELSTRUCT,NULL);
-	if (!temp)
-		Error("LoadTouchplates: Failed on allocation of touchplates %d of %d",i,savedactions);
-	memset(temp,0,sizeof(*temp));
+    for (loadedactions = 0, index = 0, i = 0; i < savedactions; i++) {
+        memcpy(&dummy, buffer, sizeof(saved_touch_type));
+        temp = (touchplatetype*)Z_LevelMalloc(sizeof(touchplatetype), PU_LEVELSTRUCT, NULL);
+        if (!temp) Error("LoadTouchplates: Failed on allocation of touchplates %d of %d", i, savedactions);
+        memset(temp, 0, sizeof(*temp));
 
-	temp->tictime = dummy.tictime;
-	temp->ticcount = dummy.ticcount;
-	temp->triggered = dummy.triggered;
-	temp->done = dummy.done;
-	temp->complete = dummy.complete;
+        temp->tictime = dummy.tictime;
+        temp->ticcount = dummy.ticcount;
+        temp->triggered = dummy.triggered;
+        temp->done = dummy.done;
+        temp->complete = dummy.complete;
 
-	if (dummy.whichobj & FL_TACT)
-	  temp->whichobj = (long)(objlist[dummy.whichobj & ~FL_TACT]);
+        if (dummy.whichobj & FL_TACT) temp->whichobj = (long)(objlist[dummy.whichobj & ~FL_TACT]);
+        else if (dummy.whichobj & FL_TSTAT) temp->whichobj = (long)(GetStatForIndex(dummy.whichobj & ~FL_TSTAT));
+        else temp->whichobj = dummy.whichobj;
 
-	else if (dummy.whichobj & FL_TSTAT)
-	  temp->whichobj = (long)(GetStatForIndex(dummy.whichobj & ~FL_TSTAT));
-	else
-	  temp->whichobj = dummy.whichobj;
-	if (dummy.actionindex != -1)
-	 temp->action = touchactions[dummy.actionindex];
-	else
-	 temp->action = NULL;
+        if (dummy.actionindex != -1) temp->action = touchactions[dummy.actionindex];
+        else temp->action = NULL;
 
-	if (dummy.swapactionindex != -1)
-	 temp->swapaction = touchactions[dummy.swapactionindex];
-	else
-	 temp->swapaction = NULL;
+        if (dummy.swapactionindex != -1) temp->swapaction = touchactions[dummy.swapactionindex];
+        else temp->swapaction = NULL;
 
-	buffer+=sizeof(saved_touch_type);
+        buffer += sizeof(saved_touch_type);
 
-	while (!numactions[index])
-	  index ++;
+        while (!numactions[index]) index++;
 
-	AddTouchplateAction(temp,index);
+        AddTouchplateAction(temp, index);
 
-	/*if (touchplate[index])
-	  lastaction[index]->nextaction = temp;
-	else
-	  touchplate[index] = temp;
-	lastaction[index] = temp;*/
+        totalactions++;
 
-	totalactions ++;
+        loadedactions++;
+        if (loadedactions == numactions[index]) {       // found end of a touchplate's actions, goto next touch.
+            loadedactions = 0;
+            index++;
+        }
+    }
 
-	loadedactions++;
-	if (loadedactions == numactions[index]) // found end of a touchplate's actions, goto next touch.
-	 {loadedactions = 0;
-	  index++;
-	 }
-  }
-
-
- #if ((DEVELOPMENT == 1))
- #if (LOADSAVETEST == 1)
-	Debug("\n\nLOAD INFO\n");
-	Debug("---------");
-
-	Debug("\n\nTOUCHINDICES\n");
-	Debug("------------\n\n");
-	for(i=0;i<MAPSIZE;i++)
-	 for(j=0;j< MAPSIZE;j++)
-		if (touchindices[i][j])
-		  Debug("\ntouchindices[%3d][%3d]: %d",i,j,touchindices[i][j]);
-
-	Debug("\n\nTRIGGER: ");
-	for(i=0;i<(sizeof(TRIGGER)/sizeof(TRIGGER[0]));i++)
-	  if (TRIGGER[i])
-		  Debug("%1d",TRIGGER[i]);
-	Debug("\n\nNUMACTIONS PER TOUCHPLATE\n");
-	Debug("-------------------------\n\n");
-	for(i=0;i<(sizeof(numactions)/sizeof(numactions[0]));i++)
-	  if (numactions[i])
-	  Debug("\n %2d: %2d",i,numactions[i]);
-
-	for(i=0;i<lasttouch;i++)
-	  {
-	  Debug("\n\nTOUCHPLATE[%2d]\n",i);
-	  Debug("--------------\n\n");
-
-	  for(k=0,temp=touchplate[i];temp;k++,temp = temp->nextaction)
-		  {
-		  Debug("action node %d: tictime: %d, ticcount: %d ",k,temp->tictime,temp->ticcount);
-		  if (!temp->action)
-			 Debug("action: NULL,");
-		  else
-			 Debug("action: %13s,",touchstrings[GetIndexForAction(temp->action)]);
-
-		  if (!temp->swapaction)
-			 Debug("swapaction: NULL,");
-		  else
-			 Debug("swapaction: %13s,",touchstrings[GetIndexForAction(temp->swapaction)]);
-
-		  Debug("whichobj: %4x\n",(int)temp->whichobj);
-		  }
-	  }
- #endif
- #endif
-
-   SafeFree(objlist);
+    SafeFree(objlist);
 
 }
 
 
 
 
-void AddTouchplateAction(touchplatetype *tplate,int index)
-{
- if (touchplate[index])
-	 {tplate->prevaction = lastaction[index];
-	  lastaction[index]->nextaction = tplate;
-	 }
-  else
-	 touchplate[index] = tplate;
-  lastaction[index] = tplate;
+void AddTouchplateAction(touchplatetype* tplate, int index) {
+    if (touchplate[index]) {
+        tplate->prevaction = lastaction[index];
+        lastaction[index]->nextaction = tplate;
+    }
+    else touchplate[index] = tplate;
+    lastaction[index] = tplate;
 
 }
 
 
 
 
-void  RemoveTouchplateAction(touchplatetype *tplate,int index)
-{
-  if (tplate == lastaction[index])     // remove from master list
-	 lastaction[index] = tplate->prevaction;
-  else
-	 tplate->nextaction->prevaction = tplate->prevaction;
+void  RemoveTouchplateAction(touchplatetype* tplate, int index) {
+    if (tplate == lastaction[index]) lastaction[index] = tplate->prevaction;    // remove from master list
+    else tplate->nextaction->prevaction = tplate->prevaction;
 
-  if (tplate == touchplate[index])
-	 touchplate[index] = tplate->nextaction;
-  else
-	 tplate->prevaction->nextaction = tplate->nextaction;
+    if (tplate == touchplate[index]) touchplate[index] = tplate->nextaction;
+    else tplate->prevaction->nextaction = tplate->nextaction;
 
-  Z_Free(tplate);
-  numactions[index]--;
-  totalactions--;
-
+    Z_Free(tplate);
+    numactions[index]--;
+    totalactions--;
 }
 
 
 
-void  Link_To_Touchplate(word touchlocx, word touchlocy, void (*maction)(long), void (*swapaction)(long), long wobj, int delaytime)
-{touchplatetype *temp;
- int index;
+void  Link_To_Touchplate(word touchlocx, word touchlocy, void (*maction)(long), void (*swapaction)(long), long wobj, int delaytime) {
+    int index = touchindices[touchlocx][touchlocy] - 1;
+    touchplatetype* temp = (touchplatetype*)Z_LevelMalloc(sizeof(touchplatetype), PU_LEVELSTRUCT, NULL);
 
- index = touchindices[touchlocx][touchlocy]-1;
+    if (!temp) Error("Link_To_Touchplate: Failed on allocation of touchplate\n");
+    memset(temp, 0, sizeof(*temp));
+    temp->action = maction;
+    temp->swapaction = swapaction;
+    temp->whichobj = wobj;
+    temp->tictime = temp->ticcount = delaytime;
 
- temp = (touchplatetype*)Z_LevelMalloc(sizeof(touchplatetype),PU_LEVELSTRUCT,NULL);
- if (!temp)
-	 Error("Link_To_Touchplate: Failed on allocation of touchplate\n");
- memset(temp,0,sizeof(*temp));
- temp->action = maction;
- temp->swapaction = swapaction;
- temp->whichobj = wobj;
- temp->tictime = temp->ticcount = delaytime;
-
- AddTouchplateAction(temp,index);
- /*if(touchplate[index])
-	lastaction[index]->nextaction=temp;
- else
-	touchplate[index] = temp;
- lastaction[index] = temp;*/
- numactions[index]++;
- totalactions++;
+    AddTouchplateAction(temp, index);
+    numactions[index]++;
+    totalactions++;
 }
 
 
 
-void ClockLink (void (*saction)(long), void (*eaction)(long), long wobj,int whichclock)
-{touchplatetype*temp;
+void ClockLink(void (*saction)(long), void (*eaction)(long), long wobj, int whichclock) {
+    touchplatetype* temp;
 
+    // adding two actions per clock
+    temp = (touchplatetype*)Z_LevelMalloc(sizeof(touchplatetype), PU_LEVELSTRUCT, NULL);
+    if (!temp) Error("ClockLink: Failed on allocation of clock");
+    memset(temp, 0, sizeof(*temp));
+    temp->action = saction;
+    temp->swapaction = eaction;
+    temp->whichobj = wobj;
+    temp->clocktype = 1;
 
- // adding two actions per clock
- temp = (touchplatetype*)Z_LevelMalloc(sizeof(touchplatetype),PU_LEVELSTRUCT,NULL);
- if (!temp)
-	 Error("ClockLink: Failed on allocation of clock");
- memset(temp,0,sizeof(*temp));
- temp->action = saction;
- temp->swapaction = eaction;
- temp->whichobj = wobj;
- temp->clocktype = 1;
+    AddTouchplateAction(temp, whichclock);
 
- AddTouchplateAction(temp,whichclock);
-/*  if(touchplate[whichclock])
-	lastaction[whichclock]->nextaction = temp;
-  else
-	touchplate[whichclock] = temp;
-  lastaction[whichclock]=temp;*/
-
- numactions[whichclock]++;
- totalactions ++;
+    numactions[whichclock]++;
+    totalactions++;
 }
 
 
-void DisplayMessageForAction(touchplatetype *temp, boolean *wallmessage,
-                             boolean *doormessage, boolean*columnmessage)
-   {
+void DisplayMessageForAction(touchplatetype* temp, boolean* wallmessage, boolean* doormessage, boolean* columnmessage) {
 
-   if ((temp->action == ActivatePushWall) ||
-      (temp->action == ActivateMoveWall)
-      )
-      {
-      if (*wallmessage == false)
-         {
-         if (temp->clocktype)
-            AddMessage("Time-delay wall moves.",MSG_GAME);
-         else
-            AddMessage("A wall moves.",MSG_GAME);
-         *wallmessage = true;
-         }
-      }
+    if ((temp->action == ActivatePushWall) || (temp->action == ActivateMoveWall)) {
+        if (!*wallmessage) {
+            if (temp->clocktype) AddMessage("Time-delay wall moves.", MSG_GAME);
+            else AddMessage("A wall moves.", MSG_GAME);
+            *wallmessage = true;
+        }
+    }
 
-   else if (temp->action == LinkedCloseDoor)
-      {
-      if (*doormessage == false)
-         {
-         if (temp->clocktype)
-            AddMessage("Time-delay door closes.",MSG_GAME);
-         else
-            AddMessage("A door closes.",MSG_GAME);
-         *doormessage = true;
-         }
-      }
+    else if (temp->action == LinkedCloseDoor) {
+        if (!*doormessage) {
+            if (temp->clocktype) AddMessage("Time-delay door closes.", MSG_GAME);
+            else AddMessage("A door closes.", MSG_GAME);
+            *doormessage = true;
+        }
+    }
 
-   else if (temp->action == LinkedOpenDoor)
-      {
-      if (*doormessage == false)
-         {
-         if (temp->clocktype)
-            AddMessage("Time-delay door opens.",MSG_GAME);
-         else
-            AddMessage("A door opens.",MSG_GAME);
-         *doormessage = true;
-         }
-      }
+    else if (temp->action == LinkedOpenDoor) {
+        if (!*doormessage) {
+            if (temp->clocktype) AddMessage("Time-delay door opens.", MSG_GAME);
+            else AddMessage("A door opens.", MSG_GAME);
+            *doormessage = true;
+        }
+    }
 
-   else if (temp->action == EnableObject)
-      {
-      objtype *tempactor = (objtype*)(temp->whichobj);
+    else if (temp->action == EnableObject) {
+        objtype* tempactor = (objtype*)(temp->whichobj);
 
-      if (M_ISACTOR(tempactor) && (tempactor->obclass == pillarobj))
-         {
-         if (*columnmessage == false)
-            {
-            if (temp->clocktype)
-               AddMessage("Time-delay column moves.",MSG_GAME);
-            else
-               AddMessage("A column moves.",MSG_GAME);
-            *columnmessage = true;
+        if (M_ISACTOR(tempactor) && (tempactor->obclass == pillarobj)) {
+            if (!*columnmessage) {
+                if (temp->clocktype) AddMessage("Time-delay column moves.", MSG_GAME);
+                else AddMessage("A column moves.", MSG_GAME);
+                *columnmessage = true;
             }
-         }
-      }
-   }
+        }
+    }
+}
 
-void TriggerStuff(void)
-   {
-   touchplatetype *temp;
-   int i,touchcomplete,j;
-   int playeron;
-   void (*tempact)(long);
-   boolean wallmessage,doormessage,columnmessage;
+void TriggerStuff(void) {
+    touchplatetype* temp;
+    int i, touchcomplete, j;
+    int playeron;
+    void (*tempact)(long);
+    boolean wallmessage, doormessage, columnmessage;
 
-   for(i=0;i<lasttouch;i++)
-      {
-      playeron = false;
-      for( j = 0; j < numplayers; j++ )
-         {
-         if ( i == touchindices[ PLAYER[ j ]->tilex ][ PLAYER[ j ]->tiley ] - 1 )
-            {
-            playeron = true;
-            break;
+    for (i = 0; i < lasttouch; i++) {
+        playeron = false;
+        for (j = 0; j < numplayers; j++) {
+            if (i == touchindices[PLAYER[j]->tilex][PLAYER[j]->tiley] - 1) {
+                playeron = true;
+                break;
             }
-         }
-	  //	CRASH IN SHAREWARE 'ride em cowboy' BNA FIX
-      // DONT ALLOW BAD touchplate ( == 0 ) see rt_playr.c
-	  if (touchplate[i] == 0) continue;
-      if (!TRIGGER[i])
-         continue;
+        }
 
-      else if (touchplate[i]->complete)
-         {
-         if (!playeron)
-            TRIGGER[i] = 0;
-         continue;
-         }
+        if (touchplate[i] == 0) continue;
+        if (!TRIGGER[i]) continue;
 
-      if (touchplate[i]->done)
-         {
-         if (!playeron)
-            {
-            for(temp = touchplate[i];temp;temp = temp->nextaction)
-               temp->triggered=false;
-            TRIGGER[i] = 0;
-            touchplate[i]->done = false;
+        else if (touchplate[i]->complete) {
+            if (!playeron) TRIGGER[i] = 0;
+            continue;
+        }
+
+        if (touchplate[i]->done) {
+            if (!playeron) {
+                for (temp = touchplate[i]; temp; temp = temp->nextaction) temp->triggered = false;
+                TRIGGER[i] = 0;
+                touchplate[i]->done = false;
             }
-         }
+        }
 
-      else
-         {
-         wallmessage = false;
-         doormessage = false;
-         columnmessage = false;
+        else {
+            wallmessage = false;
+            doormessage = false;
+            columnmessage = false;
 
-         for(temp = touchplate[i];temp;temp = temp->nextaction)
-            {
-            if (temp->action && (!temp->triggered))
-               {
-               if (!temp->ticcount)
-                  {
-                  temp->action(temp->whichobj);
-                  if (temp->action == ActivateMoveWall)
-                     {
-                     int tilex,tiley;
+            for (temp = touchplate[i]; temp; temp = temp->nextaction) {
+                if (temp->action && (!temp->triggered)) {
+                    if (!temp->ticcount) {
+                        temp->action(temp->whichobj);
+                        if (temp->action == ActivateMoveWall) {
+                            int tilex, tiley;
 
-                     tilex = pwallobjlist[temp->whichobj]->tilex;
-                     tiley = pwallobjlist[temp->whichobj]->tiley;
-                     tilemap[tilex][tiley] = 0;
+                            tilex = pwallobjlist[temp->whichobj]->tilex;
+                            tiley = pwallobjlist[temp->whichobj]->tiley;
+                            tilemap[tilex][tiley] = 0;
+                        }
 
-                     }
-                  if (gamestate.difficulty == gd_baby)
-                     {
-                     DisplayMessageForAction(temp,&wallmessage,&doormessage,&columnmessage);
-                     }
+                        if (gamestate.difficulty == gd_baby) DisplayMessageForAction(temp, &wallmessage, &doormessage, &columnmessage);
 
-                  tempact = temp->action;
-                  temp->action = temp->swapaction;
-                  temp->swapaction = tempact;
-                  temp->ticcount = temp->tictime;
-                  temp->triggered = true;
-                  }
+                        tempact = temp->action;
+                        temp->action = temp->swapaction;
+                        temp->swapaction = tempact;
+                        temp->ticcount = temp->tictime;
+                        temp->triggered = true;
+                    }
 
-               else
-                  temp->ticcount --;
-               }
-            }
-   //done:
-
-         // check to see if any actions will ever be triggered by this
-         // touchplate again; if not, null touchplate out; else,
-         // check status of other actions
-
-         touchcomplete = 1;
-         for(temp = touchplate[i];temp;temp = temp->nextaction)
-            {
-            if (temp->action)
-               {
-               touchcomplete = 0;
-               break;
-               }
+                    else temp->ticcount--;
+                }
             }
 
-         if (touchcomplete)
-            touchplate[i]->complete = 1; // this touchplate is out of commission
-         else
-            {
-            touchplate[i]->done = true;
-            for(temp = touchplate[i];temp;temp = temp->nextaction)
-               {
-               if (temp->action && (!temp->triggered))
-                  {
-                  touchplate[i]->done = false;
-                  break;
-                  }
-               }
+            // check to see if any actions will ever be triggered by this
+            // touchplate again; if not, null touchplate out; else,
+            // check status of other actions
+
+            touchcomplete = 1;
+            for (temp = touchplate[i]; temp; temp = temp->nextaction) {
+                if (temp->action) {
+                    touchcomplete = 0;
+                    break;
+                }
             }
-         }
-      }
-   }
+
+            if (touchcomplete) touchplate[i]->complete = 1; // this touchplate is out of commission
+            else {
+                touchplate[i]->done = true;
+                for (temp = touchplate[i]; temp; temp = temp->nextaction) {
+                    if (temp->action && (!temp->triggered)) {
+                        touchplate[i]->done = false;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 //==================== Tile stuff ====================================
 
-boolean CheckTile(int x, int y)
-{
+boolean CheckTile(int x, int y) {
+    if ((x < 2) || (x > (MAPSIZE - 1)) || (y < 2) || (y > (MAPSIZE - 1))) return false;
 
-	if ((x < 2) || (x > (MAPSIZE-1)) || (y < 2) || (y > (MAPSIZE - 1)))
-	  return false;
+    if (actorat[x][y]) {
+        objtype* check = (objtype*)(actorat[x][y]);
+        if (insetupgame) return false;
+        if (!(M_ISACTOR(check) && (check->obclass == playerobj))) return false;
+    }
 
-	if (actorat[x][y])
-	  {objtype *check = (objtype*)(actorat[x][y]);
-		if (insetupgame)
-		  return false;
-		if (!(M_ISACTOR(check) && (check->obclass == playerobj)))
-		  return false;
-     }
-   if (DiskAt(x,y))
-      return false;
-   if (sprites[x][y])
-		return false;
-	if ((tilemap[x][y]) && (IsPlatform(x,y)==false))
-		return false;
-	if ((AREANUMBER(x,y)<=0) || (AREANUMBER(x,y)>NUMAREAS))
-		return false;
-   if (IsWindow(x,y))
-      return false;
-   return true;
+    if (DiskAt(x, y)) return false;
+    if (sprites[x][y]) return false;
+    if (tilemap[x][y] && !IsPlatform(x, y)) return false;
+    if (AREANUMBER(x, y) <= 0 || AREANUMBER(x, y) > NUMAREAS) return false;
+    if (IsWindow(x, y)) return false;
+    return true;
 }
 
+int Number_of_Empty_Tiles_In_Area_Around(int x, int y) {
+    int roverx, rovery, areanumbercount = 0,
+        numemptytiles = 0, limit;
 
-#define CountTile(x,y) \
-{                       \
- if (oldarea == AREANUMBER(x,y))\
-    {if (CheckTile(x,y))         \
-        numemptytiles ++;                   \
-                                             \
-     areanumbercount++;                       \
-     if (areanumbercount == numareatiles[oldarea])\
-        return numemptytiles;                     \
-    }                                              \
-                                                    \
-}                                                   \
+    int oldarea = AREANUMBER(x, y);
 
+    for (int i = 1;; i++) {
+        roverx = x - i;
+        rovery = y - i;
 
-int Number_of_Empty_Tiles_In_Area_Around(int x, int y)
-{int roverx,rovery,areanumbercount=0,
-     numemptytiles=0,oldarea,i,limit,j;
+        CountTile(roverx, rovery);
+        limit = i << 1;
 
- oldarea = AREANUMBER(x,y);
+        for (int j = 0; j < limit; j++) {
+            roverx++;
+            CountTile(roverx, rovery);
+        }
 
-   for (i=1;;i++)
-      {roverx = x-i;
-       rovery = y-i;
+        for (int j = 0; j < limit; j++) {
+            rovery++;
+            CountTile(roverx, rovery);
+        }
 
-       CountTile(roverx,rovery);
-       limit = i<<1;
+        for (int j = 0; j < limit; j++) {
+            roverx--;
+            CountTile(roverx, rovery);
+        }
 
-       for(j=0;j<limit;j++)
-         {roverx++;
-          CountTile(roverx,rovery);
-         }
-
-       for(j=0;j<limit;j++)
-         {rovery++;
-          CountTile(roverx,rovery);
-         }
-
-       for(j=0;j<limit;j++)
-         {roverx--;
-          CountTile(roverx,rovery);
-         }
-
-       for(j=0;j<limit-1;j++)
-         {rovery--;
-          CountTile(roverx,rovery);
-         }
-      }
+        for (int j = 0; j < limit - 1; j++) {
+            rovery--;
+            CountTile(roverx, rovery);
+        }
+    }
 }
 
+void FindEmptyTile(int* stilex, int* stiley) {
+    int i, j, x, y, oldarea, roverx, rovery, limit;
 
+    oldarea = AREANUMBER(*stilex, *stiley);
 
-#define CheckSet(x,y)      \
-{if (CheckTile(x,y) && (oldarea == AREANUMBER(x,y))) \
-   {*stilex = x;    \
-    *stiley = y;    \
-    return;              \
-   } \
-}                     \
+    x = *stilex;
+    y = *stiley;
 
+    if (CheckTile(x, y) && (oldarea == AREANUMBER(x, y))) return;
 
+    for (i = 1;; i++) {
+        roverx = x - i;
+        rovery = y - i;
 
-void FindEmptyTile(int *stilex, int *stiley)
-{
-   int i,j,x,y,oldarea,roverx,rovery,limit;
+        CheckSet(roverx, rovery);
+        limit = i << 1;
 
-	oldarea = AREANUMBER(*stilex,*stiley);
+        for (j = 0; j < limit; j++) {
+            roverx++;
+            CheckSet(roverx, rovery);
+        }
 
-   x = *stilex;
-   y = *stiley;
+        for (j = 0; j < limit; j++) {
+            rovery++;
+            CheckSet(roverx, rovery);
+        }
 
-   if (CheckTile(x,y) && (oldarea == AREANUMBER(x,y)))
-     return;
+        for (j = 0; j < limit; j++) {
+            roverx--;
+            CheckSet(roverx, rovery);
+        }
 
-   for (i=1;;i++)
-      {roverx = x-i;
-       rovery = y-i;
-
-       CheckSet(roverx,rovery);
-       limit = i<<1;
-
-       for(j=0;j<limit;j++)
-         {roverx++;
-          CheckSet(roverx,rovery);
-         }
-
-       for(j=0;j<limit;j++)
-         {rovery++;
-          CheckSet(roverx,rovery);
-         }
-
-       for(j=0;j<limit;j++)
-         {roverx--;
-          CheckSet(roverx,rovery);
-         }
-
-       for(j=0;j<limit-1;j++)
-         {rovery--;
-          CheckSet(roverx,rovery);
-         }
-      }
+        for (j = 0; j < limit - 1; j++) {
+            rovery--;
+            CheckSet(roverx, rovery);
+        }
+    }
 }
 
-//================================================================
-
-
-
-
-void RecursiveConnect (int areanumber)
-{
-	int	i;
-
-	for (i=0;i<NUMAREAS;i++)
-	{
-		if (areaconnect[areanumber][i] && !areabyplayer[i])
-		{
-			areabyplayer[i] = true;
-			RecursiveConnect (i);
-		}
-	}
+void RecursiveConnect(int areanumber) {
+    for (int i = 0; i < NUMAREAS; i++) {
+        if (areaconnect[areanumber][i] && !areabyplayer[i]) {
+            areabyplayer[i] = true;
+            RecursiveConnect(i);
+        }
+    }
 }
-
 
 /*
 ==============
@@ -1004,60 +723,57 @@ void RecursiveConnect (int areanumber)
 ==============
 */
 
-void ConnectAreas (void)
-{objtype*temp;
- statobj_t*tstat;
- int i;
 #define MASTER_DISK(ob) ((ob->obclass == diskobj) && (ob->flags & FL_MASTER))
 
-   memset (areabyplayer,0,sizeof(areabyplayer));
-   for (i=0;i<numplayers;i++)
-      {
-      areabyplayer[PLAYER[i]->areanumber] = true;
-      RecursiveConnect (PLAYER[i]->areanumber);
-      }
-	for(temp=FIRSTACTOR;temp;temp=temp->next)
-		{
-      if (MASTER_DISK(temp))
-        continue;
-		if (!areabyplayer[temp->areanumber])
-			continue;
-		if (!(temp->flags & FL_ABP))
-			{temp->flags |= FL_ABP;
-			 MakeActive(temp);
-			}
-		}
+void ConnectAreas(void) {
+    objtype* temp;
+    statobj_t* tstat;
 
-	for(tstat=FIRSTSTAT;tstat;tstat=tstat->statnext)
-	  {if (areabyplayer[tstat->areanumber])
-		  {if (!(tstat->flags & FL_ABP))
-			  {tstat->flags |= FL_ABP;
-				MakeStatActive(tstat);
-			  }
-		  }
-		else if (tstat->flags & FL_ABP)
-		 {MakeStatInactive(tstat);
-		  tstat->flags &= ~FL_ABP;
-		 }
-	  }
+    memset(areabyplayer, 0, sizeof(areabyplayer));
+    for (int i = 0; i < numplayers; i++) {
+        areabyplayer[PLAYER[i]->areanumber] = true;
+        RecursiveConnect(PLAYER[i]->areanumber);
+    }
 
-	for(i=0;i<maskednum;i++)
-	  {if (areabyplayer[maskobjlist[i]->areanumber])
-		  {if (!(maskobjlist[i]->flags & MW_ABP))
-			  {maskobjlist[i]->flags |= MW_ABP;
-				MakeMaskedWallActive(maskobjlist[i]);
-			  }
-		  }
-		else if (maskobjlist[i]->flags & MW_ABP)
-		 {MakeMaskedWallInactive(maskobjlist[i]);
-		  maskobjlist[i]->flags &= ~MW_ABP;
-		 }
-	  }
+    for (temp = FIRSTACTOR; temp; temp = temp->next) {
+        if (MASTER_DISK(temp)) continue;
+        if (!areabyplayer[temp->areanumber]) continue;
+        if (!(temp->flags & FL_ABP)) {
+            temp->flags |= FL_ABP;
+            MakeActive(temp);
+        }
+    }
+
+    for (tstat = FIRSTSTAT; tstat; tstat = tstat->statnext) {
+        if (areabyplayer[tstat->areanumber]) {
+            if (!(tstat->flags & FL_ABP)) {
+                tstat->flags |= FL_ABP;
+                MakeStatActive(tstat);
+            }
+        }
+        else if (tstat->flags & FL_ABP) {
+            MakeStatInactive(tstat);
+            tstat->flags &= ~FL_ABP;
+        }
+    }
+
+    for (int i = 0; i < maskednum; i++)
+    {
+        if (areabyplayer[maskobjlist[i]->areanumber]) {
+            if (!(maskobjlist[i]->flags & MW_ABP)) {
+                maskobjlist[i]->flags |= MW_ABP;
+                MakeMaskedWallActive(maskobjlist[i]);
+            }
+        }
+        else if (maskobjlist[i]->flags & MW_ABP) {
+            MakeMaskedWallInactive(maskobjlist[i]);
+            maskobjlist[i]->flags &= ~MW_ABP;
+        }
+    }
 }
 
 
-void InitAreas (void)
-{
+void InitAreas(void) {
 	memset (areabyplayer,0,sizeof(areabyplayer));
 	memset (areaconnect,0,sizeof(areaconnect));
 }
@@ -1071,25 +787,24 @@ void InitAreas (void)
 ===============
 */
 
-void InitDoorList (void)
-{
-   doornum=0;
-   pwallnum=0;
-	maskednum=0;
-	lasttouch = 0;
-   numclocks=0;
+void InitDoorList(void) {
+    doornum = 0;
+    pwallnum = 0;
+    maskednum = 0;
+    lasttouch = 0;
+    numclocks = 0;
 
-	memset(touchindices,0,sizeof(touchindices));
-	memset(touchplate,0,sizeof(touchplate));
-	memset(lastaction,0,sizeof(lastaction));
-	memset(numactions,0,sizeof(numactions));
-	totalactions = 0;
-	memset(TRIGGER,0,sizeof(TRIGGER));
-	memset(Clocks,0,sizeof(Clocks));
-   FIRSTMASKEDWALL=NULL;
-   LASTMASKEDWALL=NULL;
-   FIRSTANIMMASKEDWALL=NULL;
-   LASTANIMMASKEDWALL=NULL;
+    memset(touchindices, 0, sizeof(touchindices));
+    memset(touchplate, 0, sizeof(touchplate));
+    memset(lastaction, 0, sizeof(lastaction));
+    memset(numactions, 0, sizeof(numactions));
+    totalactions = 0;
+    memset(TRIGGER, 0, sizeof(TRIGGER));
+    memset(Clocks, 0, sizeof(Clocks));
+    FIRSTMASKEDWALL = NULL;
+    LASTMASKEDWALL = NULL;
+    FIRSTANIMMASKEDWALL = NULL;
+    LASTANIMMASKEDWALL = NULL;
 }
 
 /*
@@ -1100,25 +815,14 @@ void InitDoorList (void)
 ===============
 */
 
-int IsWall (int tilex, int tiley)
-{
-	int map;
+int IsWall(int tilex, int tiley) {
+    int map = MAPSPOT(tilex, tiley, 0);
 
-	map=MAPSPOT(tilex,tiley,0);
-
-	if ((map>=1) && (map<=89))
-		return 1;
-
-	else if ((map>=106) && (map<=107))
-		return 1;
-
-	else if ((map>=224) && (map<=233))
-		return 1;
-
-	else if ((map>=242) && (map<=244))
-		return 1;
-
-	return 0;
+    if      (map >= 1 && map <= 89)     return 1;
+    else if (map >= 106 && map <= 107)  return 1;
+    else if (map >= 224 && map <= 233)  return 1;
+    else if (map >= 242 && map <= 244)  return 1;
+    return 0;
 }
 
 
@@ -1131,10 +835,9 @@ int IsWall (int tilex, int tiley)
 ===============
 */
 
-void InitElevators(void)
-{_numelevators = 0;
- memset(ELEVATOR,0,sizeof(ELEVATOR));
-
+void InitElevators(void) {
+    _numelevators = 0;
+    memset(ELEVATOR, 0, sizeof(ELEVATOR));
 }
 
 
@@ -1147,27 +850,16 @@ void InitElevators(void)
 ===============
 */
 
-int IsDoor (int tilex, int tiley)
-{
-	int map;
+int IsDoor(int tilex, int tiley) {
+    int map = MAPSPOT(tilex, tiley, 0);
 
-	map=MAPSPOT(tilex,tiley,0);
+    if (map >= 33 && map <= 35)   return 1;
+    if (map >= 90 && map <= 104)  return 1;
+    if (map >= 154 && map <= 156) return 1;
+    if (M_ISDOOR(tilex, tiley))   return 1;
 
-	if ((map>=33) && (map<=35))
-		return 1;
-
-	if ((map>=90) && (map<=104))
-		return 1;
-
-	if ((map>=154) && (map<=156))
-		return 1;
-
-	if (M_ISDOOR(tilex,tiley))
-      return 1;
-
-	return 0;
+    return 0;
 }
-
 
 /*
 ===============
@@ -1177,233 +869,187 @@ int IsDoor (int tilex, int tiley)
 ===============
 */
 
-void SpawnDoor (int tilex, int tiley, int lock, int texture)
-{
-   int i;
-   doorobj_t * lastdoorobj;
-   int up,dn,lt,rt;
-   int abovewallstart;
-   int swallstart;
-   int basetexture;
+void SpawnDoor(int tilex, int tiley, int lock, int texture) {
+    int i;
+    doorobj_t* lastdoorobj;
+    int up, dn, lt, rt;
+    int abovewallstart;
+    int swallstart;
+    int basetexture;
 
-   abovewallstart=W_GetNumForName("ABVWSTRT")+1;
-   swallstart=W_GetNumForName("SIDESTRT")+1;
+    abovewallstart = W_GetNumForName("ABVWSTRT") + 1;
+    swallstart = W_GetNumForName("SIDESTRT") + 1;
 
-   doorobjlist[doornum]=(doorobj_t*)Z_LevelMalloc(sizeof(doorobj_t),PU_LEVELSTRUCT,NULL);
-   if (!doorobjlist[doornum])
-      Error("SpawnDoor: Failed on allocation of door %d ",doornum);
-   memset(doorobjlist[doornum],0,sizeof(doorobj_t));
-   lastdoorobj=doorobjlist[doornum];
+    doorobjlist[doornum] = (doorobj_t*)Z_LevelMalloc(sizeof(doorobj_t), PU_LEVELSTRUCT, NULL);
+    if (!doorobjlist[doornum]) Error("SpawnDoor: Failed on allocation of door %d ", doornum);
+    memset(doorobjlist[doornum], 0, sizeof(doorobj_t));
+    lastdoorobj = doorobjlist[doornum];
 
-   if (
-        ( MAPSPOT(tilex,tiley,1) >= 29 ) &&
-        ( MAPSPOT(tilex,tiley,1) <= 32 )
-      )
-      {
-      lock = MAPSPOT(tilex,tiley,1) - 28;
-      }
+    if ((MAPSPOT(tilex, tiley, 1) >= 29) && (MAPSPOT(tilex, tiley, 1) <= 32)) lock = MAPSPOT(tilex, tiley, 1) - 28;
 
-   lastdoorobj->position = 0;
-	lastdoorobj->tilex = tilex;
-	lastdoorobj->tiley = tiley;
-	lastdoorobj->lock = lock;
-	lastdoorobj->action = dr_closed;
-	lastdoorobj->which = DOOR;
-   lastdoorobj->flags = 0;
-	lastdoorobj->eindex = -1;
+    lastdoorobj->position = 0;
+    lastdoorobj->tilex = tilex;
+    lastdoorobj->tiley = tiley;
+    lastdoorobj->lock = lock;
+    lastdoorobj->action = dr_closed;
+    lastdoorobj->which = DOOR;
+    lastdoorobj->flags = 0;
+    lastdoorobj->eindex = -1;
 
-   //
-   // make the door space solid
-   //
+    //
+    // make the door space solid
+    //
 
-   if (loadedgame==false)
-      actorat[tilex][tiley] = lastdoorobj;
+    if (!loadedgame) actorat[tilex][tiley] = lastdoorobj;
 
-   if (IsDoor(tilex,tiley-1)) up=2;
-   else if (IsWall(tilex,tiley-1)) up=1;
-   else up=0;
+    if (IsDoor(tilex, tiley - 1)) up = 2;
+    else if (IsWall(tilex, tiley - 1)) up = 1;
+    else up = 0;
 
-   if (IsDoor(tilex,tiley+1)) dn=2;
-   else if (IsWall(tilex,tiley+1)) dn=1;
-   else dn=0;
+    if (IsDoor(tilex, tiley + 1)) dn = 2;
+    else if (IsWall(tilex, tiley + 1)) dn = 1;
+    else dn = 0;
 
-   if (IsDoor(tilex-1,tiley)) lt=2;
-   else if (IsWall(tilex-1,tiley)) lt=1;
-   else lt=0;
+    if (IsDoor(tilex - 1, tiley)) lt = 2;
+    else if (IsWall(tilex - 1, tiley)) lt = 1;
+    else lt = 0;
 
-   if (IsDoor(tilex+1,tiley)) rt=2;
-   else if (IsWall(tilex+1,tiley)) rt=1;
-   else rt=0;
+    if (IsDoor(tilex + 1, tiley)) rt = 2;
+    else if (IsWall(tilex + 1, tiley)) rt = 1;
+    else rt = 0;
 
-	if ((up==1) && (dn==1))
-		lastdoorobj->vertical = true;
-	else if ((lt==1) && (rt==1))
-		lastdoorobj->vertical = false;
-	else if ((up>0) && (dn>0))
-		lastdoorobj->vertical = true;
-	else if ((lt>0) && (rt>0))
-		lastdoorobj->vertical = false;
-	else if (up>0)
-		lastdoorobj->vertical = true;
-	else if (dn>0)
-		lastdoorobj->vertical = true;
-	else if (lt>0)
-		lastdoorobj->vertical = false;
-	else if (rt>0)
-		lastdoorobj->vertical = false;
+    if ((up == 1) && (dn == 1)) lastdoorobj->vertical = true;
+    else if ((lt == 1) && (rt == 1)) lastdoorobj->vertical = false;
+    else if ((up > 0) && (dn > 0)) lastdoorobj->vertical = true;
+    else if ((lt > 0) && (rt > 0)) lastdoorobj->vertical = false;
+    else if (up > 0) lastdoorobj->vertical = true;
+    else if (dn > 0) lastdoorobj->vertical = true;
+    else if (lt > 0) lastdoorobj->vertical = false;
+    else if (rt > 0) lastdoorobj->vertical = false;
 
-   switch (texture)
-      {
+    switch (texture) {
+    case 0:
+    case 8:
+        basetexture = W_GetNumForName("RAMDOOR1\0");
+        break;
+    case 1:
+    case 9:
+        basetexture = W_GetNumForName("DOOR2\0");
+        break;
+    case 2:
+    case 3:
+    case 13:
+        basetexture = W_GetNumForName("TRIDOOR1\0");
+        break;
+    case 10:
+    case 11:
+    case 14:
+        basetexture = W_GetNumForName("SDOOR4\0");
+        break;
+    case 12:
+        basetexture = W_GetNumForName("EDOOR\0");
+        break;
+    case 15:
+        basetexture = W_GetNumForName("SNDOOR\0");
+        break;
+    case 16:
+        basetexture = W_GetNumForName("SNADOOR\0");
+        break;
+    case 17:
+        basetexture = W_GetNumForName("SNKDOOR\0");
+        break;
 
-      case 0:
-      case 8:
-         basetexture = W_GetNumForName("RAMDOOR1\0");
-         break;
+    case 18:
+        basetexture = W_GetNumForName("TNDOOR\0");
+        break;
+    case 19:
+        basetexture = W_GetNumForName("TNADOOR\0");
+        break;
+    case 20:
+        basetexture = W_GetNumForName("TNKDOOR\0");
+        break;
+    default:
+        Error("Illegal door value encountered\n");
+        break;
+    }
+    lastdoorobj->basetexture = basetexture;
+    lastdoorobj->texture = lastdoorobj->basetexture;
 
-      case 1:
-      case 9:
-         basetexture = W_GetNumForName("DOOR2\0");
-         break;
+    SD_PreCacheSoundGroup(SD_OPENDOORSND, SD_CLOSEDOORSND);
 
+    //
+    // make the door tile a special tile, and mark the adjacent tiles
+    // for door sides
+    //
+    tilemap[tilex][tiley] = doornum | 0x8000;
 
-      case 2:
-      case 3:
-      case 13:
-         basetexture = W_GetNumForName("TRIDOOR1\0");
-         break;
+    switch (texture) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+        lastdoorobj->sidepic = W_GetNumForName("SIDE8");
+        lastdoorobj->alttexture = W_GetNumForName("ABOVEW3");
+        break;
+    case 15:
+    case 16:
+    case 17:
+#if (SHAREWARE == 1)
+        lastdoorobj->sidepic = W_GetNumForName("SIDE8");
+#else
+        lastdoorobj->sidepic = W_GetNumForName("SIDE16");
+#endif
+        lastdoorobj->alttexture = W_GetNumForName("ABOVEW16");
+        break;
 
-      case 10:
-      case 11:
-      case 14:
-         basetexture = W_GetNumForName("SDOOR4\0");
-         break;
-
-
-
-      case 12:
-         basetexture = W_GetNumForName("EDOOR\0");
-         break;
-      case 15:
-         basetexture = W_GetNumForName("SNDOOR\0");
-         break;
-      case 16:
-         basetexture = W_GetNumForName("SNADOOR\0");
-         break;
-      case 17:
-         basetexture = W_GetNumForName("SNKDOOR\0");
-         break;
-
-      case 18:
-         basetexture = W_GetNumForName("TNDOOR\0");
-         break;
-      case 19:
-         basetexture = W_GetNumForName("TNADOOR\0");
-         break;
-      case 20:
-         basetexture = W_GetNumForName("TNKDOOR\0");
-         break;
-      default:
-         Error("Illegal door value encountered\n");
-         break;
-      }
-   lastdoorobj->basetexture = basetexture;
-	lastdoorobj->texture = lastdoorobj->basetexture;
-
-   SD_PreCacheSoundGroup(SD_OPENDOORSND,SD_CLOSEDOORSND);
-
-//
-// make the door tile a special tile, and mark the adjacent tiles
-// for door sides
-//
-   tilemap[tilex][tiley] = doornum | 0x8000;
-
-   switch (texture)
-      {
-      case 0:
-      case 1:
-      case 2:
-      case 3:
-      case 8:
-      case 9:
-      case 10:
-      case 11:
-      case 12:
-      case 13:
-      case 14:
-         lastdoorobj->sidepic    = W_GetNumForName("SIDE8");
-         lastdoorobj->alttexture = W_GetNumForName("ABOVEW3");
-         break;
-
-      case 15:
-      case 16:
-      case 17:
-      #if (SHAREWARE == 1)
-         lastdoorobj->sidepic = W_GetNumForName("SIDE8");
-
-      #else
-         lastdoorobj->sidepic    = W_GetNumForName("SIDE16");
-      #endif
-
-         lastdoorobj->alttexture = W_GetNumForName("ABOVEW16");
-         break;
-
-      case 18:
-      case 19:
-      case 20:
-      #if (SHAREWARE == 1)
-         lastdoorobj->sidepic = W_GetNumForName("SIDE8");
-         lastdoorobj->alttexture = W_GetNumForName("ABOVEW3");
-
-      #else
-         lastdoorobj->sidepic    = W_GetNumForName("SIDE17");
-         lastdoorobj->alttexture = W_GetNumForName("ABOVEW17");
-
-      #endif
-
-         break;
-      default:
-         Error("Illegal door value encountered\n");
-         break;
-      }
+    case 18:
+    case 19:
+    case 20:
+#if (SHAREWARE == 1)
+        lastdoorobj->sidepic = W_GetNumForName("SIDE8");
+        lastdoorobj->alttexture = W_GetNumForName("ABOVEW3");
+#else
+        lastdoorobj->sidepic = W_GetNumForName("SIDE17");
+        lastdoorobj->alttexture = W_GetNumForName("ABOVEW17");
+#endif
+        break;
+    default:
+        Error("Illegal door value encountered\n");
+        break;
+    }
 
 
 
-   if ((lock>0) && (lock<5))
-      lastdoorobj->sidepic    = W_GetNumForName("lock1")+lock-1;
+    if ((lock > 0) && (lock < 5)) lastdoorobj->sidepic = W_GetNumForName("lock1") + lock - 1;
 
-   PreCacheLump(lastdoorobj->sidepic,PU_CACHEWALLS,cache_pic_t);
-   PreCacheLump(lastdoorobj->alttexture,PU_CACHEWALLS,cache_pic_t);
+    PreCacheLump(lastdoorobj->sidepic, PU_CACHEWALLS, cache_pic_t);
+    PreCacheLump(lastdoorobj->alttexture, PU_CACHEWALLS, cache_pic_t);
 
-	if (lastdoorobj->vertical==true)
-	{
-      if (up==1)
-		   tilemap[tilex][tiley-1] |= 0x4000;
-      else if (up==2)
-         lastdoorobj->flags|=DF_MULTI;
-      if (dn==1)
-		   tilemap[tilex][tiley+1] |= 0x4000;
-      else if (dn==2)
-         lastdoorobj->flags|=DF_MULTI;
-	}
-	else
-	{
-      if (lt==1)
-		   tilemap[tilex-1][tiley] |= 0x4000;
-      else if (lt==2)
-         lastdoorobj->flags|=DF_MULTI;
-      if (rt==1)
-		   tilemap[tilex+1][tiley] |= 0x4000;
-      else if (rt==2)
-         lastdoorobj->flags|=DF_MULTI;
-	}
+    if (lastdoorobj->vertical == true) {
+        if (up == 1) tilemap[tilex][tiley - 1] |= 0x4000;
+        else if (up == 2) lastdoorobj->flags |= DF_MULTI;
+        if (dn == 1) tilemap[tilex][tiley + 1] |= 0x4000;
+        else if (dn == 2) lastdoorobj->flags |= DF_MULTI;
+    }
+    else {
+        if (lt == 1) tilemap[tilex - 1][tiley] |= 0x4000;
+        else if (lt == 2) lastdoorobj->flags |= DF_MULTI;
+        if (rt == 1) tilemap[tilex + 1][tiley] |= 0x4000;
+        else if (rt == 2) lastdoorobj->flags |= DF_MULTI;
+    }
 
-   PreCacheLump(lastdoorobj->texture,PU_CACHEWALLS,cache_pic_t);
-   for (i=1;i<9;i++) // only first texture is pic_t!
-      PreCacheLump(lastdoorobj->texture+i,PU_CACHEWALLS,cache_patch_t);
-	doornum++;
-	lastdoorobj++;
-	if (doornum==MAXDOORS)
-		Error ("Too many doors on level!");
+    PreCacheLump(lastdoorobj->texture, PU_CACHEWALLS, cache_pic_t);
+    for (i = 1; i < 9; i++) PreCacheLump(lastdoorobj->texture + i, PU_CACHEWALLS, cache_patch_t);   // only first texture is pic_t!
+    doornum++;
+    lastdoorobj++;
+    if (doornum == MAXDOORS) Error("Too many doors on level!");
 
 }
 
@@ -1414,51 +1060,46 @@ void SpawnDoor (int tilex, int tiley, int lock, int texture)
 =
 ===============
 */
-void MakeWideDoorVisible ( int doornum )
-{
-   int dx,dy;
-   doorobj_t * dr2;
-   doorobj_t * dr;
-   int tx,ty;
+void MakeWideDoorVisible(int doornum) {
+    int dx, dy;
+    doorobj_t* dr2;
+    doorobj_t* dr;
+    int tx, ty;
 
-   dr=doorobjlist[doornum];
+    dr = doorobjlist[doornum];
+    dx = 0;
+    dy = 0;
 
-   dx=0;dy=0;
-   if (dr->vertical==true)
-      dy=1;
-   else
-      dx=1;
-   spotvis[dr->tilex][dr->tiley]=1;
-   tx=dr->tilex+dx;
-   ty=dr->tiley+dy;
-	while (M_ISDOOR(tx,ty))
-      {
-      int num;
+    if (dr->vertical) dy = 1;
+    else dx = 1;
+    spotvis[dr->tilex][dr->tiley] = 1;
+    tx = dr->tilex + dx;
+    ty = dr->tiley + dy;
+    while (M_ISDOOR(tx, ty)) {
+        int num;
 
-      num=tilemap[tx][ty]&0x3ff;
-      dr2=doorobjlist[num];
-      if (!(dr2->flags&DF_MULTI))
-         break;
-      spotvis[tx][ty]=1;
+        num = tilemap[tx][ty] & 0x3ff;
+        dr2 = doorobjlist[num];
+        if (!(dr2->flags & DF_MULTI))
+            break;
+        spotvis[tx][ty] = 1;
 
-      tx+=dx;
-      ty+=dy;
-      }
-   tx=dr->tilex-dx;
-   ty=dr->tiley-dy;
-	while (M_ISDOOR(tx,ty))
-      {
-      int num;
+        tx += dx;
+        ty += dy;
+    }
+    tx = dr->tilex - dx;
+    ty = dr->tiley - dy;
 
-      num=tilemap[tx][ty]&0x3ff;
-      dr2=doorobjlist[num];
-      if (!(dr2->flags&DF_MULTI))
-         break;
-      spotvis[tx][ty]=1;
+    while (M_ISDOOR(tx, ty)) {
+        int num = tilemap[tx][ty] & 0x3ff;
+        dr2 = doorobjlist[num];
 
-      tx-=dx;
-      ty-=dy;
-      }
+        if (!(dr2->flags & DF_MULTI)) break;
+
+        spotvis[tx][ty] = 1;
+        tx -= dx;
+        ty -= dy;
+    }
 }
 
 /*
@@ -1469,13 +1110,9 @@ void MakeWideDoorVisible ( int doornum )
 =====================
 */
 
-void LockLinkedDoor (int door)
-{
-	doorobj_t*dptr;
-
-	dptr = doorobjlist[door];
-   if (!dptr->lock)
-      dptr->lock=5;
+void LockLinkedDoor(int door) {
+    doorobj_t* dptr = doorobjlist[door];
+    if (!dptr->lock) dptr->lock = 5;
 }
 
 /*
@@ -1486,14 +1123,10 @@ void LockLinkedDoor (int door)
 =====================
 */
 
-boolean IsDoorLinked (int door)
-{
-	doorobj_t*dptr;
-
-	dptr = doorobjlist[door];
-   if (dptr->lock==5)
-      return true;
-   return false;
+boolean IsDoorLinked(int door) {
+    doorobj_t* dptr = doorobjlist[door];
+    if (dptr->lock == 5) return true;
+    return false;
 }
 
 
@@ -1504,52 +1137,37 @@ boolean IsDoorLinked (int door)
 =
 ===============
 */
-void FixDoorAreaNumbers ( void )
-{
-   int i;
-   int up,dn,lt,rt;
-   int tilex,tiley;
+void FixDoorAreaNumbers(void) {
+    int up, dn, lt, rt;
+    int tilex, tiley;
 
-   for (i=0;i<doornum;i++)
-      {
-      tilex=doorobjlist[i]->tilex;
-      tiley=doorobjlist[i]->tiley;
-      up=MAPSPOT(tilex,tiley-1,0)-AREATILE;
-		dn=MAPSPOT(tilex,tiley+1,0)-AREATILE;
-		lt=MAPSPOT(tilex-1,tiley,0)-AREATILE;
-		rt=MAPSPOT(tilex+1,tiley,0)-AREATILE;
+    for (int i = 0; i < doornum; i++) {
+        tilex = doorobjlist[i]->tilex;
+        tiley = doorobjlist[i]->tiley;
+        up = MAPSPOT(tilex, tiley - 1, 0) - AREATILE;
+        dn = MAPSPOT(tilex, tiley + 1, 0) - AREATILE;
+        lt = MAPSPOT(tilex - 1, tiley, 0) - AREATILE;
+        rt = MAPSPOT(tilex + 1, tiley, 0) - AREATILE;
 
-      up = ((up>0) && (up<=NUMAREAS));
-		dn = ((dn>0) && (dn<=NUMAREAS));
-		lt = ((lt>0) && (lt<=NUMAREAS));
-		rt = ((rt>0) && (rt<=NUMAREAS));
+        up = ((up > 0) && (up <= NUMAREAS));
+        dn = ((dn > 0) && (dn <= NUMAREAS));
+        lt = ((lt > 0) && (lt <= NUMAREAS));
+        rt = ((rt > 0) && (rt <= NUMAREAS));
 
 
-		if (doorobjlist[i]->vertical==true)
-			{
-         if (rt)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex+1,tiley,0);
-         else if (lt)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex-1,tiley,0);
-			else
-				Error("FixDoors: Couldn't fix up area at x=%d y=%d\n",tilex,tiley);
-			}
-		else
-			{
-         if (dn)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex,tiley+1,0);
-         else if (up)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex,tiley-1,0);
-			else
-				Error("FixDoors: Couldn't fix up area at x=%d y=%d\n",tilex,tiley);
-			}
-      if (IsDoorLinked(i))
-         UtilizeDoor(i,LockLinkedDoor);
-		}
+        if (doorobjlist[i]->vertical == true) {
+            if (rt) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex + 1, tiley, 0);
+            else if (lt) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex - 1, tiley, 0);
+            else Error("FixDoors: Couldn't fix up area at x=%d y=%d\n", tilex, tiley);
+        }
+        else {
+            if (dn) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex, tiley + 1, 0);
+            else if (up) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex, tiley - 1, 0);
+            else Error("FixDoors: Couldn't fix up area at x=%d y=%d\n", tilex, tiley);
+        }
+        if (IsDoorLinked(i)) UtilizeDoor(i, LockLinkedDoor);
+    }
 }
-
-
-//===========================================================================
 
 /*
 =====================
@@ -1559,14 +1177,9 @@ void FixDoorAreaNumbers ( void )
 =====================
 */
 
-void OpenDoor (int door)
-{
-	if (doorobjlist[door]->action == dr_open)
-		doorobjlist[door]->ticcount = 0;			// reset open time
-	else
-      {
-		doorobjlist[door]->action = dr_opening;	// start it opening
-      }
+void OpenDoor(int door) {
+	if (doorobjlist[door]->action == dr_open) doorobjlist[door]->ticcount = 0;		// reset open time
+	else doorobjlist[door]->action = dr_opening;	                                // start it opening
 }
 
 /*
@@ -1577,44 +1190,33 @@ void OpenDoor (int door)
 =====================
 */
 
-boolean DoorUnBlocked (int door)
-{
-	int	tilex,tiley;
-	objtype *check;
-	doorobj_t*dptr;
+boolean DoorUnBlocked(int door) {
+    int	tilex, tiley;
+    objtype* check;
+    doorobj_t* dptr = doorobjlist[door];
 
-	dptr = doorobjlist[door];
+    // don't close on anything solid
+    tilex = dptr->tilex;
+    tiley = dptr->tiley;
+    check = (objtype*)actorat[tilex][tiley];
 
-//
-// don't close on anything solid
-//
+    if (check && (check->which == ACTOR)) return false;
 
-	tilex = dptr->tilex;
-	tiley = dptr->tiley;
-	check = (objtype*)actorat[tilex][tiley];
+    if (dptr->vertical) {
+        check = (objtype*)actorat[tilex - 1][tiley];
+        if (check && (check->which == ACTOR) && ((check->x + MINDIST) >> TILESHIFT) == tilex) return false;
 
-	if (check && (check->which == ACTOR))
-		return false;
+        check = (objtype*)actorat[tilex + 1][tiley];
+        if (check && (check->which == ACTOR) && ((check->x - MINDIST) >> TILESHIFT) == tilex) return false;
+    }
+    else if (!dptr->vertical) {
+        check = (objtype*)actorat[tilex][tiley - 1];
+        if (check && (check->which == ACTOR) && ((check->y + MINDIST) >> TILESHIFT) == tiley) return false;
 
-	if (dptr->vertical==true)
-	{
-		check = (objtype*)actorat[tilex-1][tiley];
-		if (check && (check->which==ACTOR) && ((check->x+MINDIST) >> TILESHIFT) == tilex )
-			return false;
-		check = (objtype*)actorat[tilex+1][tiley];
-		if (check && (check->which==ACTOR) && ((check->x-MINDIST) >> TILESHIFT) == tilex )
-			return false;
-	}
-	else if (dptr->vertical==false)
-	{
-		check = (objtype*)actorat[tilex][tiley-1];
-		if (check && (check->which==ACTOR) && ((check->y+MINDIST) >> TILESHIFT) == tiley )
-			return false;
-		check = (objtype*)actorat[tilex][tiley+1];
-		if (check && (check->which==ACTOR) && ((check->y-MINDIST) >> TILESHIFT) == tiley )
-			return false;
-	}
-   return true;
+        check = (objtype*)actorat[tilex][tiley + 1];
+        if (check && (check->which == ACTOR) && ((check->y - MINDIST) >> TILESHIFT) == tiley) return false;
+    }
+    return true;
 }
 
 
@@ -1628,58 +1230,40 @@ boolean DoorUnBlocked (int door)
 =====================
 */
 
-boolean DoorReadyToClose(int door)
-{
-	doorobj_t*dptr;
-	int dx,dy;
-	doorobj_t * dr2;
-	int tx,ty;
+boolean DoorReadyToClose(int door) {
+    doorobj_t* dptr = doorobjlist[door];
+    int dx, dy;
+    doorobj_t* dr2;
+    int tx, ty;
 
+    if (dptr->action == dr_closed) return true;
+    if (!DoorUnBlocked(door)) return false;
 
-	dptr = doorobjlist[door];
+    dx = 0; dy = 0;
+    if (dptr->vertical) dy = 1;
+    else dx = 1;
 
-	if (dptr->action==dr_closed)
-		return true;
-
-	if (DoorUnBlocked(door)==false)
-		return false;
-
-	dx=0;dy=0;
-	if (dptr->vertical==true)
-		dy=1;
-	else
-		dx=1;
-	tx=dptr->tilex+dx;
-	ty=dptr->tiley+dy;
-	while (M_ISDOOR(tx,ty))
-		{
-		int num;
-
-		num=tilemap[tx][ty]&0x3ff;
-		dr2=doorobjlist[num];
-		if (!(dr2->flags&DF_MULTI))
-			break;
-		if (DoorUnBlocked(num)==false)
-			return false;
-		tx+=dx;
-		ty+=dy;
-		}
-	tx=dptr->tilex-dx;
-	ty=dptr->tiley-dy;
-	while (M_ISDOOR(tx,ty))
-		{
-		int num;
-
-		num=tilemap[tx][ty]&0x3ff;
-		dr2=doorobjlist[num];
-		if (!(dr2->flags&DF_MULTI))
-			break;
-		if (DoorUnBlocked(num)==false)
-			return false;
-		tx-=dx;
-		ty-=dy;
-		}
-	return true;
+    tx = dptr->tilex + dx;
+    ty = dptr->tiley + dy;
+    while (M_ISDOOR(tx, ty)) {
+        int num = tilemap[tx][ty] & 0x3ff;
+        dr2 = doorobjlist[num];
+        if (!(dr2->flags & DF_MULTI)) break;
+        if (!DoorUnBlocked(num)) return false;
+        tx += dx;
+        ty += dy;
+    }
+    tx = dptr->tilex - dx;
+    ty = dptr->tiley - dy;
+    while (M_ISDOOR(tx, ty)) {
+        int num = tilemap[tx][ty] & 0x3ff;
+        dr2 = doorobjlist[num];
+        if (!(dr2->flags & DF_MULTI)) break;
+        if (!DoorUnBlocked(num)) return false;
+        tx -= dx;
+        ty -= dy;
+    }
+    return true;
 }
 
 
@@ -1691,31 +1275,21 @@ boolean DoorReadyToClose(int door)
 =====================
 */
 
-void CloseDoor (int door)
-{
-	int	tilex,tiley,area;
-	doorobj_t*dptr;
+void CloseDoor(int door) {
+    int	tilex, tiley, area;
+    doorobj_t* dptr = doorobjlist[door];
 
-	dptr = doorobjlist[door];
-   if (dptr->action == dr_closed)
-      return;
-	tilex = dptr->tilex;
-	tiley = dptr->tiley;
+    if (dptr->action == dr_closed) return;
 
-//
-// play door sound
-//
-   area = MAPSPOT(tilex,tiley,0)-AREATILE;
-   if (areabyplayer[area])
-      {
-      dptr->soundhandle=SD_PlaySoundRTP ( SD_CLOSEDOORSND, dptr->tilex<<16, dptr->tiley<<16 );
-      }
+    tilex = dptr->tilex;
+    tiley = dptr->tiley;
 
-	dptr->action = dr_closing;
-//
-// make the door space solid
-//
-	actorat[tilex][tiley] = dptr;
+    // play door sound
+    area = MAPSPOT(tilex, tiley, 0) - AREATILE;
+    if (areabyplayer[area]) dptr->soundhandle = SD_PlaySoundRTP(SD_CLOSEDOORSND, dptr->tilex << 16, dptr->tiley << 16);
+
+    dptr->action = dr_closing;      // make the door space solid
+    actorat[tilex][tiley] = dptr;
 }
 
 
@@ -1730,59 +1304,42 @@ void CloseDoor (int door)
 =====================
 */
 
-void OperateDoor (int keys, int door, boolean localplayer )
-{
-	int	lock;
-	doorobj_t*dptr;
+void OperateDoor(int keys, int door, boolean localplayer) {
+    int	lock;
+    doorobj_t* dptr = doorobjlist[door];
 
-	dptr = doorobjlist[door];
-	if ( ( dptr->flags & DF_ELEVLOCKED ) ||
-      ( MISCVARS->GASON && ( MAPSPOT( dptr->tilex,
-      dptr->tiley, 1 ) == GASVALUE ) ) )
-      {
-      if ( localplayer )
-         {
-         // locked
-         SD_Play ( SD_NOITEMSND );
-         }
-      return;
-      }
+    if ((dptr->flags & DF_ELEVLOCKED) || (MISCVARS->GASON && (MAPSPOT(dptr->tilex, dptr->tiley, 1) == GASVALUE))) {
+        if (localplayer) SD_Play(SD_NOITEMSND);  // locked
+        return;
+    }
 
-   lock = dptr->lock;
-	if ( lock && !( keys & ( 1 << ( lock - 1 ) ) ) )
-      {
-      if ( localplayer )
-         {
-         // locked
-         switch (lock)
-            {
+    lock = dptr->lock;
+    if (lock && !(keys & (1 << (lock - 1)))) {
+        if (localplayer) {
+            // locked
+            switch (lock) {
             case 1:
-               AddMessage("You need the \\EGOLD key",MSG_DOOR);
-               break;
-
+                AddMessage("You need the \\EGOLD key", MSG_DOOR);
+                break;
             case 2:
-               AddMessage("You need the \\FSILVER key",MSG_DOOR);
-               break;
-
+                AddMessage("You need the \\FSILVER key", MSG_DOOR);
+                break;
             case 3:
-               AddMessage("You need the \\8IRON key",MSG_DOOR);
-               break;
-
+                AddMessage("You need the \\8IRON key", MSG_DOOR);
+                break;
             case 4:
-               AddMessage("You need the \\AOSCURO key",MSG_DOOR);
-               break;
-
+                AddMessage("You need the \\AOSCURO key", MSG_DOOR);
+                break;
             default:
-               AddMessage("This door appears to be locked",MSG_DOOR);
-               break;
+                AddMessage("This door appears to be locked", MSG_DOOR);
+                break;
             }
-
-         SD_Play( SD_NOITEMSND );
-         }
-      return;
-      }
-   UseDoor(door);
-   }
+            SD_Play(SD_NOITEMSND);
+        }
+        return;
+    }
+    UseDoor(door);
+}
 
 /*
 =====================
@@ -1792,8 +1349,7 @@ void OperateDoor (int keys, int door, boolean localplayer )
 =====================
 */
 
-void LinkedOpenDoor (long door)
-{
+void LinkedOpenDoor (long door) {
    UtilizeDoor(door,OpenDoor);
 }
 
@@ -1805,10 +1361,8 @@ void LinkedOpenDoor (long door)
 =====================
 */
 
-void LinkedCloseDoor (long door)
-{
-   if (DoorReadyToClose(door)==true)
-      UtilizeDoor(door,CloseDoor);
+void LinkedCloseDoor (long door) {
+   if (DoorReadyToClose(door)) UtilizeDoor(door,CloseDoor);
 }
 
 /*
@@ -1821,50 +1375,41 @@ void LinkedCloseDoor (long door)
 =====================
 */
 
-void UtilizeDoor (int door,void (*action)(int))
+void UtilizeDoor(int door, void (*action)(int))
 {
-	doorobj_t*dptr;
-   int dx,dy;
-   doorobj_t * dr2;
-   int tx,ty;
+    int dx, dy;
+    doorobj_t* dr2;
+    int tx, ty;
+    doorobj_t* dptr = doorobjlist[door];
 
-	dptr = doorobjlist[door];
+    action(door);
 
-   action(door);
+    dx = 0;
+    dy = 0;
 
-   dx=0;dy=0;
-   if (dptr->vertical==true)
-      dy=1;
-   else
-      dx=1;
-   tx=dptr->tilex+dx;
-   ty=dptr->tiley+dy;
-	while (M_ISDOOR(tx,ty))
-      {
-      int num;
+    if (dptr->vertical) dy = 1;
+    else dx = 1;
 
-      num=tilemap[tx][ty]&0x3ff;
-      dr2=doorobjlist[num];
-      if (!(dr2->flags&DF_MULTI))
-         break;
-      action(num);
-      tx+=dx;
-      ty+=dy;
-      }
-   tx=dptr->tilex-dx;
-   ty=dptr->tiley-dy;
-	while (M_ISDOOR(tx,ty))
-      {
-      int num;
-
-      num=tilemap[tx][ty]&0x3ff;
-      dr2=doorobjlist[num];
-      if (!(dr2->flags&DF_MULTI))
-         break;
-      action(num);
-      tx-=dx;
-      ty-=dy;
-      }
+    tx = dptr->tilex + dx;
+    ty = dptr->tiley + dy;
+    while (M_ISDOOR(tx, ty)) {
+        int num = tilemap[tx][ty] & 0x3ff;
+        dr2 = doorobjlist[num];
+        if (!(dr2->flags & DF_MULTI)) break;
+        action(num);
+        tx += dx;
+        ty += dy;
+    }
+    tx = dptr->tilex - dx;
+    ty = dptr->tiley - dy;
+    while (M_ISDOOR(tx, ty)) {
+        int num = tilemap[tx][ty] & 0x3ff;
+        dr2 = doorobjlist[num];
+        if (!(dr2->flags & DF_MULTI)) break;
+        action(num);
+        tx -= dx;
+        ty -= dy;
+    }
 }
 
 /*
@@ -1877,22 +1422,19 @@ void UtilizeDoor (int door,void (*action)(int))
 =====================
 */
 
-void UseDoor (int door)
-{
-	switch (doorobjlist[door]->action)
-	{
-	case dr_closing:
-		SD_StopSound(doorobjlist[door]->soundhandle);
-	case dr_closed:
-      UtilizeDoor(door,OpenDoor);
-		break;
-	case dr_opening:
-		SD_StopSound(doorobjlist[door]->soundhandle);
-	case dr_open:
-      if (DoorReadyToClose(door)==true)
-         UtilizeDoor(door,CloseDoor);
-		break;
-	}
+void UseDoor(int door) {
+    switch (doorobjlist[door]->action) {
+    case dr_closing:
+        SD_StopSound(doorobjlist[door]->soundhandle);
+    case dr_closed:
+        UtilizeDoor(door, OpenDoor);
+        break;
+    case dr_opening:
+        SD_StopSound(doorobjlist[door]->soundhandle);
+    case dr_open:
+        if (DoorReadyToClose(door)) UtilizeDoor(door, CloseDoor);
+        break;
+    }
 }
 
 //===========================================================================
@@ -1907,15 +1449,10 @@ void UseDoor (int door)
 ===============
 */
 
-void DoorOpen (int door)
-{doorobj_t* dptr;
-
- dptr = doorobjlist[door];
- dptr->ticcount += 1;
- if ((dptr->ticcount >= OPENTICS) &&
-     (!(dptr->flags & DF_TIMED)) &&
-     (DoorReadyToClose(door)==true))
-    UtilizeDoor(door,CloseDoor);
+void DoorOpen(int door) {
+    doorobj_t* dptr = doorobjlist[door];
+    dptr->ticcount += 1;
+    if (dptr->ticcount >= OPENTICS && !(dptr->flags & DF_TIMED) && DoorReadyToClose(door)) UtilizeDoor(door, CloseDoor);
 }
 
 
@@ -1928,63 +1465,45 @@ void DoorOpen (int door)
 ===============
 */
 
-void DoorOpening (int door)
-{
-	int		area1,area2;
-	word  	*map;
-	long	   position;
-	int      tilex,tiley;
+void DoorOpening(int door) {
+    int		area1;
+    int     area2;
+    word* map;
 
-	position = doorobjlist[door]->position;
-	tilex = doorobjlist[door]->tilex;
-	tiley = doorobjlist[door]->tiley;
-	if (!position)
-	{
-	//
-	// door is just starting to open, so connect the areas
-	//
-		map = &MAPSPOT(tilex,tiley,0);
+    long position = doorobjlist[door]->position;
+    int tilex = doorobjlist[door]->tilex;
+    int tiley = doorobjlist[door]->tiley;
 
-		if (doorobjlist[door]->vertical==true)
-		{
-			area1 =	*(map+1);
-			area2 =	*(map-1);
-		}
-		else
-		{
-		 area1 =	*(map-mapwidth);
-		 area2 =	*(map+mapwidth);
-		}
-		area1 -= AREATILE;
-		area2 -= AREATILE;
-		areaconnect[area1][area2]++;
-		areaconnect[area2][area1]++;
-		if ((insetupgame==false) && (loadedgame==false))
-			ConnectAreas ();
-	   if (areabyplayer[area1])
-    	   {
-         doorobjlist[door]->soundhandle=SD_PlaySoundRTP ( SD_OPENDOORSND, doorobjlist[door]->tilex<<16, doorobjlist[door]->tiley<<16 );
-         }
-	}
+    if (!position) {    // door is just starting to open, so connect the areas
+        map = &MAPSPOT(tilex, tiley, 0);
 
-//
-// slide the door by an adaptive amount
-//
-	position += 1<<12;
-	if (position >= 0xffff)
-	{
-	//
-	// door is all the way open
-	//
-		position = 0xffff;
-		doorobjlist[door]->ticcount = 0;
-		doorobjlist[door]->action = dr_open;
-		if (doorobjlist[door] == actorat[tilex][tiley])
-			actorat[tilex][tiley] = 0;
-	}
+        if (doorobjlist[door]->vertical) {
+            area1 = *(map + 1);
+            area2 = *(map - 1);
+        }
 
-	doorobjlist[door]->position = position;
-	doorobjlist[door]->texture=doorobjlist[door]->basetexture+((position+1)>>13);
+        else {
+            area1 = *(map - mapwidth);
+            area2 = *(map + mapwidth);
+        }
+
+        area1 -= AREATILE;
+        area2 -= AREATILE;
+        areaconnect[area1][area2]++;
+        areaconnect[area2][area1]++;
+        if (!insetupgame && !loadedgame) ConnectAreas();
+        if (areabyplayer[area1]) doorobjlist[door]->soundhandle = SD_PlaySoundRTP(SD_OPENDOORSND, doorobjlist[door]->tilex << 16, doorobjlist[door]->tiley << 16);
+    }
+    position += 1 << 12;  // slide the door by an adaptive amount
+
+    if (position >= 0xffff) {   // door is all the way open
+        position = 0xffff;
+        doorobjlist[door]->ticcount = 0;
+        doorobjlist[door]->action = dr_open;
+        if (doorobjlist[door] == actorat[tilex][tiley]) actorat[tilex][tiley] = 0;
+    }
+    doorobjlist[door]->position = position;
+    doorobjlist[door]->texture = doorobjlist[door]->basetexture + ((position + 1) >> 13);
 }
 
 
@@ -1996,67 +1515,44 @@ void DoorOpening (int door)
 ===============
 */
 
-void DoorClosing (int door)
-{
-	int		area1,area2;
-	word	   *map;
-	long	   position;
-	int		tilex,tiley;
-	doorobj_t *dptr;
+void DoorClosing(int door) {
+    int		area1, area2;
+    word* map;
 
-	dptr = doorobjlist[door];
+    doorobj_t* dptr = doorobjlist[door];
 
-	tilex = dptr->tilex;
-	tiley = dptr->tiley;
+    int tilex = dptr->tilex;
+    int tiley = dptr->tiley;
+    long position = dptr->position;
 
-	position = dptr->position;
+    // slide the door by an adaptive amount
+    position -= 1 << 12;
+    if (position < (0xffff >> 1)) ResolveDoorSpace(tilex, tiley);
 
-//
-// slide the door by an adaptive amount
-//
-	position -= 1<<12;
-	if (position < (0xffff >> 1))
-	   ResolveDoorSpace(tilex,tiley);
+    if (position <= 0) {
+        position = 0;   // door is closed all the way, so disconnect the areas
+        dptr->action = dr_closed;
+        map = &MAPSPOT(tilex, tiley, 0);
 
+        if (areabyplayer[*map - AREATILE]) dptr->soundhandle = SD_PlaySoundRTP(SD_DOORHITSND, dptr->tilex << 16, dptr->tiley << 16);
 
-	if (position <= 0)
-	{
-	//
-	// door is closed all the way, so disconnect the areas
-	//
-		position = 0;
+        if (dptr->vertical) {
+            area1 = *(map + 1);
+            area2 = *(map - 1);
+        }
+        else {
+            area1 = *(map - mapwidth);
+            area2 = *(map + mapwidth);
+        }
+        area1 -= AREATILE;
+        area2 -= AREATILE;
+        areaconnect[area1][area2]--;
+        areaconnect[area2][area1]--;
+        ConnectAreas();
+    }
 
-		dptr->action = dr_closed;
-
-
-
-		map = &MAPSPOT(tilex,tiley,0);
-
-      if (areabyplayer[(*map-AREATILE)])
-         {
-         dptr->soundhandle=SD_PlaySoundRTP ( SD_DOORHITSND, dptr->tilex<<16, dptr->tiley<<16 );
-         }
-
-      if (dptr->vertical==true)
-		{
-			area1 =	*(map+1);
-			area2 =	*(map-1);
-		}
-		else
-		{
-			area1 =	*(map-mapwidth);
-			area2 =	*(map+mapwidth);
-		}
-		area1 -= AREATILE;
-		area2 -= AREATILE;
-		areaconnect[area1][area2]--;
-		areaconnect[area2][area1]--;
-
-		ConnectAreas ();
-   }
-
-	dptr->position = position;
-	dptr->texture=dptr->basetexture+((position+1)>>13);
+    dptr->position = position;
+    dptr->texture = dptr->basetexture + ((position + 1) >> 13);
 }
 
 /*
@@ -2067,23 +1563,13 @@ void DoorClosing (int door)
 ===============
 */
 
-int IsMaskedWall (int tilex, int tiley)
-{
-	int map;
+int IsMaskedWall (int tilex, int tiley) {
+	int map = MAPSPOT(tilex, tiley, 0);
 
-	if (IsPlatform(tilex,tiley))
-		return 1;
-
-	map=MAPSPOT(tilex,tiley,0);
-
-	if ((map>=157) && (map<=160))
-		return 1;
-
-	if ((map>=162) && (map<=179))
-		return 1;
-
-	if (M_ISMWALL(tilex,tiley))
-      return 1;
+	if (IsPlatform(tilex,tiley)) return 1;
+	if ((map>=157) && (map<=160)) return 1;
+	if ((map>=162) && (map<=179)) return 1;
+	if (M_ISMWALL(tilex,tiley)) return 1;
 
 	return 0;
 }
@@ -2097,510 +1583,489 @@ int IsMaskedWall (int tilex, int tiley)
 */
 
 
-void SpawnMaskedWall (int tilex, int tiley, int which, int flags)
-{word *map;
- int area1, area2;
- int up,dn,lt,rt;
- int himask;
- boolean sidepic;
- int side, middle, above, bottom;
- maskedwallobj_t * lastmaskobj;
- boolean metal;
- int maskedstart;
- int abovemaskedwallstart;
- int swallstart;
-
-	himask=W_GetNumForName("HMSKSTRT")+1;
-   maskedstart=W_GetNumForName("MASKSTRT");
-   abovemaskedwallstart=W_GetNumForName("ABVMSTRT");
-   swallstart=W_GetNumForName("SIDESTRT");
-
-	maskobjlist[maskednum]=(maskedwallobj_t*)Z_LevelMalloc(sizeof(maskedwallobj_t),PU_LEVELSTRUCT,NULL);
-	memset(maskobjlist[maskednum],0,sizeof(maskedwallobj_t));
-	lastmaskobj=maskobjlist[maskednum];
-
-   sidepic=true;
-
-	lastmaskobj->tilex = tilex;
-	lastmaskobj->tiley = tiley;
-	lastmaskobj->which = MWALL;
-	up=MAPSPOT(tilex,tiley-1,0)-AREATILE;
-	dn=MAPSPOT(tilex,tiley+1,0)-AREATILE;
-	lt=MAPSPOT(tilex-1,tiley,0)-AREATILE;
-	rt=MAPSPOT(tilex+1,tiley,0)-AREATILE;
-
-   if (IsMaskedWall(tilex,tiley-1)) up=2;
-   else if (IsWall(tilex,tiley-1)) up=1;
-   else up=0;
-
-   if (IsMaskedWall(tilex,tiley+1)) dn=2;
-   else if (IsWall(tilex,tiley+1)) dn=1;
-   else dn=0;
-
-   if (IsMaskedWall(tilex-1,tiley)) lt=2;
-   else if (IsWall(tilex-1,tiley)) lt=1;
-   else lt=0;
-
-   if (IsMaskedWall(tilex+1,tiley)) rt=2;
-   else if (IsWall(tilex+1,tiley)) rt=1;
-   else rt=0;
-
-	if ((up==1) && (dn==1))
-		lastmaskobj->vertical = true;
-	else if ((lt==1) && (rt==1))
-		lastmaskobj->vertical = false;
-	else if ((up>0) && (dn>0))
-		lastmaskobj->vertical = true;
-	else if ((lt>0) && (rt>0))
-		lastmaskobj->vertical = false;
-	else if (up>0)
-		lastmaskobj->vertical = true;
-	else if (dn>0)
-		lastmaskobj->vertical = true;
-	else if (lt>0)
-		lastmaskobj->vertical = false;
-	else if (rt>0)
-		lastmaskobj->vertical = false;
-
-	tilemap[tilex][tiley] = maskednum | 0xc000;
-	map = &MAPSPOT(tilex,tiley,0);
-
-	if (lastmaskobj->vertical==true)
-		{
-		area1 =	*(map+1);
-		area2 =	*(map-1);
-      area1 -= AREATILE;
-		area2 -= AREATILE;
-		if (lt==0 && rt==0)
-			{
-			areaconnect[area1][area2]++;
-			areaconnect[area2][area1]++;
-			}
-		}
-	else
-		{
-		area1 =	*(map-mapwidth);
-		area2 =	*(map+mapwidth);
-      area1 -= AREATILE;
-		area2 -= AREATILE;
-		if (up==0 && dn==0)
-			{
-			areaconnect[area1][area2]++;
-			areaconnect[area2][area1]++;
-			}
-		}
-	lastmaskobj->flags=flags;
-
-   if (IsPlatform(tilex,tiley))
-      {
-      if (MAPSPOT(tilex,tiley,0)==21)
-         {
-         metal=true;
-			actorat[tilex][tiley]=0;
-         }
-      else
-         metal=false;
-      }
+void SpawnMaskedWall(int tilex, int tiley, int which, int flags)
+{
+    word* map;
+    int area1, area2;
+    int up, dn, lt, rt;
+    int himask;
+    boolean sidepic;
+    int side, middle, above, bottom;
+    maskedwallobj_t* lastmaskobj;
+    boolean metal;
+    int maskedstart;
+    int abovemaskedwallstart;
+    int swallstart;
+
+    himask = W_GetNumForName("HMSKSTRT") + 1;
+    maskedstart = W_GetNumForName("MASKSTRT");
+    abovemaskedwallstart = W_GetNumForName("ABVMSTRT");
+    swallstart = W_GetNumForName("SIDESTRT");
+
+    maskobjlist[maskednum] = (maskedwallobj_t*)Z_LevelMalloc(sizeof(maskedwallobj_t), PU_LEVELSTRUCT, NULL);
+    memset(maskobjlist[maskednum], 0, sizeof(maskedwallobj_t));
+    lastmaskobj = maskobjlist[maskednum];
+
+    sidepic = true;
+
+    lastmaskobj->tilex = tilex;
+    lastmaskobj->tiley = tiley;
+    lastmaskobj->which = MWALL;
+    up = MAPSPOT(tilex, tiley - 1, 0) - AREATILE;
+    dn = MAPSPOT(tilex, tiley + 1, 0) - AREATILE;
+    lt = MAPSPOT(tilex - 1, tiley, 0) - AREATILE;
+    rt = MAPSPOT(tilex + 1, tiley, 0) - AREATILE;
+
+    if (IsMaskedWall(tilex, tiley - 1)) up = 2;
+    else if (IsWall(tilex, tiley - 1)) up = 1;
+    else up = 0;
+
+    if (IsMaskedWall(tilex, tiley + 1)) dn = 2;
+    else if (IsWall(tilex, tiley + 1)) dn = 1;
+    else dn = 0;
+
+    if (IsMaskedWall(tilex - 1, tiley)) lt = 2;
+    else if (IsWall(tilex - 1, tiley)) lt = 1;
+    else lt = 0;
+
+    if (IsMaskedWall(tilex + 1, tiley)) rt = 2;
+    else if (IsWall(tilex + 1, tiley)) rt = 1;
+    else rt = 0;
+
+    if ((up == 1) && (dn == 1))
+        lastmaskobj->vertical = true;
+    else if ((lt == 1) && (rt == 1))
+        lastmaskobj->vertical = false;
+    else if ((up > 0) && (dn > 0))
+        lastmaskobj->vertical = true;
+    else if ((lt > 0) && (rt > 0))
+        lastmaskobj->vertical = false;
+    else if (up > 0)
+        lastmaskobj->vertical = true;
+    else if (dn > 0)
+        lastmaskobj->vertical = true;
+    else if (lt > 0)
+        lastmaskobj->vertical = false;
+    else if (rt > 0)
+        lastmaskobj->vertical = false;
+
+    tilemap[tilex][tiley] = maskednum | 0xc000;
+    map = &MAPSPOT(tilex, tiley, 0);
+
+    if (lastmaskobj->vertical == true)
+    {
+        area1 = *(map + 1);
+        area2 = *(map - 1);
+        area1 -= AREATILE;
+        area2 -= AREATILE;
+        if (lt == 0 && rt == 0)
+        {
+            areaconnect[area1][area2]++;
+            areaconnect[area2][area1]++;
+        }
+    }
+    else
+    {
+        area1 = *(map - mapwidth);
+        area2 = *(map + mapwidth);
+        area1 -= AREATILE;
+        area2 -= AREATILE;
+        if (up == 0 && dn == 0)
+        {
+            areaconnect[area1][area2]++;
+            areaconnect[area2][area1]++;
+        }
+    }
+    lastmaskobj->flags = flags;
+
+    if (IsPlatform(tilex, tiley))
+    {
+        if (MAPSPOT(tilex, tiley, 0) == 21)
+        {
+            metal = true;
+            actorat[tilex][tiley] = 0;
+        }
+        else
+            metal = false;
+    }
 
 
 
-   switch (which)
-      {
-      case mw_peephole:
+    switch (which)
+    {
+    case mw_peephole:
 
-      //#if (SHAREWARE == 1)
-         side = W_GetNumForName("SIDE21");
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4") ;
-      /*
-      #else
-         side   = W_GetNumForName("SIDE16");
-         middle = W_GetNumForName("ABOVEM3A") ;
-         above  = W_GetNumForName("ABOVEM2A") ;
+        //#if (SHAREWARE == 1)
+        side = W_GetNumForName("SIDE21");
+        middle = W_GetNumForName("ABOVEM4A");
+        above = W_GetNumForName("ABOVEM4");
+        /*
+        #else
+           side   = W_GetNumForName("SIDE16");
+           middle = W_GetNumForName("ABOVEM3A") ;
+           above  = W_GetNumForName("ABOVEM2A") ;
 
-      #endif
-      */
-         bottom = W_GetNumForName("PEEPMASK");
-         break;
+        #endif
+        */
+        bottom = W_GetNumForName("PEEPMASK");
+        break;
 
 
-      case mw_dogwall:
+    case mw_dogwall:
 
-         side = W_GetNumForName("SIDE21");
-         above  = W_GetNumForName("ABOVEM4") ;
+        side = W_GetNumForName("SIDE21");
+        above = W_GetNumForName("ABOVEM4");
 
-   #if (SHAREWARE == 1)
-         middle = W_GetNumForName("ABOVEM4A") ;
-   #else
-         middle = W_GetNumForName("ABOVEM9") ;
+#if (SHAREWARE == 1)
+        middle = W_GetNumForName("ABOVEM4A");
+#else
+        middle = W_GetNumForName("ABOVEM9");
 
-   #endif
-         bottom = W_GetNumForName("DOGMASK");
-         break;
+#endif
+        bottom = W_GetNumForName("DOGMASK");
+        break;
 
-      case mw_multi1:
+    case mw_multi1:
 
-  /*
-      #if (SHAREWARE == 1)
-         side = W_GetNumForName("SIDE21");
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4") ;
+        /*
+            #if (SHAREWARE == 1)
+               side = W_GetNumForName("SIDE21");
+               middle = W_GetNumForName("ABOVEM4A") ;
+               above  = W_GetNumForName("ABOVEM4") ;
 
-      #else
-  */
-         //side   = W_GetNumForName("SIDE23") ;
-         side   = W_GetNumForName("SIDE21") ;
-         middle = W_GetNumForName("ABOVEM5A") ;
-         above  = W_GetNumForName("ABOVEM5") ;
+            #else
+        */
+        //side   = W_GetNumForName("SIDE23") ;
+        side = W_GetNumForName("SIDE21");
+        middle = W_GetNumForName("ABOVEM5A");
+        above = W_GetNumForName("ABOVEM5");
 
-     // #endif
+        // #endif
 
-         bottom = W_GetNumForName("MULTI1");
-         break;
+        bottom = W_GetNumForName("MULTI1");
+        break;
 
-      case mw_multi2:
-      /*
-      #if (SHAREWARE == 1)
-         side = W_GetNumForName("SIDE21");
-         middle = W_GetNumForName("ABOVEM4A");
-         above  = W_GetNumForName("ABOVEM4") ;
+    case mw_multi2:
+        /*
+        #if (SHAREWARE == 1)
+           side = W_GetNumForName("SIDE21");
+           middle = W_GetNumForName("ABOVEM4A");
+           above  = W_GetNumForName("ABOVEM4") ;
 
-      #else
-      */
-         //side   = W_GetNumForName("SIDE23") ;
-         side   = W_GetNumForName("SIDE21") ;
-         middle = W_GetNumForName("ABOVEM5B");
-         above  = W_GetNumForName("ABOVEM5") ;
+        #else
+        */
+        //side   = W_GetNumForName("SIDE23") ;
+        side = W_GetNumForName("SIDE21");
+        middle = W_GetNumForName("ABOVEM5B");
+        above = W_GetNumForName("ABOVEM5");
 
 
-      //#endif
+        //#endif
 
-         bottom = W_GetNumForName("MULTI2");
-         break;
+        bottom = W_GetNumForName("MULTI2");
+        break;
 
-      case mw_multi3:
+    case mw_multi3:
 
-      /*
-      #if (SHAREWARE == 1)
-         side = W_GetNumForName("SIDE21");
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4")  ;
+        /*
+        #if (SHAREWARE == 1)
+           side = W_GetNumForName("SIDE21");
+           middle = W_GetNumForName("ABOVEM4A") ;
+           above  = W_GetNumForName("ABOVEM4")  ;
 
-      #else
-      */
-         //side   = W_GetNumForName("SIDE23") ;
-         side   = W_GetNumForName("SIDE21") ;
-         middle = W_GetNumForName("ABOVEM5C") ;
-         above  = W_GetNumForName("ABOVEM5")  ;
+        #else
+        */
+        //side   = W_GetNumForName("SIDE23") ;
+        side = W_GetNumForName("SIDE21");
+        middle = W_GetNumForName("ABOVEM5C");
+        above = W_GetNumForName("ABOVEM5");
 
 
-      //#endif
+        //#endif
 
-         bottom = W_GetNumForName("MULTI3");
-         break;
+        bottom = W_GetNumForName("MULTI3");
+        break;
 
-      case mw_singlepane:
+    case mw_singlepane:
 
-   //   #if (SHAREWARE == 1)
-         side = W_GetNumForName("SIDE21");
+        //   #if (SHAREWARE == 1)
+        side = W_GetNumForName("SIDE21");
 
-   //   #else
-   //      side   = W_GetNumForName("SIDE22") ;
-   //   #endif
+        //   #else
+        //      side   = W_GetNumForName("SIDE22") ;
+        //   #endif
 
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4")  ;
-         bottom = W_GetNumForName("MASKED4");
-         break;
+        middle = W_GetNumForName("ABOVEM4A");
+        above = W_GetNumForName("ABOVEM4");
+        bottom = W_GetNumForName("MASKED4");
+        break;
 
-      case mw_normal1:
-         side = W_GetNumForName("SIDE21");
+    case mw_normal1:
+        side = W_GetNumForName("SIDE21");
 
 
-     // #if (SHAREWARE == 1)
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4")  ;
+        // #if (SHAREWARE == 1)
+        middle = W_GetNumForName("ABOVEM4A");
+        above = W_GetNumForName("ABOVEM4");
 
-      //#else
-       //  middle = W_GetNumForName("ABOVEM1A") ;
-       //  above  = W_GetNumForName("ABOVEM1")  ;
+        //#else
+         //  middle = W_GetNumForName("ABOVEM1A") ;
+         //  above  = W_GetNumForName("ABOVEM1")  ;
 
 
-      //#endif
+        //#endif
 
-         bottom = W_GetNumForName("MASKED1");
-         break;
+        bottom = W_GetNumForName("MASKED1");
+        break;
 
-      case mw_normal2:
-         side = W_GetNumForName("SIDE21");
+    case mw_normal2:
+        side = W_GetNumForName("SIDE21");
 
-      //#if (SHAREWARE == 1)
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4")  ;
+        //#if (SHAREWARE == 1)
+        middle = W_GetNumForName("ABOVEM4A");
+        above = W_GetNumForName("ABOVEM4");
 
-      //#else
-      //   middle = W_GetNumForName("ABOVEM2A") ;
-      //   above  = W_GetNumForName("ABOVEM2")  ;
+        //#else
+        //   middle = W_GetNumForName("ABOVEM2A") ;
+        //   above  = W_GetNumForName("ABOVEM2")  ;
 
-      //#endif
+        //#endif
 
-         bottom = W_GetNumForName("MASKED2");
-         break;
+        bottom = W_GetNumForName("MASKED2");
+        break;
 
-      case mw_normal3:
-         side = W_GetNumForName("SIDE21");
+    case mw_normal3:
+        side = W_GetNumForName("SIDE21");
 
-      //#if (SHAREWARE == 1)
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4")  ;
+        //#if (SHAREWARE == 1)
+        middle = W_GetNumForName("ABOVEM4A");
+        above = W_GetNumForName("ABOVEM4");
 
-      //#else
-      //   middle = W_GetNumForName("ABOVEM3A") ;
-      //   above  = W_GetNumForName("ABOVEM3")  ;
+        //#else
+        //   middle = W_GetNumForName("ABOVEM3A") ;
+        //   above  = W_GetNumForName("ABOVEM3")  ;
 
-      //#endif
+        //#endif
 
-         bottom = W_GetNumForName("MASKED3");
-         break;
+        bottom = W_GetNumForName("MASKED3");
+        break;
 
-      case mw_exitarch:
+    case mw_exitarch:
 
-         side = W_GetNumForName("SIDE21");
+        side = W_GetNumForName("SIDE21");
 
-      //#if (SHAREWARE == 1)
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4")  ;
+        //#if (SHAREWARE == 1)
+        middle = W_GetNumForName("ABOVEM4A");
+        above = W_GetNumForName("ABOVEM4");
 
-      //#else
-      //   middle = W_GetNumForName("ABOVEM6A") ;
-      //   above  = W_GetNumForName("ABOVEM6")  ;
+        //#else
+        //   middle = W_GetNumForName("ABOVEM6A") ;
+        //   above  = W_GetNumForName("ABOVEM6")  ;
 
-      //#endif
+        //#endif
 
-         bottom = W_GetNumForName("EXITARCH");
-         break;
+        bottom = W_GetNumForName("EXITARCH");
+        break;
 
-      case mw_secretexitarch:
+    case mw_secretexitarch:
 
-         side = W_GetNumForName("SIDE21");
+        side = W_GetNumForName("SIDE21");
 
-      //#if (SHAREWARE == 1)
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4")  ;
+        //#if (SHAREWARE == 1)
+        middle = W_GetNumForName("ABOVEM4A");
+        above = W_GetNumForName("ABOVEM4");
 
-      //#else
-      //   middle = W_GetNumForName("ABOVEM8A") ;
-      //   above  = W_GetNumForName("ABOVEM8")  ;
+        //#else
+        //   middle = W_GetNumForName("ABOVEM8A") ;
+        //   above  = W_GetNumForName("ABOVEM8")  ;
 
-      //#endif
+        //#endif
 
-         bottom = W_GetNumForName("EXITARCA");
-         break;
+        bottom = W_GetNumForName("EXITARCA");
+        break;
 
-      case mw_railing:
-         sidepic = false;
-         middle = -1;
-         above  = -1;
-         bottom = W_GetNumForName("RAILING");
-         break;
+    case mw_railing:
+        sidepic = false;
+        middle = -1;
+        above = -1;
+        bottom = W_GetNumForName("RAILING");
+        break;
 
-      case mw_hiswitchon:
-         sidepic = false;
-         middle = himask+1;
-         above = himask+3;
-         bottom = himask;
-         break;
+    case mw_hiswitchon:
+        sidepic = false;
+        middle = himask + 1;
+        above = himask + 3;
+        bottom = himask;
+        break;
 
-      case mw_hiswitchoff:
-         sidepic = false;
-         middle = himask+1;
-         above = himask+2;
-         bottom = himask;
-         break;
+    case mw_hiswitchoff:
+        sidepic = false;
+        middle = himask + 1;
+        above = himask + 2;
+        bottom = himask;
+        break;
 
-      case mw_entrygate:
-         side = W_GetNumForName("SIDE21");
+    case mw_entrygate:
+        side = W_GetNumForName("SIDE21");
 
-      //#if (SHAREWARE == 1)
-         //side = W_GetNumForName("SIDE21");
-         middle = W_GetNumForName("ABOVEM4A") ;
-         above  = W_GetNumForName("ABOVEM4")  ;
+        //#if (SHAREWARE == 1)
+           //side = W_GetNumForName("SIDE21");
+        middle = W_GetNumForName("ABOVEM4A");
+        above = W_GetNumForName("ABOVEM4");
 
-      //#else
-         //side   = W_GetNumForName("SIDE20") ;
-      //   middle = W_GetNumForName("ABOVEM7A") ;
-      //   above  = W_GetNumForName("ABOVEM7")  ;
+        //#else
+           //side   = W_GetNumForName("SIDE20") ;
+        //   middle = W_GetNumForName("ABOVEM7A") ;
+        //   above  = W_GetNumForName("ABOVEM7")  ;
 
 
-      //#endif
+        //#endif
 
-         bottom = W_GetNumForName("ENTRARCH");
-         break;
+        bottom = W_GetNumForName("ENTRARCH");
+        break;
 
-      case mw_platform1:
-         sidepic = false;
-         bottom = -1;
-         middle = -1;
-         above  = himask+10;
-         if (metal==true)
-            {
+    case mw_platform1:
+        sidepic = false;
+        bottom = -1;
+        middle = -1;
+        above = himask + 10;
+        if (metal == true)
+        {
             bottom = -1;
             middle = -1;
-            above  = himask+15;
-            }
-         break;
-      case mw_platform2:
-         sidepic = false;
-         bottom = himask+8;
-         middle = -1;
-         above = -1;
-         if (metal==true)
-            {
-            bottom = himask+14;
+            above = himask + 15;
+        }
+        break;
+    case mw_platform2:
+        sidepic = false;
+        bottom = himask + 8;
+        middle = -1;
+        above = -1;
+        if (metal == true)
+        {
+            bottom = himask + 14;
             middle = -1;
             above = -1;
-            }
-         else
-            lastmaskobj->flags|=MW_BOTTOMFLIPPING;
-         break;
-      case mw_platform3:
-         sidepic = false;
-         bottom = himask+8;
-         middle = -1;
-         above = himask+10;
-         if (metal==true)
-            {
-            bottom = himask+14;
+        }
+        else
+            lastmaskobj->flags |= MW_BOTTOMFLIPPING;
+        break;
+    case mw_platform3:
+        sidepic = false;
+        bottom = himask + 8;
+        middle = -1;
+        above = himask + 10;
+        if (metal == true)
+        {
+            bottom = himask + 14;
             middle = -1;
-            above = himask+15;
-            }
-         else
-            lastmaskobj->flags|=MW_BOTTOMFLIPPING;
-         break;
-      case mw_platform4:
-         sidepic = false;
-         bottom = himask+12;
-         middle = himask+7;
-         above = himask+7;
-         if (metal==true)
-            {
+            above = himask + 15;
+        }
+        else
+            lastmaskobj->flags |= MW_BOTTOMFLIPPING;
+        break;
+    case mw_platform4:
+        sidepic = false;
+        bottom = himask + 12;
+        middle = himask + 7;
+        above = himask + 7;
+        if (metal == true)
+        {
             bottom = -1;
-            middle = himask+15;
-            above = himask+15;
-            }
-         break;
-      case mw_platform5:
-         sidepic = false;
-         bottom = himask+12;
-         middle = himask+7;
-         above = himask+5;
-         if (metal==true)
-            {
+            middle = himask + 15;
+            above = himask + 15;
+        }
+        break;
+    case mw_platform5:
+        sidepic = false;
+        bottom = himask + 12;
+        middle = himask + 7;
+        above = himask + 5;
+        if (metal == true)
+        {
             bottom = -1;
-            middle = himask+15;
+            middle = himask + 15;
             above = -1;
-            }
-         else
-            lastmaskobj->flags|=MW_TOPFLIPPING;
-         break;
-      case mw_platform6:
-         sidepic = false;
-         bottom = himask+4;
-         middle = himask+7;
-         above = himask+5;
-         if (metal==true)
-            {
-            bottom = himask+14;
-            middle = himask+15;
+        }
+        else
+            lastmaskobj->flags |= MW_TOPFLIPPING;
+        break;
+    case mw_platform6:
+        sidepic = false;
+        bottom = himask + 4;
+        middle = himask + 7;
+        above = himask + 5;
+        if (metal) {
+            bottom = himask + 14;
+            middle = himask + 15;
             above = -1;
-            }
-         else
-            lastmaskobj->flags|=MW_TOPFLIPPING;
-         break;
-      case mw_platform7:
-         sidepic = false;
-         bottom = himask+4;
-         middle = himask+7;
-         above = himask+5;
-         if ((up==1) || (dn==1))
-            lastmaskobj->vertical=true;
-         else if ((lt==1) || (rt==1))
-            lastmaskobj->vertical=false;
-         else
-            Error("Perpendicular platform used with no wall near it\n");
-         if (metal==true)
-            {
-            bottom = himask+14;
-            middle = himask+15;
+        }
+        else lastmaskobj->flags |= MW_TOPFLIPPING;
+        break;
+    case mw_platform7:
+        sidepic = false;
+        bottom = himask + 4;
+        middle = himask + 7;
+        above = himask + 5;
+
+        if ((up == 1) || (dn == 1)) lastmaskobj->vertical = true;
+        else lastmaskobj->vertical = false; //default instead of crashing
+
+        //else if ((lt == 1) || (rt == 1)) lastmaskobj->vertical = false;
+        //else Error("Perpendicular platform used with no wall near it\n");
+
+        if (metal) {
+            bottom = himask + 14;
+            middle = himask + 15;
             above = -1;
-            }
-         else
-            lastmaskobj->flags|=MW_TOPFLIPPING;
-         break;
-      }
+        }
+        else lastmaskobj->flags |= MW_TOPFLIPPING;
+        break;
+    }
 
-   switch (which)
-      {
-      case mw_multi1:
-      case mw_multi2:
-      case mw_multi3:
-      case mw_singlepane:
-      case mw_normal1:
-      case mw_normal2:
-      case mw_normal3:
-         if (!(flags & MW_SHOOTABLE))
-            bottom+=9;
-         break;
-      }
-   lastmaskobj->midtexture=middle;
-   lastmaskobj->toptexture=above;
-   lastmaskobj->bottomtexture=bottom;
+    switch (which) {
+        case mw_multi1:
+        case mw_multi2:
+        case mw_multi3:
+        case mw_singlepane:
+        case mw_normal1:
+        case mw_normal2:
+        case mw_normal3:
+            if (!(flags & MW_SHOOTABLE)) bottom += 9;
+            break;
+    }
+    lastmaskobj->midtexture = middle;
+    lastmaskobj->toptexture = above;
+    lastmaskobj->bottomtexture = bottom;
 
-   if (sidepic == true)
-      {
-      lastmaskobj->sidepic=side;
-      if (lastmaskobj->vertical==true)
-         {
-         if (up==1)
-            tilemap[tilex][tiley-1] |= 0x4000;
-         if (dn==1)
-            tilemap[tilex][tiley+1] |= 0x4000;
-         }
-      else
-         {
-         if (lt==1)
-            tilemap[tilex-1][tiley] |= 0x4000;
-         if (rt==1)
-            tilemap[tilex+1][tiley] |= 0x4000;
-         }
-      }
+    if (sidepic) {
+        lastmaskobj->sidepic = side;
+        if (lastmaskobj->vertical) {
+            if (up == 1) tilemap[tilex][tiley - 1] |= 0x4000;
+            if (dn == 1) tilemap[tilex][tiley + 1] |= 0x4000;
+        }
+        else {
+            if (lt == 1) tilemap[tilex - 1][tiley] |= 0x4000;
+            if (rt == 1) tilemap[tilex + 1][tiley] |= 0x4000;
+        }
+    }
 
-	// Cache in the broken version
+    // Cache in the broken version
 
-	if (lastmaskobj->flags & MW_SHOOTABLE)
-      {
-      int i;
+    if (lastmaskobj->flags & MW_SHOOTABLE) {
+        for (int i = 1; i < AMW_NUMFRAMES; i++) PreCacheLump(lastmaskobj->bottomtexture + i, PU_CACHEWALLS, cache_transpatch_t);
+        SD_PreCacheSound(SD_GLASSBREAKSND);
+    }
 
-      for (i=1;i<AMW_NUMFRAMES;i++)
-         {
-         PreCacheLump(lastmaskobj->bottomtexture+i,PU_CACHEWALLS,cache_transpatch_t);
-         }
-      SD_PreCacheSound(SD_GLASSBREAKSND);
-		}
-   if (sidepic==true)
-      {
-      PreCacheLump(lastmaskobj->sidepic,PU_CACHEWALLS,cache_pic_t);
-      }
-   if (lastmaskobj->bottomtexture>=0)
-      PreCacheLump(lastmaskobj->bottomtexture,PU_CACHEWALLS,cache_transpatch_t);
-   if (lastmaskobj->toptexture>=0)
-      PreCacheLump(lastmaskobj->toptexture,PU_CACHEWALLS,cache_patch_t);
-   if (lastmaskobj->midtexture>=0)
-      PreCacheLump(lastmaskobj->midtexture,PU_CACHEWALLS,cache_patch_t);
-	maskednum++;
-	lastmaskobj++;
-	if (maskednum==MAXMASKED)
-		Error ("Too many masked walls\n");
+    if (sidepic) PreCacheLump(lastmaskobj->sidepic, PU_CACHEWALLS, cache_pic_t);
+    if (lastmaskobj->bottomtexture >= 0) PreCacheLump(lastmaskobj->bottomtexture, PU_CACHEWALLS, cache_transpatch_t);
+    if (lastmaskobj->toptexture >= 0) PreCacheLump(lastmaskobj->toptexture, PU_CACHEWALLS, cache_patch_t);
+    if (lastmaskobj->midtexture >= 0) PreCacheLump(lastmaskobj->midtexture, PU_CACHEWALLS, cache_patch_t);
+
+    maskednum++;
+    lastmaskobj++;
+
+    if (maskednum == MAXMASKED) Error("Too many masked walls\n");
 }
 
 /*
@@ -2610,65 +2075,48 @@ void SpawnMaskedWall (int tilex, int tiley, int which, int flags)
 =
 ===============
 */
-void FixMaskedWallAreaNumbers ( void )
-{
-	int i;
-	int up,dn,lt,rt;
-	int tilex,tiley;
+void FixMaskedWallAreaNumbers(void) {
+    int up, dn, lt, rt;
+    int tilex, tiley;
 
-	for (i=0;i<maskednum;i++)
-		{
-		int tile;
-		tilex=maskobjlist[i]->tilex;
-		tiley=maskobjlist[i]->tiley;
-      tile=MAPSPOT(tilex,tiley,0)-AREATILE;
-		if ((tile<=NUMAREAS) && (tile>0))
-		   {
-         maskobjlist[i]->areanumber = tile;
-			continue;
-		   }
-		up=MAPSPOT(tilex,tiley-1,0)-AREATILE;
-		dn=MAPSPOT(tilex,tiley+1,0)-AREATILE;
-		lt=MAPSPOT(tilex-1,tiley,0)-AREATILE;
-		rt=MAPSPOT(tilex+1,tiley,0)-AREATILE;
+    for (int i = 0; i < maskednum; i++) {
+        int tile;
+        tilex = maskobjlist[i]->tilex;
+        tiley = maskobjlist[i]->tiley;
+        tile = MAPSPOT(tilex, tiley, 0) - AREATILE;
+        if (tile <= NUMAREAS && tile > 0) {
+            maskobjlist[i]->areanumber = tile;
+            continue;
+        }
+        up = MAPSPOT(tilex, tiley - 1, 0) - AREATILE;
+        dn = MAPSPOT(tilex, tiley + 1, 0) - AREATILE;
+        lt = MAPSPOT(tilex - 1, tiley, 0) - AREATILE;
+        rt = MAPSPOT(tilex + 1, tiley, 0) - AREATILE;
 
 
 
-		up = ((up>0) && (up<=NUMAREAS));
-		dn = ((dn>0) && (dn<=NUMAREAS));
-		lt = ((lt>0) && (lt<=NUMAREAS));
-		rt = ((rt>0) && (rt<=NUMAREAS));
+        up = ((up > 0) && (up <= NUMAREAS));
+        dn = ((dn > 0) && (dn <= NUMAREAS));
+        lt = ((lt > 0) && (lt <= NUMAREAS));
+        rt = ((rt > 0) && (rt <= NUMAREAS));
 
-		if (maskobjlist[i]->vertical==true)
-			{
-			if (rt)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex+1,tiley,0);
-			else if (lt)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex-1,tiley,0);
-			else if (up)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex,tiley-1,0);
-			else if (dn)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex,tiley+1,0);
-			else
-				Error("FixMaskedWalls: Couldn't fix up area at x=%d y=%d\n",tilex,tiley);
-			}
-		else
-			{
-			if (dn)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex,tiley+1,0);
-			else if (up)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex,tiley-1,0);
-			else if (rt)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex+1,tiley,0);
-			else if (lt)
-				MAPSPOT(tilex,tiley,0) = MAPSPOT(tilex-1,tiley,0);
-			else
-				Error("FixMaskedWalls: Couldn't fix up area at x=%d y=%d\n",tilex,tiley);
-			}
-		maskobjlist[i]->areanumber = MAPSPOT(tilex,tiley,0)-AREATILE;
-		if ((maskobjlist[i]->areanumber <0) || (maskobjlist[i]->areanumber > NUMAREAS))
-		  Error("Bad masked wall areanumber of %d",maskobjlist[i]->areanumber);
-		}
+        if (maskobjlist[i]->vertical) {
+            if (rt) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex + 1, tiley, 0);
+            else if (lt) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex - 1, tiley, 0);
+            else if (up) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex, tiley - 1, 0);
+            else if (dn) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex, tiley + 1, 0);
+            else Error("FixMaskedWalls: Couldn't fix up area at x=%d y=%d\n", tilex, tiley);
+        }
+        else {
+            if (dn) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex, tiley + 1, 0);
+            else if (up) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex, tiley - 1, 0);
+            else if (rt) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex + 1, tiley, 0);
+            else if (lt) MAPSPOT(tilex, tiley, 0) = MAPSPOT(tilex - 1, tiley, 0);
+            else Error("FixMaskedWalls: Couldn't fix up area at x=%d y=%d\n", tilex, tiley);
+        }
+        maskobjlist[i]->areanumber = MAPSPOT(tilex, tiley, 0) - AREATILE;
+        if ((maskobjlist[i]->areanumber < 0) || (maskobjlist[i]->areanumber > NUMAREAS)) Error("Bad masked wall areanumber of %d", maskobjlist[i]->areanumber);
+    }
 }
 
 
@@ -3183,21 +2631,11 @@ void OperateElevatorSwitch(objtype*ob,int elevnum,int checkx,int checky)
 	  (abs(ob->tiley-door1->tiley)<=1))
 	{if (!SetNextAction(eptr,1)) // set next to dest
 		return;
-    #if (DEVELOPMENT == 1)
-    #if (ELEVATORTEST == 1)
-	 Debug("\nswitch at src %d flipped",elevnum);
-	 #endif
-	 #endif
 	 eptr->ticcount = 0;
 	}
  else //switch at dest
 	{if (!SetNextAction(eptr,0)) // set next to src
 		return;
-    #if (DEVELOPMENT == 1)
-    #if (ELEVATORTEST == 1)
-	 Debug("\nswitch at dest %d flipped",elevnum);
-	 #endif
-	 #endif
 	 eptr->ticcount = 0;
 	}
 
@@ -3255,60 +2693,22 @@ void MoveDoors (void)
 /*
 ===============
 =
-= GetAreaNumber
+= RT_GetNewAreaNumber
+= This function doesn't differentiate a direction
 =
 ===============
 */
-int GetAreaNumber ( int tilex, int tiley, int dir )
-{
-   int up,dn,lt,rt;
 
-   up=MAPSPOT(tilex,tiley-1,0)-AREATILE;
-   dn=MAPSPOT(tilex,tiley+1,0)-AREATILE;
-   lt=MAPSPOT(tilex-1,tiley,0)-AREATILE;
-   rt=MAPSPOT(tilex+1,tiley,0)-AREATILE;
-   if ((up<=0) || (up>NUMAREAS)) up=0;
-   if ((dn<=0) || (dn>NUMAREAS)) dn=0;
-   if ((lt<=0) || (lt>NUMAREAS)) lt=0;
-   if ((rt<=0) || (rt>NUMAREAS)) rt=0;
-	switch (dir)
-		{
-		case north:
-			if (up)
-				return up;
-			else if (dn)
-				return dn;
-			break;
-		case south:
-			if (dn)
-				return dn;
-			else if (up)
-				return up;
-			break;
-		case east:
-			if (rt)
-				return rt;
-			else if (lt)
-				return lt;
-			break;
-		case west:
-			if (lt)
-				return lt;
-			else if (rt)
-				return rt;
-			break;
-		}
-	if (up)
-		return up;
-	else if (dn)
-		return dn;
-	else if (lt)
-		return lt;
-	else if (rt)
-		return rt;
-	else
-		Error("Cannot find an area number for tile at x=%d y=%d\n",tilex,tiley);
-	return -1;
+int32_t RT_GetNewAreaNumber(int32_t tx, int32_t ty) {
+    int32_t mapspot;
+
+    for (int i = 0; i < nodir; i += 2) {
+        mapspot = MAPSPOT(tx + TileNormals[i].momx, ty + TileNormals[i].momy, 0) - AREATILE;
+        if (mapspot <= 0 || mapspot > NUMAREAS) continue;   //didn't get a match
+        else return mapspot;    //found an area
+    }
+
+    Error("RT_GetNewAreaNumber:\ncan't find area near x=%d y=%d\n", tx, ty);
 }
 
 /*
@@ -3351,7 +2751,7 @@ void SpawnPushWall (int tilex, int tiley, int lock, int texture, int dir, int ty
 	lastpwallobj->texture = texture;
    if (!texture&0x1000)
 	   PreCacheLump(texture,PU_CACHEWALLS,cache_pic_t);
-   lastpwallobj->areanumber = GetAreaNumber(tilex,tiley,lastpwallobj->dir);
+   lastpwallobj->areanumber = RT_GetNewAreaNumber(tilex,tiley);   //GetNewAreaNumber(tilex,tiley,lastpwallobj->dir);
 
    MAPSPOT (tilex, tiley, 0)=(word)(lastpwallobj->areanumber+AREATILE);
 
@@ -3434,7 +2834,7 @@ void OperatePushWall (int pwall, int dir, boolean localplayer )
          pw->dir=dir;
          SD_PlaySoundRTP ( SD_TOUCHPLATESND, pw->x, pw->y );
          ConnectPushWall(pwall);
-         SetupPushWall(pwall);
+         RT_SetupPushwall(pwall);
    	   gamestate.secretcount++;
 		   break;
 	   default:
@@ -3480,25 +2880,21 @@ void ActivateAllPushWalls(void)
 =====================
 */
 
-void ActivatePushWall (long pwall)
-{
-   pwallobj_t * pw;
+void ActivatePushWall(long pwall) {
+    pwallobj_t* pw = pwallobjlist[pwall];
 
-   pw=pwallobjlist[pwall];
-
-	switch (pw->action)
-	{
-	case pw_npushed:
-      pw->action=pw_pushing;
-      ConnectPushWall(pwall);
-      SetupPushWall(pwall);
-   	gamestate.secretcount++;
-		break;
-	default:
-      // Can't push
-      SD_Play( SD_BADTOUCHSND );
-		break;
-	}
+    switch (pw->action) {
+    case pw_npushed:
+        pw->action = pw_pushing;
+        ConnectPushWall(pwall);
+        RT_SetupPushwall(pwall);
+        gamestate.secretcount++;
+        break;
+    default:
+        // Can't push
+        SD_Play(SD_BADTOUCHSND);
+        break;
+    }
 }
 
 /*
@@ -3521,7 +2917,7 @@ void ActivateMoveWall (long pwall)
 	{
 	case pw_npushed:
       pw->action=pw_moving;
-      SetupPushWall(pwall);
+      RT_SetupPushwall(pwall);
       break;
 	default:
       SD_Play( SD_BADTOUCHSND );
@@ -3587,70 +2983,24 @@ void ConnectPushWall (int pwall)
 /*
 ===============
 =
-= SetupPushWall
+= RT_SetupPushwall
 =
 ===============
 */
 
-void SetupPushWall (int pwall)
-{
-	pwallobj_t * pw;
-	int speed;
+void RT_SetupPushwall(int32_t pwall) {
+    pwallobj_t* tile  = pwallobjlist[pwall];
+    int32_t     scale = tile->speed << PUSHWALLSPEED;
+    
+    tile->momentumx = TileNormals[tile->dir].momx * scale;
+    tile->momentumy = TileNormals[tile->dir].momy * scale;
 
-	pw=pwallobjlist[pwall];
-	speed=pw->speed<<PUSHWALLSPEED;
-	switch (pw->dir)
-	{
-	case north:
-		pw->momentumx=0;
-		pw->momentumy=-speed;
-		break;
-
-	case east:
-		pw->momentumx=speed;
-		pw->momentumy=0;
-		break;
-
-	case northeast:
-		pw->momentumx=speed;
-		pw->momentumy=-speed;
-		break;
-
-	case southeast:
-		pw->momentumx=speed;
-		pw->momentumy=speed;
-		break;
-
-	case south:
-		pw->momentumx=0;
-		pw->momentumy=speed;
-		break;
-
-	case west:
-		pw->momentumx=-speed;
-		pw->momentumy=0;
-		break;
-
-	case northwest:
-		pw->momentumx=-speed;
-		pw->momentumy=-speed;
-		break;
-
-	case southwest:
-		pw->momentumx=-speed;
-		pw->momentumy=speed;
-		break;
-	}
-	if (pw->action==pw_pushing)
-		{
-      if (loadedgame==false)
-         pw->soundhandle=SD_PlaySoundRTP ( SD_PUSHWALLSND, pw->x, pw->y );
-      pw->state=(0x20000L/speed);
-		}
-	if (pw->action==pw_moving)
-      pw->state=(0x10000L/speed);
+    if (tile->action == pw_pushing) {
+        if (!loadedgame) tile->soundhandle = SD_PlaySoundRTP(SD_PUSHWALLSND, tile->x, tile->y);
+        tile->state = (0x20000L / scale);
+    }
+    if (tile->action == pw_moving) tile->state = (0x10000L / scale);
 }
-
 
 /*
 =====================
@@ -3662,60 +3012,55 @@ void SetupPushWall (int pwall)
 =====================
 */
 
-void MovePWalls (void)
-{
-	int		pwall;
+void MovePWalls(void) {
+    int pwall;
 
-	for (pwall = 0 ; pwall < pwallnum ; pwall++)
-		{
-		if (pwallobjlist[pwall]->action==pw_pushing)
-			{
-			WallPushing (pwall);
-			SD_PanRTP (pwallobjlist[pwall]->soundhandle, pwallobjlist[pwall]->x, pwallobjlist[pwall]->y );
-			}
-		if (pwallobjlist[pwall]->action==pw_moving)
-			{
-			WallMoving (pwall);
-			SD_PanRTP (pwallobjlist[pwall]->soundhandle, pwallobjlist[pwall]->x, pwallobjlist[pwall]->y );
-			}
-		}
+    for (pwall = 0; pwall < pwallnum; pwall++) {
+        if (pwallobjlist[pwall]->action == pw_pushing) {
+            WallPushing(pwall);
+            SD_PanRTP(pwallobjlist[pwall]->soundhandle, pwallobjlist[pwall]->x, pwallobjlist[pwall]->y);
+        }
+
+        if (pwallobjlist[pwall]->action == pw_moving) {
+            WallMoving(pwall);
+            SD_PanRTP(pwallobjlist[pwall]->soundhandle, pwallobjlist[pwall]->x, pwallobjlist[pwall]->y);
+        }
+    }
 }
 
 
-void ClearActorat(pwallobj_t*pw)
-{int txhigh,txlow,tyhigh,tylow;
- int tryx,tryy,x,y;
- int pwrad = 0x6fff;
+void ClearActorat(pwallobj_t* pw) {
+    int txhigh, txlow, tyhigh, tylow;
+    int tryx, tryy, x, y;
+    int pwrad = 0x6fff;
 
 
- tryx = pw->x;
- tryy = pw->y;
- txlow = (tryx - pwrad) >> 16;
- txhigh = (tryx + pwrad) >> 16;
- tylow = (tryy - pwrad) >> 16;
- tyhigh = (tryy + pwrad) >> 16;
- for(y=tylow;y<=tyhigh;y++)
-	 for(x=txlow;x<=txhigh;x++)
-		{if (actorat[x][y] == pw)
-			actorat[x][y] = NULL;
-		}
+    tryx = pw->x;
+    tryy = pw->y;
+    txlow = (tryx - pwrad) >> 16;
+    txhigh = (tryx + pwrad) >> 16;
+    tylow = (tryy - pwrad) >> 16;
+    tyhigh = (tryy + pwrad) >> 16;
+
+    for (y = tylow; y <= tyhigh; y++)
+        for (x = txlow; x <= txhigh; x++)
+            if (actorat[x][y] == pw) actorat[x][y] = NULL;
 }
 
-void SetActorat(pwallobj_t*pw)
-{int txhigh,txlow,tyhigh,tylow;
- int tryx,tryy,x,y;
- int pwrad = 0x6fff;
+void SetActorat(pwallobj_t* pw) {
+    int txhigh, txlow, tyhigh, tylow;
+    int tryx, tryy, x, y;
+    int pwrad = 0x6fff;
 
- tryx = pw->x;
- tryy = pw->y;
- txlow = (tryx - pwrad) >> 16;
- txhigh = (tryx + pwrad) >> 16;
- tylow = (tryy - pwrad) >> 16;
- tyhigh = (tryy + pwrad) >> 16;
+    tryx = pw->x;
+    tryy = pw->y;
+    txlow = (tryx - pwrad) >> 16;
+    txhigh = (tryx + pwrad) >> 16;
+    tylow = (tryy - pwrad) >> 16;
+    tyhigh = (tryy + pwrad) >> 16;
 
- for(y=tylow;y<=tyhigh;y++)
-	 for(x=txlow;x<=txhigh;x++)
-		actorat[x][y] = pw;
+    for (y = tylow; y <= tyhigh; y++)
+        for (x = txlow; x <= txhigh; x++) actorat[x][y] = pw;
 }
 
 /*
@@ -3725,11 +3070,10 @@ void SetActorat(pwallobj_t*pw)
 =
 =================
 */
-void FinishPushWall (pwallobj_t * pw)
-{
-   pw->action = pw_pushed;
-   actorat[pw->tilex][pw->tiley] = (wall_t*)&walls[GetWallIndex(pw->texture)];
-   tilemap[pw->tilex][pw->tiley] = pw->texture;
+void FinishPushWall(pwallobj_t* pw) {
+    pw->action = pw_pushed;
+    actorat[pw->tilex][pw->tiley] = (wall_t*)&walls[GetWallIndex(pw->texture)];
+    tilemap[pw->tilex][pw->tiley] = pw->texture;
 }
 
 /*
@@ -3739,10 +3083,9 @@ void FinishPushWall (pwallobj_t * pw)
 =
 =================
 */
-void ResetPushWall (pwallobj_t * pw)
-{
-   SetActorat(pw);
-   tilemap[pw->tilex][pw->tiley] = pw->texture|0x800;
+void ResetPushWall(pwallobj_t* pw) {
+    SetActorat(pw);
+    tilemap[pw->tilex][pw->tiley] = pw->texture | 0x800;
 }
 
 /*
@@ -3752,93 +3095,70 @@ void ResetPushWall (pwallobj_t * pw)
 =
 =================
 */
-void WallPushing (int pwall)
-{
-	int      checkx,checky;
-	int      spot;
-	pwallobj_t * pw;
+void WallPushing(int pwall) {
+    int      checkx, checky;
+    int      spot;
 
-	pw=pwallobjlist[pwall];
+    pwallobj_t* pw = pwallobjlist[pwall];
 
-   ClearActorat(pw);
+    ClearActorat(pw);
 
-	PushWallMove(pwall);
-	pw->x+=pw->momentumx;
-	pw->y+=pw->momentumy;
+    PushWallMove(pwall);
+    pw->x += pw->momentumx;
+    pw->y += pw->momentumy;
 
-	pw->state--;
+    pw->state--;
 
-	checkx=pw->tilex;
-	checky=pw->tiley;
+    checkx = pw->tilex;
+    checky = pw->tiley;
 
-	pw->tilex=pw->x>>16;
-	pw->tiley=pw->y>>16;
+    pw->tilex = pw->x >> 16;
+    pw->tiley = pw->y >> 16;
 
-	if ((pw->tilex!=checkx) || (pw->tiley!=checky))
-		{
-		int x,y;
-		int area = MAPSPOT(pw->tilex,pw->tiley,0)-AREATILE;
+    if ((pw->tilex != checkx) || (pw->tiley != checky)) {
+        int x, y;
+        int area = MAPSPOT(pw->tilex, pw->tiley, 0) - AREATILE;
 
-		if ((area<=0) || (area>NUMAREAS))
-			{
-			area=pw->areanumber;
-			MAPSPOT (pw->tilex, pw->tiley, 0)=(word)(pw->areanumber+AREATILE);
-			}
-		// block crossed into a new block
-		//
-		// the tile can now be walked into
-		//
-		mapseen[checkx][checky] = 0;
-		pw->areanumber = area;
-		if (pw->momentumx>0)
-			x=1;
-		else if (pw->momentumx<0)
-			x=-1;
-		else
-			x=0;
-		if (pw->momentumy>0)
-			y=1;
-		else if (pw->momentumy<0)
-			y=-1;
-		else
-			y=0;
-		if (tilemap[pw->tilex+x][pw->tiley+y])
-			{
-			pw->state=(0x8000L/(pw->speed<<PUSHWALLSPEED));
-			}
-		if (actorat[pw->tilex+x][pw->tiley+y])
-		  ResolveDoorSpace(pw->tilex+x,pw->tiley+y);
-		}
+        if ((area <= 0) || (area > NUMAREAS)) {
+            area = pw->areanumber;
+            MAPSPOT(pw->tilex, pw->tiley, 0) = (word)(pw->areanumber + AREATILE);
+        }
+        // block crossed into a new block, the tile can now be walked into
+        mapseen[checkx][checky] = 0;
+        pw->areanumber = area;
+
+        if (pw->momentumx > 0) x = 1;
+        else if (pw->momentumx < 0) x = -1;
+        else  x = 0;
+
+        if (pw->momentumy > 0) y = 1;
+        else if (pw->momentumy < 0) y = -1;
+        else y = 0;
+
+        if (tilemap[pw->tilex + x][pw->tiley + y]) pw->state = (0x8000L / (pw->speed << PUSHWALLSPEED));
+        if (actorat[pw->tilex + x][pw->tiley + y]) ResolveDoorSpace(pw->tilex + x, pw->tiley + y);
+    }
 
 
-	if (pw->state==0)
-		{
-		pw->x=(pw->tilex<<16)+0x8000;
-		pw->y=(pw->tiley<<16)+0x8000;
-		spot = MAPSPOT(pw->tilex,pw->tiley,1)-ICONARROWS;
-		if ((spot >= 0) && (spot <= 7))
-			{
-         pw->action = pw_npushed;
-			pw->dir = spot;
-         ResetPushWall (pw);
-         if (pw->lock)
-				{
-            pw->action=pw_pushing;
-				ConnectPushWall(pwall);
-				SetupPushWall(pwall);
-				}
-         else
-            {
-            gamestate.secrettotal++;
+    if (!pw->state) {
+        pw->x = (pw->tilex << 16) + 0x8000;
+        pw->y = (pw->tiley << 16) + 0x8000;
+        spot = MAPSPOT(pw->tilex, pw->tiley, 1) - ICONARROWS;
+        if ((spot >= 0) && (spot <= 7)) {
+            pw->action = pw_npushed;
+            pw->dir = spot;
+            ResetPushWall(pw);
+            if (pw->lock) {
+                pw->action = pw_pushing;
+                ConnectPushWall(pwall);
+                RT_SetupPushwall(pwall);
             }
-         }
-		else
-			{
-         FinishPushWall (pw);
-			}
-		}
-   else
-      SetActorat(pw);
+            else gamestate.secrettotal++;
+        }
+        else FinishPushWall(pw);
+    }
+    else
+        SetActorat(pw);
 }
 
 
@@ -3849,93 +3169,74 @@ void WallPushing (int pwall)
 =
 =================
 */
-void WallMoving (int pwall)
-{
-	int      checkx,checky;
-	int      spot;
-	pwallobj_t * pw;
+void WallMoving(int pwall) {
+    int      checkx, checky;
+    int      spot;
+    pwallobj_t* pw;
 
-	pw=pwallobjlist[pwall];
+    pw = pwallobjlist[pwall];
 
-   ClearActorat(pw);
+    ClearActorat(pw);
 
-	PushWallMove(pwall);
-	pw->x+=pw->momentumx;
-	pw->y+=pw->momentumy;
+    PushWallMove(pwall);
+    pw->x += pw->momentumx;
+    pw->y += pw->momentumy;
 
-	pw->state--;
+    pw->state--;
 
-	checkx=pw->tilex;
-	checky=pw->tiley;
+    checkx = pw->tilex;
+    checky = pw->tiley;
 
-	pw->tilex=pw->x>>16;
-	pw->tiley=pw->y>>16;
+    pw->tilex = pw->x >> 16;
+    pw->tiley = pw->y >> 16;
 
-	if ((pw->tilex!=checkx) || (pw->tiley!=checky))
-		{
-		int area = MAPSPOT(pw->tilex,pw->tiley,0)-AREATILE;
+    if ((pw->tilex != checkx) || (pw->tiley != checky)) {
+        int area = MAPSPOT(pw->tilex, pw->tiley, 0) - AREATILE;
 
-		if ((area<=0) || (area>NUMAREAS))
-			{
-			area=pw->areanumber;
-			MAPSPOT (pw->tilex, pw->tiley, 0)=(word)(pw->areanumber+AREATILE);
-			}
-		// block crossed into a new block
-		//
-		// the tile can now be walked into
-		//
-		if (areabyplayer[area])
-			{
-			if (pw->speed==2)
-				pw->soundhandle=SD_PlaySoundRTP ( SD_GOWALLSND, pw->x, pw->y );
-			else
-				pw->soundhandle=SD_PlaySoundRTP ( SD_TURBOWALLSND, pw->x, pw->y );
-			}
+        if ((area <= 0) || (area > NUMAREAS)) {
+            area = pw->areanumber;
+            MAPSPOT(pw->tilex, pw->tiley, 0) = (word)(pw->areanumber + AREATILE);
+        }
+        // block crossed into a new block, the tile can now be walked into
+        if (areabyplayer[area]) {
+            if (pw->speed == 2) pw->soundhandle = SD_PlaySoundRTP(SD_GOWALLSND, pw->x, pw->y);
+            else pw->soundhandle = SD_PlaySoundRTP(SD_TURBOWALLSND, pw->x, pw->y);
+        }
 
-		if (actorat[pw->tilex][pw->tilex])
-		  ResolveDoorSpace(pw->tilex,pw->tiley);
-		mapseen[checkx][checky] = 0;
-		pw->areanumber = MAPSPOT (pw->tilex, pw->tiley, 0)-AREATILE;
-		//actorat[pw->tilex][pw->tiley]=pw;
-		if ( (pw->tilex==0) || (pw->tilex==127) ||
-			  (pw->tiley==0) || (pw->tiley==127) )
-			{
-         if (W_CheckNumForName("imfree")>=0)
-            {
-            lbm_t *LBM;
+        if (actorat[pw->tilex][pw->tilex]) ResolveDoorSpace(pw->tilex, pw->tiley);
 
-            LBM = (lbm_t *) W_CacheLumpNum (W_GetNumForName ("imfree"), PU_CACHE, Cvt_lbm_t, 1);
-            VL_DecompressLBM (LBM,true);
-            VH_UpdateScreen ();
-            I_Delay (2000);
+        mapseen[checkx][checky] = 0;
+        pw->areanumber = MAPSPOT(pw->tilex, pw->tiley, 0) - AREATILE;
+        if ((pw->tilex == 0) || (pw->tilex == 127) || (pw->tiley == 0) || (pw->tiley == 127)) {
+            if (W_CheckNumForName("imfree") >= 0) {
+                lbm_t* LBM = (lbm_t*)W_CacheLumpNum(W_GetNumForName("imfree"), PU_CACHE, Cvt_lbm_t, 1);
+
+                VL_DecompressLBM(LBM, true);
+                VH_UpdateScreen();
+                I_Delay(2000);
             }
-			Error ("PushWall Attempting to escape off the edge of the map\nIt is located at x=%d y=%d\nI'm Free!!!!\n",
-					  pw->tilex, pw->tiley);
-			}
-		}
-	if (pw->state==0)
-		{
-		pw->x=(pw->tilex<<16)+0x8000;
-		pw->y=(pw->tiley<<16)+0x8000;
-		spot = MAPSPOT(pw->tilex,pw->tiley,1)-ICONARROWS;
-		if ((spot >= 0) && (spot <= 7))
-			{
-			int area = MAPSPOT(pw->tilex,pw->tiley,0)-AREATILE;
+            Error("PushWall Attempting to escape off the edge of the map\nIt is located at x=%d y=%d\nI'm Free!!!!\n", pw->tilex, pw->tiley);
+        }
+    }
+    if (!pw->state) {
+        pw->x = (pw->tilex << 16) + 0x8000;
+        pw->y = (pw->tiley << 16) + 0x8000;
+        spot = MAPSPOT(pw->tilex, pw->tiley, 1) - ICONARROWS;
+        if ((spot >= 0) && (spot <= 7)) {
+            int area = MAPSPOT(pw->tilex, pw->tiley, 0) - AREATILE;
 
-			if ((area<=0) || (area>NUMAREAS))
-				{
-				area=pw->areanumber;
-				MAPSPOT (pw->tilex, pw->tiley, 0)=(word)(pw->areanumber+AREATILE);
-				}
+            if ((area <= 0) || (area > NUMAREAS)) {
+                area = pw->areanumber;
+                MAPSPOT(pw->tilex, pw->tiley, 0) = (word)(pw->areanumber + AREATILE);
+            }
 
-			if (areabyplayer[area] && (abs(spot-pw->dir)==4))
-				SD_PlaySoundRTP ( SD_PUSHWALLHITSND, pw->x, pw->y );
-			pw->dir = spot;
-			}
-		SetupPushWall(pwall);
-		}
-   else
-      SetActorat(pw);
+            if (areabyplayer[area] && (abs(spot - pw->dir) == 4)) SD_PlaySoundRTP(SD_PUSHWALLHITSND, pw->x, pw->y);
+            pw->dir = spot;
+        }
+        RT_SetupPushwall(pwall);
+    }
+    else
+        SetActorat(pw);
 }
 
 
@@ -3947,61 +3248,58 @@ void WallMoving (int pwall)
 =
 =================
 */
-void SavePushWalls(byte ** buf, int * sz)
-{
-  int unitsize;
-  pwallobj_t * pw;
-  byte * bufptr;
-  int i;
-  int size;
+void SavePushWalls(byte** buf, int* sz) {
+    int unitsize;
+    pwallobj_t* pw;
+    byte* bufptr;
+    int i;
+    int size;
 
-  if (pwallnum==0)
-	  {
-	  *sz=0;
-	  *buf=SafeMalloc(16);
-	  return;
-	  }
-  pw=pwallobjlist[0];
-  unitsize=0;
-  unitsize+=sizeof(pw->state);
-  unitsize+=sizeof(pw->x);
-  unitsize+=sizeof(pw->y);
-  unitsize+=sizeof(pw->dir);
-  unitsize+=sizeof(pw->speed);
-  unitsize+=sizeof(pw->action);
+    if (!pwallnum) {
+        *sz = 0;
+        *buf = SafeMalloc(16);
+        return;
+    }
+    pw = pwallobjlist[0];
+    unitsize = 0;
+    unitsize += sizeof(pw->state);
+    unitsize += sizeof(pw->x);
+    unitsize += sizeof(pw->y);
+    unitsize += sizeof(pw->dir);
+    unitsize += sizeof(pw->speed);
+    unitsize += sizeof(pw->action);
 
-  *sz=pwallnum*unitsize;
+    *sz = pwallnum * unitsize;
 
-  *buf=SafeMalloc(*sz);
-  bufptr=*buf;
+    *buf = SafeMalloc(*sz);
+    bufptr = *buf;
 
-  for (i=0;i<pwallnum;i++)
-     {
-     pw=pwallobjlist[i];
-     size=sizeof(pw->state);
-     memcpy(bufptr,&(pw->state),size);
-     bufptr+=size;
+    for (i = 0; i < pwallnum; i++) {
+        pw = pwallobjlist[i];
+        size = sizeof(pw->state);
+        memcpy(bufptr, &(pw->state), size);
+        bufptr += size;
 
-     size=sizeof(pw->x);
-     memcpy(bufptr,&(pw->x),size);
-     bufptr+=size;
+        size = sizeof(pw->x);
+        memcpy(bufptr, &(pw->x), size);
+        bufptr += size;
 
-     size=sizeof(pw->y);
-     memcpy(bufptr,&(pw->y),size);
-     bufptr+=size;
+        size = sizeof(pw->y);
+        memcpy(bufptr, &(pw->y), size);
+        bufptr += size;
 
-     size=sizeof(pw->dir);
-     memcpy(bufptr,&(pw->dir),size);
-     bufptr+=size;
+        size = sizeof(pw->dir);
+        memcpy(bufptr, &(pw->dir), size);
+        bufptr += size;
 
-     size=sizeof(pw->speed);
-     memcpy(bufptr,&(pw->speed),size);
-     bufptr+=size;
+        size = sizeof(pw->speed);
+        memcpy(bufptr, &(pw->speed), size);
+        bufptr += size;
 
-     size=sizeof(pw->action);
-     memcpy(bufptr,&(pw->action),size);
-     bufptr+=size;
-     }
+        size = sizeof(pw->action);
+        memcpy(bufptr, &(pw->action), size);
+        bufptr += size;
+    }
 }
 
 /*
@@ -4011,105 +3309,89 @@ void SavePushWalls(byte ** buf, int * sz)
 =
 =================
 */
-void LoadPushWalls(byte * bufptr, int sz)
-{
-  int unitsize;
-  pwallobj_t * pw;
-  pwallobj_t new;
-  int i;
-  int num;
-  int size;
-  int area;
+void LoadPushWalls(byte* bufptr, int sz) {
+    int unitsize;
+    pwallobj_t* pw;
+    pwallobj_t new;
+    int num;
+    int size;
+    int area;
 
-  if (sz==0)
-     return;
-  SetupPushWalls();
-  pw=pwallobjlist[0];
-  unitsize=0;
-  unitsize+=sizeof(pw->state);
-  unitsize+=sizeof(pw->x);
-  unitsize+=sizeof(pw->y);
-  unitsize+=sizeof(pw->dir);
-  unitsize+=sizeof(pw->speed);
-  unitsize+=sizeof(pw->action);
+    if (!sz) return;
 
-  num=sz/unitsize;
-  if (pwallnum!=num)
-     Error("Different number of Push Walls when trying to load a game\npwallnum=%d num=%d",pwallnum,num);
+    SetupPushWalls();
+    pw = pwallobjlist[0];
+    unitsize = 0;
+    unitsize += sizeof(pw->state);
+    unitsize += sizeof(pw->x);
+    unitsize += sizeof(pw->y);
+    unitsize += sizeof(pw->dir);
+    unitsize += sizeof(pw->speed);
+    unitsize += sizeof(pw->action);
 
-  for (i=0;i<pwallnum;i++)
-     {
-     pw=pwallobjlist[i];
+    num = sz / unitsize;
+    if (pwallnum != num) Error("Different number of Push Walls when trying to load a game\npwallnum=%d num=%d", pwallnum, num);
 
-     size=sizeof(new.state);
-     memcpy(&(new.state),bufptr,size);
-     bufptr+=size;
+    for (int i = 0; i < pwallnum; i++) {
+        pw = pwallobjlist[i];
 
-     size=sizeof(new.x);
-     memcpy(&(new.x),bufptr,size);
-     bufptr+=size;
+        size = sizeof(new.state);
+        memcpy(&(new.state), bufptr, size);
+        bufptr += size;
 
-     size=sizeof(new.y);
-     memcpy(&(new.y),bufptr,size);
-     bufptr+=size;
+        size = sizeof(new.x);
+        memcpy(&(new.x), bufptr, size);
+        bufptr += size;
 
-     size=sizeof(new.dir);
-     memcpy(&(new.dir),bufptr,size);
-     bufptr+=size;
+        size = sizeof(new.y);
+        memcpy(&(new.y), bufptr, size);
+        bufptr += size;
 
-     size=sizeof(new.speed);
-     memcpy(&(new.speed),bufptr,size);
-     bufptr+=size;
+        size = sizeof(new.dir);
+        memcpy(&(new.dir), bufptr, size);
+        bufptr += size;
 
-     size=sizeof(new.action);
-     memcpy(&(new.action),bufptr,size);
-     bufptr+=size;
+        size = sizeof(new.speed);
+        memcpy(&(new.speed), bufptr, size);
+        bufptr += size;
 
-	  actorat[pw->tilex][pw->tiley] = 0;
-     mapseen[pw->tilex][pw->tiley] = 0;
+        size = sizeof(new.action);
+        memcpy(&(new.action), bufptr, size);
+        bufptr += size;
 
-     new.tilex=new.x>>16;
-     new.tiley=new.y>>16;
+        actorat[pw->tilex][pw->tiley] = 0;
+        mapseen[pw->tilex][pw->tiley] = 0;
 
-     if ((new.tilex != pw->tilex) || (new.tiley != pw->tiley)) {
-         ClearActorat(pw);
-         tilemap[pw->tilex][pw->tiley] = 0;
-         if (pw->state != pw_moving) ConnectPushWall(i);
-     }
+        new.tilex = new.x >> 16;
+        new.tiley = new.y >> 16;
 
-//   fixup area if needed
-
-     area = MAPSPOT(new.tilex,new.tiley,0)-AREATILE;
-     if ((area<=0) || (area>NUMAREAS))
-        {
-        MAPSPOT (new.tilex, new.tiley, 0)=(word)(pw->areanumber+AREATILE);
+        if (new.tilex != pw->tilex || new.tiley != pw->tiley) {
+            ClearActorat(pw);
+            tilemap[pw->tilex][pw->tiley] = 0;
+            if (pw->state != pw_moving) ConnectPushWall(i);
         }
 
-     pw->tilex=new.tilex;
-     pw->tiley=new.tiley;
-     pw->x=new.x;
-     pw->y=new.y;
-     pw->action=new.action;
-     pw->dir=new.dir;
-     pw->speed=new.speed;
-     SetupPushWall(i);
-     pw->state=new.state;
+        //   fixup area if needed
 
-     pw->areanumber = MAPSPOT (pw->tilex, pw->tiley, 0)-AREATILE;
+        area = MAPSPOT(new.tilex, new.tiley, 0) - AREATILE;
+        if ((area <= 0) || (area > NUMAREAS))  MAPSPOT(new.tilex, new.tiley, 0) = (word)(pw->areanumber + AREATILE);
 
-     if (pw->action==pw_pushed)
-        {
-        FinishPushWall (pw);
-        }
-     else if (pw->action==pw_npushed)
-        {
-        ResetPushWall (pw);
-        }
-     else
-        {
-        SetActorat(pw);
-        }
-     }
+        pw->tilex = new.tilex;
+        pw->tiley = new.tiley;
+        pw->x = new.x;
+        pw->y = new.y;
+        pw->action = new.action;
+        pw->dir = new.dir;
+        pw->speed = new.speed;
+        RT_SetupPushwall(i);
+        pw->state = new.state;
+
+        pw->areanumber = MAPSPOT(pw->tilex, pw->tiley, 0) - AREATILE;
+
+        if (pw->action == pw_pushed) FinishPushWall(pw);
+        else if (pw->action == pw_npushed) ResetPushWall(pw);
+        else SetActorat(pw);
+    }
 }
 
 
@@ -4123,36 +3405,31 @@ void LoadPushWalls(byte * bufptr, int sz)
 =
 =================
 */
-void SaveMaskedWalls(byte ** buf, int * size)
-{
-  int unitsize;
-  maskedwallobj_t * mw;
-  byte * bufptr;
-  int i;
-  int sz;
+void SaveMaskedWalls(byte** buf, int* size) {
+    int unitsize = 0;
+    maskedwallobj_t* mw;
+    byte* bufptr;
+    int sz;
 
-  if (maskednum==0)
-     {
-     *size=0;
-     *buf=SafeMalloc(16);
-     return;
-     }
-  mw=maskobjlist[0];
-  unitsize=0;
-  unitsize+=sizeof(mw->flags);
+    if (!maskednum) {
+        *size = 0;
+        *buf = SafeMalloc(16);
+        return;
+    }
+    mw = maskobjlist[0];
+    unitsize += sizeof(mw->flags);
 
-  *size=maskednum*unitsize;
+    *size = maskednum * unitsize;
 
-  *buf=SafeMalloc(*size);
-  bufptr=*buf;
+    *buf = SafeMalloc(*size);
+    bufptr = *buf;
 
-  for (i=0;i<maskednum;i++)
-     {
-     mw=maskobjlist[i];
-     sz=sizeof(mw->flags);
-     memcpy(bufptr,&(mw->flags),sz);
-     bufptr+=sz;
-     }
+    for (int i = 0; i < maskednum; i++) {
+        mw = maskobjlist[i];
+        sz = sizeof(mw->flags);
+        memcpy(bufptr, &(mw->flags), sz);
+        bufptr += sz;
+    }
 }
 
 /*
@@ -4162,41 +3439,35 @@ void SaveMaskedWalls(byte ** buf, int * size)
 =
 =================
 */
-void LoadMaskedWalls(byte * bufptr, int sz)
-{
-  int unitsize;
-  maskedwallobj_t * mw;
-  int i;
-  int size;
-  int num;
+void LoadMaskedWalls(byte* bufptr, int sz) {
+    int unitsize;
+    maskedwallobj_t* mw;
+    int i;
+    int size;
+    int num;
 
-  if (sz==0)
-     return;
+    if (!sz) return;
 
-  SetupMaskedWalls();
-  FixMaskedWallAreaNumbers();
+    SetupMaskedWalls();
+    FixMaskedWallAreaNumbers();
 
-  mw=maskobjlist[0];
-  unitsize=0;
-  unitsize+=sizeof(mw->flags);
+    mw = maskobjlist[0];
+    unitsize = 0;
+    unitsize += sizeof(mw->flags);
 
-  num=sz/unitsize;
-  if (maskednum!=num)
-     Error("Different number of Masked Walls when trying to load a game\nmaskednum=%d num=%d",maskednum,num);
+    num = sz / unitsize;
+    if (maskednum != num) Error("Different number of Masked Walls when trying to load a game\nmaskednum=%d num=%d", maskednum, num);
 
-  for (i=0;i<maskednum;i++)
-     {
-     word flags;	// Endianness fix thanks to DrLex - DDOI
+    for (i = 0; i < maskednum; i++) {
+        word flags;	// Endianness fix thanks to DrLex - DDOI
 
-     mw=maskobjlist[i];
-     size=sizeof(mw->flags);
-     memcpy(&flags,bufptr,size);
-     bufptr+=size;
-     if ((flags&0xff)!=mw->flags)	// Preserves original behavior
-        UpdateMaskedWall(i);
-     if (mw->flags&MW_SWITCHON)
-        mw->toptexture--;
-     }
+        mw = maskobjlist[i];
+        size = sizeof(mw->flags);
+        memcpy(&flags, bufptr, size);
+        bufptr += size;
+        if ((flags & 0xff) != mw->flags) UpdateMaskedWall(i);  // Preserves original behavior
+        if (mw->flags & MW_SWITCHON) mw->toptexture--;
+    }
 }
 
 
@@ -4273,76 +3544,64 @@ void SaveDoors (byte ** buf, int * size)
 =================
 */
 
-void LoadDoors (byte * buf, int size)
-{
-   int door;
-   int doorsave;
-   byte doorflag;
-   byte doorlocked;
-   signed char dooreindex;
-   short int doortime;
-   byte *ptr;
-   int unitsize;
-   int num;
+void LoadDoors(byte* buf, int size) {
+    int door;
+    int doorsave;
+    byte doorflag;
+    byte doorlocked;
+    signed char dooreindex;
+    short int doortime;
+    byte* ptr;
+    int unitsize;
+    int num;
 
-   SetupDoors ();
-   FixDoorAreaNumbers();
-   ptr  = buf;
+    SetupDoors();
+    FixDoorAreaNumbers();
+    ptr = buf;
 
-   unitsize=0;
-   unitsize+=sizeof(doorsave);
-   unitsize+=sizeof(doorflag);
-   unitsize+=sizeof(doorlocked);
-   unitsize+=sizeof(doortime);
-   unitsize+=sizeof(dooreindex);
+    unitsize = 0;
+    unitsize += sizeof(doorsave);
+    unitsize += sizeof(doorflag);
+    unitsize += sizeof(doorlocked);
+    unitsize += sizeof(doortime);
+    unitsize += sizeof(dooreindex);
 
-   num=size/unitsize;
-   if (doornum!=num)
-      Error("Different number of Doors when trying to load a game\ndoornum=%d num=%d",doornum,num);
+    num = size / unitsize;
+    if (doornum != num)
+        Error("Different number of Doors when trying to load a game\ndoornum=%d num=%d", doornum, num);
 
-   for (door = 0; door < doornum; door++)
-   {
-      memcpy (&doorsave, ptr, sizeof (doorsave));
-      ptr += sizeof (doorsave);
-      memcpy (&doorflag, ptr, sizeof (doorflag));
-      ptr += sizeof (doorflag);
-      memcpy (&doorlocked, ptr, sizeof (doorlocked));
-      ptr += sizeof (doorlocked);
-      memcpy (&doortime, ptr, sizeof (doortime));
-      ptr += sizeof (doortime);
-      memcpy (&dooreindex, ptr, sizeof (dooreindex));
-      ptr += sizeof (dooreindex);
+    for (door = 0; door < doornum; door++) {
+        memcpy(&doorsave, ptr, sizeof(doorsave));
+        ptr += sizeof(doorsave);
+        memcpy(&doorflag, ptr, sizeof(doorflag));
+        ptr += sizeof(doorflag);
+        memcpy(&doorlocked, ptr, sizeof(doorlocked));
+        ptr += sizeof(doorlocked);
+        memcpy(&doortime, ptr, sizeof(doortime));
+        ptr += sizeof(doortime);
+        memcpy(&dooreindex, ptr, sizeof(dooreindex));
+        ptr += sizeof(dooreindex);
 
-      doorobjlist[door]->action    = doorsave & 3;
+        doorobjlist[door]->action = doorsave & 3;
 
-      // Update Areas
+        // Update Areas
 
-      if (doorobjlist[door]->action != dr_closed)
-         DoorOpening(door);
+        if (doorobjlist[door]->action != dr_closed) DoorOpening(door);
 
-      doorobjlist[door]->action    = doorsave & 3;
-      doorobjlist[door]->position = doorsave;
-      doorobjlist[door]->flags     = doorflag;
-      doorobjlist[door]->lock      = doorlocked;
-      doorobjlist[door]->ticcount  = doortime;
-      doorobjlist[door]->eindex    = dooreindex;
+        doorobjlist[door]->action = doorsave & 3;
+        doorobjlist[door]->position = doorsave;
+        doorobjlist[door]->flags = doorflag;
+        doorobjlist[door]->lock = doorlocked;
+        doorobjlist[door]->ticcount = doortime;
+        doorobjlist[door]->eindex = dooreindex;
 
-      if (doorobjlist[door]->action == dr_open)
-         doorobjlist[door]->position = 0xFFFF;
+        if (doorobjlist[door]->action == dr_open) doorobjlist[door]->position = 0xFFFF;
+        else if (doorobjlist[door]->action == dr_closed) doorobjlist[door]->position = 0;
 
-      else if (doorobjlist[door]->action == dr_closed)
-         doorobjlist[door]->position = 0;
+        if (doorobjlist[door]->action == dr_closing || doorobjlist[door]->action == dr_closed) actorat[doorobjlist[door]->tilex][doorobjlist[door]->tiley] = doorobjlist[door];
 
-      if (
-           (doorobjlist[door]->action == dr_closing) ||
-           (doorobjlist[door]->action == dr_closed)
-         )
-         {
-         actorat[doorobjlist[door]->tilex][doorobjlist[door]->tiley] = doorobjlist[door];
-         }
-      doorobjlist[door]->texture = doorobjlist[door]->basetexture +
-                                  ((doorobjlist[door]->position+1)>>13);
-   }
+        doorobjlist[door]->texture = doorobjlist[door]->basetexture + ((doorobjlist[door]->position + 1) >> 13);
+    }
 }
 
 
@@ -4355,19 +3614,17 @@ void LoadDoors (byte * buf, int size)
 =====================
 */
 
-void SaveElevators(byte ** buffer,int *size)
-{int i;
- byte * tptr;
+void SaveElevators(byte** buffer, int* size)
+{
+    *buffer = (byte*)SafeMalloc(*size);
+    byte* tptr = *buffer;
 
- *size = _numelevators*sizeof(elevator_t);
+    *size = _numelevators * sizeof(elevator_t);
 
- *buffer = (byte *)SafeMalloc(*size);
- tptr = *buffer;
-
- for(i=0;i<_numelevators;i++)
-  {memcpy(tptr,&ELEVATOR[i],sizeof(elevator_t));
-	tptr += sizeof(elevator_t);
-  }
+    for (int i = 0; i < _numelevators; i++) {
+        memcpy(tptr, &ELEVATOR[i], sizeof(elevator_t));
+        tptr += sizeof(elevator_t);
+    }
 }
 
 
@@ -4380,15 +3637,12 @@ void SaveElevators(byte ** buffer,int *size)
 =====================
 */
 
-void LoadElevators(byte * buffer,int size)
-{int i;
+void LoadElevators(byte* buffer, int size) {
+    _numelevators = size / sizeof(elevator_t);
 
- _numelevators = size/sizeof(elevator_t);
-
-
- for(i=0;i<_numelevators;i++)
-  {memcpy(&ELEVATOR[i],buffer,sizeof(elevator_t));
-	buffer += sizeof(elevator_t);
-  }
+    for (int i = 0; i < _numelevators; i++) {
+        memcpy(&ELEVATOR[i], buffer, sizeof(elevator_t));
+        buffer += sizeof(elevator_t);
+    }
 }
 

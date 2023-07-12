@@ -1886,7 +1886,7 @@ word GetNearestAreaNumber(int tilex, int tiley)
 ===============
 */
 void SetupWindows(void) {
-    int32_t skythere = RT_SkyExists();
+    int32_t skythere = F_SkyExists();
 
     for (int j = 0; j < mapheight; j++) {
         for (int i = 0; i < mapwidth; i++) {
@@ -5046,188 +5046,143 @@ void DoLowMemoryConversion (void)
 =
 ==================
 */
-void SetupGameLevel (void)
-{
-	int crud;
-	int i;
+void SetupGameLevel(void) {
+    int crud;
+    int i;
 
-	insetupgame=true;
+    insetupgame = true;
 
-   InitializeRNG ();
+    InitializeRNG();
 
-	if ((demoplayback==true) || (demorecord==true))
-      SetRNGindex ( 0 );
+    if (demoplayback || demorecord) SetRNGindex(0);
+    if (gamestate.randomseed != -1) SetRNGindex(gamestate.randomseed);
 
-   if (gamestate.randomseed!=-1)
-      SetRNGindex ( gamestate.randomseed );
+    if (tedlevel) {
+        GetEpisode(tedlevelnum);
+        LoadROTTMap(tedlevelnum);
+        gamestate.mapon = tedlevelnum;
+    }
+    else {
+        GetEpisode(gamestate.mapon);
+        LoadROTTMap(gamestate.mapon);
+    }
 
-	if (tedlevel)
-		{
-		GetEpisode (tedlevelnum);
-		LoadROTTMap(tedlevelnum);
-		gamestate.mapon=tedlevelnum;
-		}
-	else
-		{
-		GetEpisode (gamestate.mapon);
-		LoadROTTMap(gamestate.mapon);
-		}
+    if (gamestate.Product == ROTT_SHAREWARE) DoSharewareConversion();
+    else DoRegisterConversionBackgroundPlane();
+    if (NewGame || (lastlevelloaded != gamestate.mapon)) {
+        SetupPreCache();
+        lastlevelloaded = gamestate.mapon;
+        MU_StartSong(song_level);
+    }
+    shapestart = W_GetNumForName("SHAPSTRT");
+    shapestop = W_GetNumForName("SHAPSTOP");
+    gunsstart = W_GetNumForName("GUNSTART");
 
-   if (gamestate.Product == ROTT_SHAREWARE) DoSharewareConversion ();
-   else DoRegisterConversionBackgroundPlane();
-   if (NewGame || (lastlevelloaded != gamestate.mapon)) {
-       SetupPreCache();
-       lastlevelloaded = gamestate.mapon;
-       MU_StartSong(song_level);
-   }
-   shapestart = W_GetNumForName("SHAPSTRT");
-   shapestop = W_GetNumForName("SHAPSTOP");
-	gunsstart=W_GetNumForName("GUNSTART");
+    playstate = ex_stillplaying;
+    SNAKELEVEL = 0;
+    whichpath = 0;
 
-	playstate = ex_stillplaying;
-	SNAKELEVEL = 0;
-	whichpath = 0;
+    // some of the code / calls below need bufferofs & friends to point
+    // to to the real screen, not the stretch buffer
+    DisableScreenStretch();//bna++ shut off streech mode
+    InitializePlayerstates();
+    ResetCheatCodes();
 
-	// som of the code / calls below need bufferofs & friends to point
-	// to to the real screen, not the stretch buffer
-	DisableScreenStretch();//bna++ shut off streech mode
+    gamestate.killtotal = gamestate.killcount = 0;
+    gamestate.secrettotal = gamestate.secretcount = 0;
+    gamestate.treasuretotal = gamestate.treasurecount = 0;
+    gamestate.supertotal = gamestate.supercount = 0;
+    gamestate.healthtotal = gamestate.healthcount = 0;
+    gamestate.missiletotal = gamestate.missilecount = 0;
+    gamestate.democratictotal = gamestate.democraticcount = 0;
+    gamestate.planttotal = gamestate.plantcount = 0;
+    gamestate.DODEMOCRATICBONUS1 = true;
+    gamestate.DOGROUNDZEROBONUS = false;
 
-	InitializePlayerstates();
+    if      (gamestate.mapon == 30) SNAKELEVEL = 1;
+    else if (gamestate.mapon == 32) SNAKELEVEL = 2;
+    else if (gamestate.mapon == 33) SNAKELEVEL = 3;
 
-	ResetCheatCodes();
-
-	gamestate.killtotal     = gamestate.killcount     = 0;
-	gamestate.secrettotal   = gamestate.secretcount   = 0;
-	gamestate.treasuretotal = gamestate.treasurecount = 0;
-	gamestate.supertotal    = gamestate.supercount    = 0;
-	gamestate.healthtotal   = gamestate.healthcount   = 0;
-	gamestate.missiletotal  = gamestate.missilecount  = 0;
-	gamestate.democratictotal = gamestate.democraticcount = 0;
-	gamestate.planttotal    = gamestate.plantcount    = 0;
-	gamestate.DODEMOCRATICBONUS1 = true;
-	gamestate.DOGROUNDZEROBONUS  = false;
-
-	if (gamestate.mapon == 30)
-	 SNAKELEVEL = 1;
-	else if (gamestate.mapon == 32)
-	 SNAKELEVEL = 2;
-	else if (gamestate.mapon == 33)
-	 SNAKELEVEL = 3;
-
-	InitAreas();
-	InitDoorList();
-	InitElevators();
+    InitAreas();
+    InitDoorList();
+    InitElevators();
     if (!loadedgame) {
         InitStaticList();
         InitActorList();
     }
-	memset (tilemap,0,sizeof(tilemap));
-	memset (actorat,0,sizeof(actorat));
-	memset (sprites,0,sizeof(sprites));
-	memset (mapseen,0,sizeof(mapseen));
-	memset (LightsInArea,0,sizeof(LightsInArea));
+    memset(tilemap, 0, sizeof(tilemap));
+    memset(actorat, 0, sizeof(actorat));
+    memset(sprites, 0, sizeof(sprites));
+    memset(mapseen, 0, sizeof(mapseen));
+    memset(LightsInArea, 0, sizeof(LightsInArea));
 
-	PrintTileStats();
+    PrintTileStats();
+    SetupLightLevels();
 
-	SetupLightLevels();
+    crud = (word)MAPSPOT(0, 0, 1);
+    if ((crud >= 90) && (crud <= 97)) levelheight = crud - 89;
+    else if ((crud >= 450) && (crud <= 457)) levelheight = crud - 450 + 9;
+    else Error("You must specify a valid height sprite icon at (2,0) on map %d\n", gamestate.mapon);
 
-   crud=(word)MAPSPOT(0,0,1);
-	if ((crud>=90) && (crud<=97))
-		{
-		levelheight=crud-89;
-		maxheight = (levelheight << 6)-32;
-		nominalheight = maxheight-32;
-		}
-	else if ((crud>=450) && (crud<=457))
-		{
-		levelheight=crud-450+9;
-		maxheight = (levelheight << 6)-32;
-		nominalheight = maxheight-32;
-		}
-	else
-		Error("You must specify a valid height sprite icon at (2,0) on map %d\n",gamestate.mapon);
+    maxheight = (levelheight << 6) - 32;
+    nominalheight = maxheight - 32;
 
-/*
-   if ( ( BATTLEMODE ) && ( !gamestate.BattleOptions.SpawnDangers ) )
-      {
-      RemoveDangerWalls();
-      }
-*/
-// pheight=maxheight-32;
-   CountAreaTiles();
-	SetupWalls();
+    CountAreaTiles();
+    SetupWalls();
+    SetupClocks();
+    SetupAnimatedWalls();
 
-	SetupClocks();
-	SetupAnimatedWalls();
-
-	if (loadedgame==false)
-		{
-		SetupSwitches();
-		SetupStatics ();
-		SetupMaskedWalls();
-		SetupDoors();
-		SetupPushWalls();
-		SetupPlayers();
-      if (!BATTLEMODE)
-         {
-	     	SetupActors();
-	      SetupRandomActors();
-         }
-		SetupElevators();
-		SetupDoorLinks();
-		SetupPushWallLinks();
-		FixDoorAreaNumbers();
-		FixMaskedWallAreaNumbers();
-		SetupWindows();
-		SetupLights();
-      SetupInanimateActors();
-      }
-   else {
-      FixTiles();
-   }
-   
-	if (gamestate.SpawnEluder || gamestate.SpawnDeluder)
-      {
-//MED
-      for (i=0;i<25;i++)
-         RespawnEluder();
-      }
-
-
-   if ( ( BATTLEMODE ) && ( MapSpecials & MAP_SPECIAL_TOGGLE_PUSHWALLS ) )
-      {
-      ActivateAllPushWalls();
-      }
-   Illuminate();
-
-	if (SNAKELEVEL == 1)
-		SetupSnakePath();
-
-	LoftSprites();
-
-	RT_SetPlaneViewSize();
-	if (!loadedgame) {
-		ConnectAreas();
-		PreCache();
-		SetupPlayScreen();
-		SetupScreen(false);
-	}
-
-        if (BATTLEMODE) {
-           SetModemLightLevel ( gamestate.BattleOptions.LightLevel );
+    if (!loadedgame)
+    {
+        SetupSwitches();
+        SetupStatics();
+        SetupMaskedWalls();
+        SetupDoors();
+        SetupPushWalls();
+        SetupPlayers();
+        if (!BATTLEMODE) {
+            SetupActors();
+            SetupRandomActors();
         }
+        SetupElevators();
+        SetupDoorLinks();
+        SetupPushWallLinks();
+        FixDoorAreaNumbers();
+        FixMaskedWallAreaNumbers();
+        SetupWindows();
+        SetupLights();
+        SetupInanimateActors();
+    }
+    else FixTiles();
 
-        if (player != NULL) {
-            for (i=0;i<100;i++) {
-		UpdateLightLevel(player->areanumber);
-            }
-        }
-        
-	insetupgame=false;
+    if (gamestate.SpawnEluder || gamestate.SpawnDeluder)
+        for (i = 0; i < 25; i++) RespawnEluder();
 
-	tedlevel = false;   // turn it off once we have done any ted stuff
-	
-	EnableScreenStretch();
+    if (BATTLEMODE && (MapSpecials & MAP_SPECIAL_TOGGLE_PUSHWALLS)) ActivateAllPushWalls();
+    Illuminate();
+
+    if (SNAKELEVEL == 1) SetupSnakePath();
+
+    LoftSprites();
+    F_SetPlaneViewSize();
+
+    if (!loadedgame) {
+        ConnectAreas();
+        PreCache();
+        SetupPlayScreen();
+        SetupScreen(false);
+    }
+
+    if (BATTLEMODE) SetModemLightLevel(gamestate.BattleOptions.LightLevel);
+
+    if (player != NULL)
+        for (i = 0; i < 100; i++) UpdateLightLevel(player->areanumber);
+
+    insetupgame = false;
+
+    tedlevel = false;   // turn it off once we have done any ted stuff
+
+    EnableScreenStretch();
 }
 
 
@@ -5832,532 +5787,434 @@ void SetupActors(void)
 
 void SetupStatics(void)
 {
-	int i,j,spawnz;
-	word *map,tile;
-	int starti;
+    int i, j, spawnz;
+    word* map, tile;
+    int starti;
 
-	map = mapplanes[1];
-	map+=5;
+    map = mapplanes[1];
+    map += 5;
 
-   BATTLE_NumCollectorItems = 0;
-	for (j=0;j<mapheight;j++)
-		{
-		if (j==0)
-			starti=5;
-		else
-			starti=0;
-		for(i=starti;i<mapwidth;i++)
-			{
-			tile= *map++;
-			spawnz = (MAPSPOT(i,j,2))?(MAPSPOT(i,j,2)):(-1);
+    BATTLE_NumCollectorItems = 0;
+    for (j = 0; j < mapheight; j++)
+    {
+        if (j == 0)
+            starti = 5;
+        else
+            starti = 0;
+        for (i = starti; i < mapwidth; i++)
+        {
+            tile = *map++;
+            spawnz = (MAPSPOT(i, j, 2)) ? (MAPSPOT(i, j, 2)) : (-1);
 
-         if ( gamestate.BattleOptions.RandomWeapons )
+            if (gamestate.BattleOptions.RandomWeapons)
             {
-            int num;
+                int num;
 
-            switch( tile )
-               {
-               case 46:
-               case 48:
-               case 49:
-               case 50:
-               case 51:
-               case 52:
-               case 53:
-               case 54:
-               case 55:
-               case 56:
-                  if ( gamestate.Product == ROTT_SHAREWARE )
-                     {
-                     num = ( GameRandomNumber( "Random Weapon", 0 ) % 7 );
-                     tile = SharewareWeaponTiles[ num ];
-                     }
-                  else
-                     {
-                     num = ( GameRandomNumber( "Random Weapon", 1 ) % 10 );
-                     tile = NormalWeaponTiles[ num ];
-                     }
-                  break;
-               }
+                switch (tile)
+                {
+                case 46:
+                case 48:
+                case 49:
+                case 50:
+                case 51:
+                case 52:
+                case 53:
+                case 54:
+                case 55:
+                case 56:
+                    if (gamestate.Product == ROTT_SHAREWARE)
+                    {
+                        num = (GameRandomNumber("Random Weapon", 0) % 7);
+                        tile = SharewareWeaponTiles[num];
+                    }
+                    else
+                    {
+                        num = (GameRandomNumber("Random Weapon", 1) % 10);
+                        tile = NormalWeaponTiles[num];
+                    }
+                    break;
+                }
             }
 
-			switch (tile)
-				{
+            switch (tile)
+            {
 
-				// Add light sourcing to these objects
+                // Add light sourcing to these objects
 
-				case 23:
-				case 24:
-				case 25:
-				case 26:
-				case 27:
-				case 28:
-				case 42:
-				case 43:
-				case 63:
-				case 64:
-						SpawnStatic(i,j,tile-23,spawnz);
-					break;
+            case 23:
+            case 24:
+            case 25:
+            case 26:
+            case 27:
+            case 28:
+            case 42:
+            case 43:
+            case 63:
+            case 64:
+                SpawnStatic(i, j, tile - 23, spawnz);
+                break;
 
-				case 44:
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-					{
-						gamestate.healthtotal ++;
-						gamestate.democratictotal ++;
-					}
-					break;
-
-
-				case 36:
-				case 37:
-				case 38:
-				case 39:
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.healthtotal ++;
-					break;
-
-				case 29:
-				case 30:
-				case 31:
-				case 32:
-               if (IsDoor (i, j) == 0)
-                  {
-                  if ( BATTLEMODE )
-                     {
-                     // Spawn empty table
-                     SpawnStatic( i, j, 247 - 246 + 57, spawnz );
-                     }
-                  else
-                     {
-                     // Spawn key table
-                     SpawnStatic( i, j, tile - 23, spawnz );
-                     }
-                  }
-					break;
-
-				case 33:
-				case 34:
-				case 35:
-				case 40:
-				case 41:
-				case 45:
-						SpawnStatic(i,j,tile-23,spawnz);
-					break;
-
-				case 46:
-               #if (SHAREWARE == 1)
-                 Error("\n tried to spawn excalibat at %d,%d in shareware !",i,j);
-               #endif
+            case 44:
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (loadedgame == false)
+                {
+                    gamestate.healthtotal++;
+                    gamestate.democratictotal++;
+                }
+                break;
 
 
-               SD_PreCacheSoundGroup(SD_EXCALIBOUNCESND,SD_EXCALIBLASTSND);
+            case 36:
+            case 37:
+            case 38:
+            case 39:
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (loadedgame == false)
+                    gamestate.healthtotal++;
+                break;
+
+            case 29:
+            case 30:
+            case 31:
+            case 32:
+                if (IsDoor(i, j) == 0)
+                {
+                    if (BATTLEMODE)
+                    {
+                        // Spawn empty table
+                        SpawnStatic(i, j, 247 - 246 + 57, spawnz);
+                    }
+                    else
+                    {
+                        // Spawn key table
+                        SpawnStatic(i, j, tile - 23, spawnz);
+                    }
+                }
+                break;
+
+            case 33:
+            case 34:
+            case 35:
+            case 40:
+            case 41:
+            case 45:
+                SpawnStatic(i, j, tile - 23, spawnz);
+                break;
+
+            case 46:
+#if (SHAREWARE == 1)
+                Error("\n tried to spawn excalibat at %d,%d in shareware !", i, j);
+#endif
 
 
-					PreCacheGroup(W_GetNumForName("EXBAT1"),
-									  W_GetNumForName("EXBAT7"),
-									  cache_patch_t);
+                SD_PreCacheSoundGroup(SD_EXCALIBOUNCESND, SD_EXCALIBLASTSND);
 
 
-
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.missiletotal ++;
-					break;
-				case 47:
-					PreCacheGroup(W_GetNumForName("KNIFE1"),
-									  W_GetNumForName("KNIFE10"),
-									  cache_patch_t);
-					PreCacheGroup(W_GetNumForName("ESTATUE1"),
-									  W_GetNumForName("ESTATUE8"),
-									  cache_patch_t);
-
-						SpawnStatic(i,j,tile-23,spawnz);
-					break;
-
-				case 48:
-					SD_PreCacheSound(SD_ATKTWOPISTOLSND);
-
-               if ((locplayerstate->player == 1) || (locplayerstate->player == 3))
-					  PreCacheGroup(W_GetNumForName("RFPIST1"),
-										 W_GetNumForName("LFPIST3"),
-										 cache_patch_t);
-
-               else if (locplayerstate->player == 2)
-					  PreCacheGroup(W_GetNumForName("RBMPIST1"),
-										 W_GetNumForName("LBMPIST3"),
-										 cache_patch_t);
-
-					else
-					  PreCacheGroup(W_GetNumForName("RMPIST1"),
-										 W_GetNumForName("LMPIST3"),
-										 cache_patch_t);
-
-               SpawnStatic(i,j,tile-23,spawnz);
-
-               break;
-				case 49:
-
-					SD_PreCacheSound(SD_ATKMP40SND);
-					PreCacheGroup(W_GetNumForName("MP401"),
-									  W_GetNumForName("MP403"),
-									  cache_patch_t);
-						SpawnStatic(i,j,tile-23,spawnz);
-					break;
-
-				case 50:
-					SD_PreCacheSound(SD_MISSILEHITSND);
-					SD_PreCacheSound(SD_MISSILEFLYSND);
-					SD_PreCacheSound(SD_BAZOOKAFIRESND);
-					PreCacheGroup(W_GetNumForName("BAZOOKA1"),
-									  W_GetNumForName("BAZOOKA4"),
-									  cache_patch_t);
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.missiletotal ++;
-					break;
-				case 51:
-
-
-               SD_PreCacheSound(SD_MISSILEHITSND);
-					SD_PreCacheSound(SD_MISSILEFLYSND);
-					SD_PreCacheSound(SD_FIREBOMBFIRESND);
-					PreCacheGroup(W_GetNumForName("FBOMB1"),
-									  W_GetNumForName("FBOMB4"),
-									  cache_patch_t);
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.missiletotal ++;
-					break;
-				case 52:
-					SD_PreCacheSound(SD_MISSILEHITSND);
-					SD_PreCacheSound(SD_MISSILEFLYSND);
-					SD_PreCacheSound(SD_HEATSEEKFIRESND);
-					PreCacheGroup(W_GetNumForName("HSEEK1"),
-									  W_GetNumForName("HSEEK4"),
-									  cache_patch_t);
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.missiletotal ++;
-					break;
-				case 53:
-               SD_PreCacheSound(SD_MISSILEHITSND);
-					SD_PreCacheSound(SD_MISSILEFLYSND);
-					SD_PreCacheSound(SD_DRUNKFIRESND);
-					PreCacheGroup(W_GetNumForName("DRUNK1"),
-									  W_GetNumForName("DRUNK4"),
-									  cache_patch_t);
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.missiletotal ++;
-					break;
-				case 54:
-					SD_PreCacheSound(SD_MISSILEHITSND);
-					SD_PreCacheSound(SD_MISSILEFLYSND);
-					SD_PreCacheSound(SD_FLAMEWALLFIRESND);
-					SD_PreCacheSound(SD_FLAMEWALLSND);
-					PreCacheGroup(W_GetNumForName("FIREW1"),
-									  W_GetNumForName("FIREW3"),
-									  cache_patch_t);
-					PreCacheGroup(W_GetNumForName("FWALL1"),
-									  W_GetNumForName("FWALL15"),
-									  cache_patch_t);
-					PreCacheGroup(W_GetNumForName("SKEL1"),
-									  W_GetNumForName("SKEL48"),
-									  cache_patch_t);
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.missiletotal ++;
-					break;
-				case 55:
-               #if (SHAREWARE == 1)
-                 Error("\n tried to spawn split missile at %d,%d in shareware !",i,j);
-               #endif
-               SD_PreCacheSound(SD_MISSILEHITSND);
-					SD_PreCacheSound(SD_MISSILEFLYSND);
-					SD_PreCacheSound(SD_SPLITFIRESND);
-					SD_PreCacheSound(SD_SPLITSND);
-					PreCacheGroup(W_GetNumForName("SPLIT1"),
-									  W_GetNumForName("SPLIT4"),
-									  cache_patch_t);
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.missiletotal ++;
-					break;
-				case 56:
-               #if (SHAREWARE == 1)
-                 Error("\n tried to spawn kes at %d,%d in shareware !",i,j);
-               #endif
+                PreCacheGroup(W_GetNumForName("EXBAT1"),
+                    W_GetNumForName("EXBAT7"),
+                    cache_patch_t);
 
 
 
-               SD_PreCacheSound(SD_GRAVSND);
-					SD_PreCacheSound(SD_GRAVHITSND);
-					SD_PreCacheSound(SD_GRAVFIRESND);
-					SD_PreCacheSound(SD_GRAVBUILDSND);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (loadedgame == false)
+                    gamestate.missiletotal++;
+                break;
+            case 47:
+                PreCacheGroup(W_GetNumForName("KNIFE1"),
+                    W_GetNumForName("KNIFE10"),
+                    cache_patch_t);
+                PreCacheGroup(W_GetNumForName("ESTATUE1"),
+                    W_GetNumForName("ESTATUE8"),
+                    cache_patch_t);
 
-					PreCacheGroup(W_GetNumForName("KES1"),
-									  W_GetNumForName("KES6"),
-									  cache_patch_t);
-					PreCacheGroup(W_GetNumForName("KSPHERE1"),
-									  W_GetNumForName("KSPHERE4"),
-									  cache_patch_t);
-						SpawnStatic(i,j,tile-23,spawnz);
-					if (loadedgame == false)
-						gamestate.missiletotal ++;
-					break;
+                SpawnStatic(i, j, tile - 23, spawnz);
+                break;
 
-				case 57:
-				case 58:
-				case 59:
-				case 60:
-				case 61:
-				case 62:
-				case 65:
-				case 66:
-				case 67:
-						SpawnStatic(i,j,tile-23,spawnz);
-					break;
+            case 48:
+                SD_PreCacheSound(SD_ATKTWOPISTOLSND);
 
-				case 68:
-				case 69:
-				case 70:
-				case 71:
-						SpawnStatic(i,j,tile-23,spawnz);
-					break;
+                if ((locplayerstate->player == 1) || (locplayerstate->player == 3))
+                    PreCacheGroup(W_GetNumForName("RFPIST1"),
+                        W_GetNumForName("LFPIST3"),
+                        cache_patch_t);
 
-				case  98:
-						SpawnStatic(i,j,tile-98+49,spawnz);
-					break;
+                else if (locplayerstate->player == 2)
+                    PreCacheGroup(W_GetNumForName("RBMPIST1"),
+                        W_GetNumForName("LBMPIST3"),
+                        cache_patch_t);
 
-				case 210:
-						SpawnStatic(i,j,stat_scotthead,spawnz);
-					break;
+                else
+                    PreCacheGroup(W_GetNumForName("RMPIST1"),
+                        W_GetNumForName("LMPIST3"),
+                        cache_patch_t);
 
-				case 228:
-				case 229:
-				case 230:
-				case 231:
-				case 232:
-				case 233:
-						SpawnStatic(i,j,tile-228+51,spawnz);
-					break;
-				case 246:
-				case 247:
-				case 248:
-				case 249:
-				case 250:
-				case 251:
-						SpawnStatic(i,j,tile-246+57,spawnz);
-					break;
-				case 264:
-				case 265:
-						SpawnStatic(i,j,tile-264+63,spawnz);
-					gamestate.planttotal ++;
-					break;
+                SpawnStatic(i, j, tile - 23, spawnz);
 
-				case 266:
-						SpawnStatic(i,j,stat_urn,spawnz);
-					break;
+                break;
+            case 49:
+                SD_PreCacheSound(SD_ATKMP40SND);
+                PreCacheGroup(W_GetNumForName("MP401"), W_GetNumForName("MP403"), cache_patch_t);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                break;
+            case 50:
+                SD_PreCacheSound(SD_MISSILEHITSND);
+                SD_PreCacheSound(SD_MISSILEFLYSND);
+                SD_PreCacheSound(SD_BAZOOKAFIRESND);
+                PreCacheGroup(W_GetNumForName("BAZOOKA1"), W_GetNumForName("BAZOOKA4"), cache_patch_t);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (!loadedgame) gamestate.missiletotal++;
+                break;
+            case 51:
+                SD_PreCacheSound(SD_MISSILEHITSND);
+                SD_PreCacheSound(SD_MISSILEFLYSND);
+                SD_PreCacheSound(SD_FIREBOMBFIRESND);
+                PreCacheGroup(W_GetNumForName("FBOMB1"), W_GetNumForName("FBOMB4"), cache_patch_t);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (!loadedgame) gamestate.missiletotal++;
+                break;
+            case 52:
+                SD_PreCacheSound(SD_MISSILEHITSND);
+                SD_PreCacheSound(SD_MISSILEFLYSND);
+                SD_PreCacheSound(SD_HEATSEEKFIRESND);
+                PreCacheGroup(W_GetNumForName("HSEEK1"), W_GetNumForName("HSEEK4"), cache_patch_t);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (!loadedgame) gamestate.missiletotal++;
+                break;
+            case 53:
+                SD_PreCacheSound(SD_MISSILEHITSND);
+                SD_PreCacheSound(SD_MISSILEFLYSND);
+                SD_PreCacheSound(SD_DRUNKFIRESND);
+                PreCacheGroup(W_GetNumForName("DRUNK1"), W_GetNumForName("DRUNK4"), cache_patch_t);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (!loadedgame) gamestate.missiletotal++;
+                break;
+            case 54:
+                SD_PreCacheSound(SD_MISSILEHITSND);
+                SD_PreCacheSound(SD_MISSILEFLYSND);
+                SD_PreCacheSound(SD_FLAMEWALLFIRESND);
+                SD_PreCacheSound(SD_FLAMEWALLSND);
+                PreCacheGroup(W_GetNumForName("FIREW1"), W_GetNumForName("FIREW3"), cache_patch_t);
+                PreCacheGroup(W_GetNumForName("FWALL1"), W_GetNumForName("FWALL15"), cache_patch_t);
+                PreCacheGroup(W_GetNumForName("SKEL1"), W_GetNumForName("SKEL48"), cache_patch_t);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (!loadedgame) gamestate.missiletotal++;
+                break;
+            case 55:
+#if (SHAREWARE == 1)
+                Error("\n tried to spawn split missile at %d,%d in shareware !", i, j);
+#endif
+                SD_PreCacheSound(SD_MISSILEHITSND);
+                SD_PreCacheSound(SD_MISSILEFLYSND);
+                SD_PreCacheSound(SD_SPLITFIRESND);
+                SD_PreCacheSound(SD_SPLITSND);
+                PreCacheGroup(W_GetNumForName("SPLIT1"), W_GetNumForName("SPLIT4"), cache_patch_t);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (!loadedgame) gamestate.missiletotal++;
+                break;
+            case 56:
+#if (SHAREWARE == 1)
+                Error("\n tried to spawn kes at %d,%d in shareware !", i, j);
+#endif
 
+                SD_PreCacheSound(SD_GRAVSND);
+                SD_PreCacheSound(SD_GRAVHITSND);
+                SD_PreCacheSound(SD_GRAVFIRESND);
+                SD_PreCacheSound(SD_GRAVBUILDSND);
+
+                PreCacheGroup(W_GetNumForName("KES1"), W_GetNumForName("KES6"), cache_patch_t);
+                PreCacheGroup(W_GetNumForName("KSPHERE1"), W_GetNumForName("KSPHERE4"), cache_patch_t);
+                SpawnStatic(i, j, tile - 23, spawnz);
+                if (!loadedgame) gamestate.missiletotal++;
+                break;
+            case 57:
+            case 58:
+            case 59:
+            case 60:
+            case 61:
+            case 62:
+            case 65:
+            case 66:
+            case 67:
+                SpawnStatic(i, j, tile - 23, spawnz);
+                break;
+            case 68:
+            case 69:
+            case 70:
+            case 71:
+                SpawnStatic(i, j, tile - 23, spawnz);
+                break;
+            case  98:
+                SpawnStatic(i, j, tile - 98 + 49, spawnz);
+                break;
+            case 210:
+                SpawnStatic(i, j, stat_scotthead, spawnz);
+                break;
+            case 228:
+            case 229:
+            case 230:
+            case 231:
+            case 232:
+            case 233:
+                SpawnStatic(i, j, tile - 228 + 51, spawnz);
+                break;
+            case 246:
+            case 247:
+            case 248:
+            case 249:
+            case 250:
+            case 251:
+                SpawnStatic(i, j, tile - 246 + 57, spawnz);
+                break;
+            case 264:
+            case 265:
+                SpawnStatic(i, j, tile - 264 + 63, spawnz);
+                gamestate.planttotal++;
+                break;
+            case 266:
+                SpawnStatic(i, j, stat_urn, spawnz);
+                break;
             case 268:
-               SpawnStatic(i,j,tile-265+63,spawnz);
-               break;
-
+                SpawnStatic(i, j, tile - 265 + 63, spawnz);
+                break;
             case 269:
-						SpawnStatic(i,j,tile-265+63,spawnz);
-					break;
-
-				case 267:
-						SpawnStatic(i,j,stat_emptystatue,spawnz);
-					break;
-
-				case 282:
-					SpawnStatic(i,j,stat_heatgrate,spawnz);
-					break;
-
-				case 283:
-					SpawnStatic(i,j,stat_standardpole,spawnz);
-					break;
-
+                SpawnStatic(i, j, tile - 265 + 63, spawnz);
+                break;
+            case 267:
+                SpawnStatic(i, j, stat_emptystatue, spawnz);
+                break;
+            case 282:
+                SpawnStatic(i, j, stat_heatgrate, spawnz);
+                break;
+            case 283:
+                SpawnStatic(i, j, stat_standardpole, spawnz);
+                break;
             case 284:
-               if ( !BATTLEMODE )
-                  {
-                  SpawnStatic(i,j,stat_pit,spawnz);
-                  }
-               break;
+                if (!BATTLEMODE) SpawnStatic(i, j, stat_pit, spawnz);
+                break;
+            case 252:
+                SD_PreCacheSound(SD_GRAVSND);
+                SD_PreCacheSound(SD_GRAVHITSND);
+                SD_PreCacheSoundGroup(SD_GODMODEFIRESND, SD_LOSEMODESND);
+
+                if (locplayerstate->player == 1 || locplayerstate->player == 3) SD_PreCacheSound(SD_GODWOMANSND);
+                else SD_PreCacheSound(SD_GODMANSND);
+
+                PreCacheGroup(W_GetNumForName("GODHAND1"), W_GetNumForName("GODHAND8"), cache_patch_t);
+                PreCacheGroup(W_GetNumForName("VAPO1"), W_GetNumForName("LITSOUL"), cache_patch_t);
+                PreCacheGroup(W_GetNumForName("GODFIRE1"), W_GetNumForName("GODFIRE4"), cache_patch_t);
+
+                SpawnStatic(i, j, stat_godmode, spawnz);
+                if (!loadedgame) gamestate.supertotal++;
+                break;
+
+            case 253:
+
+#if (SHAREWARE == 1)
+                Error("DogMode Power up in shareware at x=%d y=%d\n", i, j);
+#endif
+                SD_PreCacheSoundGroup(SD_DOGMODEPANTSND, SD_DOGMODELICKSND);
+                if (locplayerstate->player == 1 || locplayerstate->player == 3) SD_PreCacheSound(SD_DOGWOMANSND);
+                else SD_PreCacheSound(SD_DOGMANSND);
+
+                PreCacheGroup(W_GetNumForName("DOGNOSE1"), W_GetNumForName("DOGPAW4"), cache_patch_t);
+                SpawnStatic(i, j, stat_dogmode, spawnz);
+                if (!loadedgame) gamestate.supertotal++;
+                break;
+
+            case 254:
+                SpawnStatic(i, j, stat_fleetfeet, spawnz);
+                if (!loadedgame) gamestate.supertotal++;
+                break;
+
+            case 255:
+                SpawnStatic(i, j, stat_random, spawnz);
+                if (!loadedgame) gamestate.supertotal++;
+                break;
+
+            case 260:
+                SpawnStatic(i, j, stat_elastic, spawnz);
+                if (!loadedgame) gamestate.supertotal++;
+                break;
+            case 261:
+                SpawnStatic(i, j, stat_mushroom, spawnz);
+                if (!loadedgame) {
+                    gamestate.supertotal++;
+                    gamestate.democratictotal++;
+                }
+                break;
+            case 262:
+                SpawnStatic(i, j, stat_tomlarva, spawnz);
+                break;
+            case 263:
+                if (gamestate.SpawnCollectItems) {
+                    SpawnStatic(i, j, stat_collector, spawnz);
+                    LASTSTAT->flags |= FL_COLORED;
+                    LASTSTAT->hitpoints = (GameRandomNumber("colors", 0) % MAXPLAYERCOLORS);
+                    BATTLE_NumCollectorItems++;
+                }
+                break;
+
+            case 270:
+                SpawnStatic(i, j, stat_bulletproof, spawnz);
+                if (!loadedgame) gamestate.supertotal++;
+                break;
+            case 271:
+                SpawnStatic(i, j, stat_asbesto, spawnz);
+                if (!loadedgame) gamestate.supertotal++;
+                break;
+            case 272:
+                SpawnStatic(i, j, stat_gasmask, spawnz);
+                if (!loadedgame) gamestate.supertotal++;
+                break;
+            case 461:
+                SpawnStatic(i, j, stat_disk, spawnz);
+                break;
+            }
+        }
+    }
+}
 
 
 
+void RaiseSprites(int x, int y, int count, int dir) {
+    int a, c;
+    int dx, dy;
+    int h;
+    int i;
+    int xx;
+    int hc;
+    int d;
 
-				case 252:
-					SD_PreCacheSound(SD_GRAVSND);
-					SD_PreCacheSound(SD_GRAVHITSND);
-               SD_PreCacheSoundGroup(SD_GODMODEFIRESND,SD_LOSEMODESND);
-               if ((locplayerstate->player == 1) || (locplayerstate->player ==3))
-					  SD_PreCacheSound(SD_GODWOMANSND);
-					else
-					  SD_PreCacheSound(SD_GODMANSND);
-
-
-					PreCacheGroup(W_GetNumForName("GODHAND1"),
-									  W_GetNumForName("GODHAND8"),
-									  cache_patch_t);
-
-					PreCacheGroup(W_GetNumForName("VAPO1"),
-									  W_GetNumForName("LITSOUL"),
-									  cache_patch_t);
-
-					PreCacheGroup(W_GetNumForName("GODFIRE1"),
-									  W_GetNumForName("GODFIRE4"),
-									  cache_patch_t);
-
-						SpawnStatic(i,j,stat_godmode,spawnz);
-					if (loadedgame == false)
-						gamestate.supertotal ++;
-					break;
-
-				case 253:
-
-               #if (SHAREWARE == 1)
-                  Error("DogMode Power up in shareware at x=%d y=%d\n",i,j);
-               #endif
-
-               SD_PreCacheSoundGroup(SD_DOGMODEPANTSND,SD_DOGMODELICKSND);
-               if ((locplayerstate->player == 1) || (locplayerstate->player ==3))
-					  SD_PreCacheSound(SD_DOGWOMANSND);
-					else
-					  SD_PreCacheSound(SD_DOGMANSND);
+    dx = 0;
+    dy = 0;
+    if (dir == 1) dx = 1;
+    else dy = 1;
 
 
+    if (((statobj_t*)sprites[x][y])->z == -65) {
+        c = (maxheight + 20) << 8;
+        hc = (count + 1) << 7;
+        a = (c << 8) / (hc * hc);
+        for (i = 0; i < count; i++) {
+            xx = -hc + ((i + 1) << 8);
+            h = (c - FixedMulShift(a, (xx * xx), 8)) >> 8;
+            ((statobj_t*)sprites[x + (dx * i)][y + (dy * i)])->z = maxheight - h;
+        }
+    }
+    else {
+        if (ActorIsSpring(x - (dx), y - (dy))) d = 1;
+        else if (ActorIsSpring(x + (dx * count), y + (dy * count))) d = 0;
+        else Error("Cannot find a spring board around a ramp ascension near x=%d y=%d\n", x, y);
 
-					PreCacheGroup(W_GetNumForName("DOGNOSE1"),
-									  W_GetNumForName("DOGPAW4"),
-									  cache_patch_t);
-						SpawnStatic(i,j,stat_dogmode,spawnz);
-					if (loadedgame == false)
-						gamestate.supertotal ++;
-					break;
-
-				case 254:
-						SpawnStatic(i,j,stat_fleetfeet,spawnz);
-					if (loadedgame == false)
-						gamestate.supertotal ++;
-					break;
-
-				case 255:
-						SpawnStatic(i,j,stat_random,spawnz);
-					if (loadedgame == false)
-						gamestate.supertotal ++;
-					break;
-
-				case 260:
-						SpawnStatic(i,j,stat_elastic,spawnz);
-					if (loadedgame == false)
-						gamestate.supertotal ++;
-					break;
-
-				case 261:
-						SpawnStatic(i,j,stat_mushroom,spawnz);
-					if (loadedgame == false)
-						{
-						gamestate.supertotal ++;
-						gamestate.democratictotal ++;
-						}
-					break;
-
-
-				case 262:
-						SpawnStatic(i,j,stat_tomlarva,spawnz);
-					break;
-
-				case 263:
-						if (gamestate.SpawnCollectItems)
-                     {
-							SpawnStatic(i,j,stat_collector,spawnz);
-                     LASTSTAT->flags |= FL_COLORED;
-                     LASTSTAT->hitpoints =
-                        ( GameRandomNumber("colors",0) % MAXPLAYERCOLORS );
-                     BATTLE_NumCollectorItems++;
-                     }
-					break;
-
-				case 270:
-						SpawnStatic(i,j,stat_bulletproof,spawnz);
-					if (loadedgame == false)
-						gamestate.supertotal ++;
-					break;
-				case 271:
-						SpawnStatic(i,j,stat_asbesto,spawnz);
-					if (loadedgame == false)
-						gamestate.supertotal ++;
-					break;
-				case 272:
-						SpawnStatic(i,j,stat_gasmask,spawnz);
-					if (loadedgame == false)
-						gamestate.supertotal ++;
-					break;
-				case 461:
-						SpawnStatic(i,j,stat_disk,spawnz);
-					break;
-				 }
-			}
-		}
-   }
-
-
-
-void RaiseSprites( int x, int y, int count, int dir )
-{
-	int a,c;
-	int dx,dy;
-	int h;
-   int i;
-   int xx;
-   int hc;
-   int d;
-
-   dx=0;
-   dy=0;
-   if (dir==1)
-      dx=1;
-   else
-      dy=1;
-
-
-   if (((statobj_t *)sprites[x][y])->z==-65)
-      {
-      c=(maxheight+20)<<8;
-      hc=(count+1)<<7;
-      a=(c<<8)/(hc*hc);
-      for (i=0;i<count;i++)
-         {
-         xx=-hc+((i+1)<<8);
-         h=(c-FixedMulShift(a,(xx*xx),8) )>>8;
-         ((statobj_t *)sprites[x+(dx*i)][y+(dy*i)])->z=maxheight-h;
-         }
-      }
-   else
-      {
-      if (ActorIsSpring(x-(dx),y-(dy)))
-         d=1;
-      else if (ActorIsSpring(x+(dx*count),y+(dy*count)))
-         d=0;
-      else
-         Error("Cannot find a spring board around a ramp ascension near x=%d y=%d\n",x,y);
-
-      hc=((maxheight+20)<<16)/(count+1);
-      h=hc<<1;
-      for (i=0;i<count;i++)
-         {
-         if (d==1)
-            ((statobj_t *)sprites[x+(dx*i)][y+(dy*i)])->z=maxheight-(h>>16);
-         else
-            ((statobj_t *)sprites[x+(dx*(count-i-1))][y+(dy*(count-i-1))])->z=maxheight-(h>>16);
-         h+=hc;
-         }
-      }
+        hc = ((maxheight + 20) << 16) / (count + 1);
+        h = hc << 1;
+        for (i = 0; i < count; i++) {
+            if (d == 1) ((statobj_t*)sprites[x + (dx * i)][y + (dy * i)])->z = maxheight - (h >> 16);
+            else ((statobj_t*)sprites[x + (dx * (count - i - 1))][y + (dy * (count - i - 1))])->z = maxheight - (h >> 16);
+            h += hc;
+        }
+    }
 }
 
 void LoftSprites( void )
