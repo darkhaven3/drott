@@ -4283,8 +4283,6 @@ player->yzangle=0;
 #endif
       VL_DecompressLBM (LBM,true);
 
-      StopWind();
-
       IN_UserInput (VBLCOUNTER*60);
 
       MainMenu[savegame].active = 0;

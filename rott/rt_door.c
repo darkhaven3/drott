@@ -3248,14 +3248,16 @@ void WallMoving(int pwall) {
 =
 =================
 */
-void SavePushWalls(byte** buf, int* sz) {
+void SavePushWalls(byte** buf, int* sz)
+{
     int unitsize;
     pwallobj_t* pw;
     byte* bufptr;
     int i;
     int size;
 
-    if (!pwallnum) {
+    if (pwallnum == 0)
+    {
         *sz = 0;
         *buf = SafeMalloc(16);
         return;
@@ -3274,7 +3276,8 @@ void SavePushWalls(byte** buf, int* sz) {
     *buf = SafeMalloc(*sz);
     bufptr = *buf;
 
-    for (i = 0; i < pwallnum; i++) {
+    for (i = 0; i < pwallnum; i++)
+    {
         pw = pwallobjlist[i];
         size = sizeof(pw->state);
         memcpy(bufptr, &(pw->state), size);
@@ -3309,16 +3312,18 @@ void SavePushWalls(byte** buf, int* sz) {
 =
 =================
 */
-void LoadPushWalls(byte* bufptr, int sz) {
+void LoadPushWalls(byte* bufptr, int sz)
+{
     int unitsize;
     pwallobj_t* pw;
     pwallobj_t new;
+    int i;
     int num;
     int size;
     int area;
 
-    if (!sz) return;
-
+    if (sz == 0)
+        return;
     SetupPushWalls();
     pw = pwallobjlist[0];
     unitsize = 0;
@@ -3330,9 +3335,11 @@ void LoadPushWalls(byte* bufptr, int sz) {
     unitsize += sizeof(pw->action);
 
     num = sz / unitsize;
-    if (pwallnum != num) Error("Different number of Push Walls when trying to load a game\npwallnum=%d num=%d", pwallnum, num);
+    if (pwallnum != num)
+        Error("Different number of Push Walls when trying to load a game\npwallnum=%d num=%d", pwallnum, num);
 
-    for (int i = 0; i < pwallnum; i++) {
+    for (i = 0; i < pwallnum; i++)
+    {
         pw = pwallobjlist[i];
 
         size = sizeof(new.state);
@@ -3365,16 +3372,23 @@ void LoadPushWalls(byte* bufptr, int sz) {
         new.tilex = new.x >> 16;
         new.tiley = new.y >> 16;
 
-        if (new.tilex != pw->tilex || new.tiley != pw->tiley) {
+        if ((new.tilex != pw->tilex) || (new.tiley != pw->tiley))
+        {
             ClearActorat(pw);
             tilemap[pw->tilex][pw->tiley] = 0;
-            if (pw->state != pw_moving) ConnectPushWall(i);
+            if (pw->state != pw_moving)
+            {
+                ConnectPushWall(i);
+            }
         }
 
         //   fixup area if needed
 
         area = MAPSPOT(new.tilex, new.tiley, 0) - AREATILE;
-        if ((area <= 0) || (area > NUMAREAS))  MAPSPOT(new.tilex, new.tiley, 0) = (word)(pw->areanumber + AREATILE);
+        if ((area <= 0) || (area > NUMAREAS))
+        {
+            MAPSPOT(new.tilex, new.tiley, 0) = (word)(pw->areanumber + AREATILE);
+        }
 
         pw->tilex = new.tilex;
         pw->tiley = new.tiley;
@@ -3388,15 +3402,20 @@ void LoadPushWalls(byte* bufptr, int sz) {
 
         pw->areanumber = MAPSPOT(pw->tilex, pw->tiley, 0) - AREATILE;
 
-        if (pw->action == pw_pushed) FinishPushWall(pw);
-        else if (pw->action == pw_npushed) ResetPushWall(pw);
-        else SetActorat(pw);
+        if (pw->action == pw_pushed)
+        {
+            FinishPushWall(pw);
+        }
+        else if (pw->action == pw_npushed)
+        {
+            ResetPushWall(pw);
+        }
+        else
+        {
+            SetActorat(pw);
+        }
     }
 }
-
-
-
-
 
 /*
 =================
@@ -3405,18 +3424,22 @@ void LoadPushWalls(byte* bufptr, int sz) {
 =
 =================
 */
-void SaveMaskedWalls(byte** buf, int* size) {
-    int unitsize = 0;
+void SaveMaskedWalls(byte** buf, int* size)
+{
+    int unitsize;
     maskedwallobj_t* mw;
     byte* bufptr;
+    int i;
     int sz;
 
-    if (!maskednum) {
+    if (maskednum == 0)
+    {
         *size = 0;
         *buf = SafeMalloc(16);
         return;
     }
     mw = maskobjlist[0];
+    unitsize = 0;
     unitsize += sizeof(mw->flags);
 
     *size = maskednum * unitsize;
@@ -3424,7 +3447,8 @@ void SaveMaskedWalls(byte** buf, int* size) {
     *buf = SafeMalloc(*size);
     bufptr = *buf;
 
-    for (int i = 0; i < maskednum; i++) {
+    for (i = 0; i < maskednum; i++)
+    {
         mw = maskobjlist[i];
         sz = sizeof(mw->flags);
         memcpy(bufptr, &(mw->flags), sz);
@@ -3439,14 +3463,17 @@ void SaveMaskedWalls(byte** buf, int* size) {
 =
 =================
 */
-void LoadMaskedWalls(byte* bufptr, int sz) {
+
+void LoadMaskedWalls(byte* bufptr, int sz)
+{
     int unitsize;
     maskedwallobj_t* mw;
     int i;
     int size;
     int num;
 
-    if (!sz) return;
+    if (sz == 0)
+        return;
 
     SetupMaskedWalls();
     FixMaskedWallAreaNumbers();
@@ -3456,20 +3483,23 @@ void LoadMaskedWalls(byte* bufptr, int sz) {
     unitsize += sizeof(mw->flags);
 
     num = sz / unitsize;
-    if (maskednum != num) Error("Different number of Masked Walls when trying to load a game\nmaskednum=%d num=%d", maskednum, num);
+    if (maskednum != num)
+        Error("Different number of Masked Walls when trying to load a game\nmaskednum=%d num=%d", maskednum, num);
 
-    for (i = 0; i < maskednum; i++) {
+    for (i = 0; i < maskednum; i++)
+    {
         word flags;	// Endianness fix thanks to DrLex - DDOI
 
         mw = maskobjlist[i];
         size = sizeof(mw->flags);
         memcpy(&flags, bufptr, size);
         bufptr += size;
-        if ((flags & 0xff) != mw->flags) UpdateMaskedWall(i);  // Preserves original behavior
-        if (mw->flags & MW_SWITCHON) mw->toptexture--;
+        if ((flags & 0xff) != mw->flags)	// Preserves original behavior
+            UpdateMaskedWall(i);
+        if (mw->flags & MW_SWITCHON)
+            mw->toptexture--;
     }
 }
-
 
 /*
 =================
@@ -3479,60 +3509,60 @@ void LoadMaskedWalls(byte* bufptr, int sz) {
 =================
 */
 
-void SaveDoors (byte ** buf, int * size)
+void SaveDoors(byte** buf, int* size)
 {
-   int door;
-   int doorsave;
-   byte doorflag;
-   byte doorlocked;
-   signed char dooreindex;
-   short int doortime;
-   int unitsize;
-   byte *ptr;
+    int door;
+    int doorsave;
+    byte doorflag;
+    byte doorlocked;
+    signed char dooreindex;
+    short int doortime;
+    int unitsize;
+    byte* ptr;
 
-   if (doornum==0)
-      {
-      *size=0;
-      *buf=SafeMalloc(16);
-      return;
-      }
+    if (doornum == 0)
+    {
+        *size = 0;
+        *buf = SafeMalloc(16);
+        return;
+    }
 
-   //
-   // Size = (int + byte + byte) * numdoors
-   //
+    //
+    // Size = (int + byte + byte) * numdoors
+    //
 
-   unitsize=0;
-   unitsize+=sizeof(doorsave);
-   unitsize+=sizeof(doorflag);
-   unitsize+=sizeof(doorlocked);
-   unitsize+=sizeof(doortime);
-   unitsize+=sizeof(dooreindex);
+    unitsize = 0;
+    unitsize += sizeof(doorsave);
+    unitsize += sizeof(doorflag);
+    unitsize += sizeof(doorlocked);
+    unitsize += sizeof(doortime);
+    unitsize += sizeof(dooreindex);
 
-   *size = unitsize*doornum;
-   *buf = (byte *) SafeMalloc (*size);
+    *size = unitsize * doornum;
+    *buf = (byte*)SafeMalloc(*size);
 
-   ptr = *buf;
+    ptr = *buf;
 
-	for (door = 0; door < doornum ; door++)
-   {
-      doorsave   = doorobjlist[door]->position & ~3;
-      doorsave  |= doorobjlist[door]->action;
-      doorflag   = doorobjlist[door]->flags;
-      doorlocked = doorobjlist[door]->lock;
-      doortime   = doorobjlist[door]->ticcount;
-      dooreindex = doorobjlist[door]->eindex;
+    for (door = 0; door < doornum; door++)
+    {
+        doorsave = doorobjlist[door]->position & ~3;
+        doorsave |= doorobjlist[door]->action;
+        doorflag = doorobjlist[door]->flags;
+        doorlocked = doorobjlist[door]->lock;
+        doortime = doorobjlist[door]->ticcount;
+        dooreindex = doorobjlist[door]->eindex;
 
-      memcpy (ptr, &doorsave, sizeof (doorsave));
-      ptr += sizeof (doorsave);
-      memcpy (ptr, &doorflag, sizeof (doorflag));
-      ptr += sizeof (doorflag);
-      memcpy (ptr, &doorlocked, sizeof (doorlocked));
-      ptr += sizeof (doorlocked);
-      memcpy (ptr, &doortime, sizeof (doortime));
-      ptr += sizeof (doortime);
-      memcpy (ptr, &dooreindex, sizeof (dooreindex));
-      ptr += sizeof (dooreindex);
-   }
+        memcpy(ptr, &doorsave, sizeof(doorsave));
+        ptr += sizeof(doorsave);
+        memcpy(ptr, &doorflag, sizeof(doorflag));
+        ptr += sizeof(doorflag);
+        memcpy(ptr, &doorlocked, sizeof(doorlocked));
+        ptr += sizeof(doorlocked);
+        memcpy(ptr, &doortime, sizeof(doortime));
+        ptr += sizeof(doortime);
+        memcpy(ptr, &dooreindex, sizeof(dooreindex));
+        ptr += sizeof(dooreindex);
+    }
 }
 
 
@@ -3544,7 +3574,8 @@ void SaveDoors (byte ** buf, int * size)
 =================
 */
 
-void LoadDoors(byte* buf, int size) {
+void LoadDoors(byte* buf, int size)
+{
     int door;
     int doorsave;
     byte doorflag;
@@ -3570,7 +3601,8 @@ void LoadDoors(byte* buf, int size) {
     if (doornum != num)
         Error("Different number of Doors when trying to load a game\ndoornum=%d num=%d", doornum, num);
 
-    for (door = 0; door < doornum; door++) {
+    for (door = 0; door < doornum; door++)
+    {
         memcpy(&doorsave, ptr, sizeof(doorsave));
         ptr += sizeof(doorsave);
         memcpy(&doorflag, ptr, sizeof(doorflag));
@@ -3586,7 +3618,8 @@ void LoadDoors(byte* buf, int size) {
 
         // Update Areas
 
-        if (doorobjlist[door]->action != dr_closed) DoorOpening(door);
+        if (doorobjlist[door]->action != dr_closed)
+            DoorOpening(door);
 
         doorobjlist[door]->action = doorsave & 3;
         doorobjlist[door]->position = doorsave;
@@ -3595,12 +3628,21 @@ void LoadDoors(byte* buf, int size) {
         doorobjlist[door]->ticcount = doortime;
         doorobjlist[door]->eindex = dooreindex;
 
-        if (doorobjlist[door]->action == dr_open) doorobjlist[door]->position = 0xFFFF;
-        else if (doorobjlist[door]->action == dr_closed) doorobjlist[door]->position = 0;
+        if (doorobjlist[door]->action == dr_open)
+            doorobjlist[door]->position = 0xFFFF;
 
-        if (doorobjlist[door]->action == dr_closing || doorobjlist[door]->action == dr_closed) actorat[doorobjlist[door]->tilex][doorobjlist[door]->tiley] = doorobjlist[door];
+        else if (doorobjlist[door]->action == dr_closed)
+            doorobjlist[door]->position = 0;
 
-        doorobjlist[door]->texture = doorobjlist[door]->basetexture + ((doorobjlist[door]->position + 1) >> 13);
+        if (
+            (doorobjlist[door]->action == dr_closing) ||
+            (doorobjlist[door]->action == dr_closed)
+            )
+        {
+            actorat[doorobjlist[door]->tilex][doorobjlist[door]->tiley] = doorobjlist[door];
+        }
+        doorobjlist[door]->texture = doorobjlist[door]->basetexture +
+            ((doorobjlist[door]->position + 1) >> 13);
     }
 }
 
@@ -3616,12 +3658,16 @@ void LoadDoors(byte* buf, int size) {
 
 void SaveElevators(byte** buffer, int* size)
 {
-    *buffer = (byte*)SafeMalloc(*size);
-    byte* tptr = *buffer;
+    int i;
+    byte* tptr;
 
     *size = _numelevators * sizeof(elevator_t);
 
-    for (int i = 0; i < _numelevators; i++) {
+    *buffer = (byte*)SafeMalloc(*size);
+    tptr = *buffer;
+
+    for (i = 0; i < _numelevators; i++)
+    {
         memcpy(tptr, &ELEVATOR[i], sizeof(elevator_t));
         tptr += sizeof(elevator_t);
     }
@@ -3637,10 +3683,15 @@ void SaveElevators(byte** buffer, int* size)
 =====================
 */
 
-void LoadElevators(byte* buffer, int size) {
+void LoadElevators(byte* buffer, int size)
+{
+    int i;
+
     _numelevators = size / sizeof(elevator_t);
 
-    for (int i = 0; i < _numelevators; i++) {
+
+    for (i = 0; i < _numelevators; i++)
+    {
         memcpy(&ELEVATOR[i], buffer, sizeof(elevator_t));
         buffer += sizeof(elevator_t);
     }

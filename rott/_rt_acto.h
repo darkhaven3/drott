@@ -80,7 +80,6 @@ enum {
 #define NOMOM                  ((!ob->momentumx) && (!ob->momentumy))
 #define WHICHACTOR             (ob->obclass-lowguardobj)
 #define SPDPATROL              0x600l
-//#define ENEMYRUNSPEED          (3*SPDPATROL)
 #define ENEMYRUNSPEED          (0xc00)
 #define ENEMYFASTRUNSPEED      (5*SPDPATROL)
 #define ENEMYINSANESPEED       (7*SPDPATROL)
@@ -99,6 +98,14 @@ enum {
 #define SNEAKY                 -3
 #define GIBVALUE               -3
 #define DISKMOMZ               4
+#define PWALLTOL               0xc000
+#define MINSTATZDIFF           58
+#define MINACTORZDIFF          58
+#define WILEYBLITZCHANCE    20
+#define GIBSOUND            SD_GIBSPLASHSND
+#define ACTORTHUDSND        SD_BODYLANDSND
+#define ACTORLANDSND        SD_PLAYERLANDSND
+#define CORNERVALUE         0x500
 
 //=========================== macros =============================
 
@@ -109,7 +116,12 @@ enum {
 #define M_DIST(x1,x2,y1,y2)   (((x1-x2)*(x1-x2))+((y1-y2)*(y1-y2)))
 #define M_S(x)                (UPDATE_STATES[x][ob->obclass-lowguardobj])
 #define Fix(a)                (a &= (FINEANGLES - 1))
+#define GAS_DOOR(x,y) (MISCVARS->GASON && (MAPSPOT(x,y,1) == GASVALUE))
 
+#define DOOR_LOCKED(door)                                      \
+           (((door->flags & DF_ELEVLOCKED) || (door->lock)) && \
+             (ob->obclass != b_darianobj)                       \
+           )
 
 #define STOPACTOR(ob)                   \
    {                                    \
@@ -127,6 +139,50 @@ enum {
       return;                           \
    }                                    \
 
+#define CheckSpecialGibMovement(blocker)            \
+   {                                                \
+   int centerx = ((trytilex<<16) + 0x8000);         \
+   int centery = ((trytiley<<16) + 0x8000);         \
+                                                    \
+   if (blocker->vertical==false)                    \
+      {                                             \
+      int dyt = centery - ob->y;                    \
+      int dytp1 = centery - tryy;                   \
+                                                    \
+      if ((abs(dytp1) > abs(dyt)) &&                \
+         (SGN(dyt) == SGN(dytp1))                   \
+         )                                          \
+         return OK_TO_CONTINUE;                     \
+                                                    \
+      }                                             \
+   else                                             \
+      {                                             \
+      int dxt = centerx - ob->x;                    \
+      int dxtp1 = centerx - tryx;                   \
+                                                    \
+      if ((abs(dxtp1) > abs(dxt)) &&                \
+         (SGN(dxt) == SGN(dxtp1))                   \
+         )                                          \
+         return OK_TO_CONTINUE;                     \
+                                                    \
+      }                                             \
+   }
+
+#define ClipHeight(ob,clipz)                                \
+{  ob->momentumz = 0;                                       \
+                                                            \
+   if (ISPLAYER && (ob->z != clipz) && (ob->temp2 == 0))    \
+      {playertype *pstate;                                  \
+       int dz = ob->z - clipz;                              \
+                                                            \
+       M_LINKSTATE(ob,pstate);                              \
+                                                            \
+       pstate->heightoffset = pstate->oldheightoffset + dz; \
+       ob->temp2 = (dz >= 0)?(STEPUP):(STEPDOWN);           \
+      }                                                     \
+                                                            \
+   ob->z = clipz;                                           \
+}
 
 #define M_CHECKTURN(x,ndir)                             \
    {                                                    \
@@ -202,9 +258,6 @@ enum {
       }                                                       \
    }
 
-
-
-
 #define SET_DEATH_SHAPEOFFSET(ob)                     \
    {                                                  \
    ob->flags |= FL_ALTERNATE;                         \
@@ -226,48 +279,301 @@ enum {
      )                                                \
 
 #define LOW_VIOLENCE_DEATH_IS_SET(ob)   (ob->flags & FL_ALTERNATE)
-
 #define LOW_VIOLENCE_PAIN_SHOULD_BE_SET  LOW_VIOLENCE_DEATH_SHOULD_BE_SET
-
 #define LOW_VIOLENCE_PAIN_IS_SET  LOW_VIOLENCE_DEATH_IS_SET
-
 #define SET_PAIN_SHAPEOFFSET  SET_DEATH_SHAPEOFFSET
-
 #define RESET_PAIN_SHAPEOFFSET  RESET_DEATH_SHAPEOFFSET
 
+#define SLIDER(ob)  ((ob->flags & FL_NOFRICTION) && (ob->state->think != T_Collide))
+#define AIRBORNE(ob) ((ob->obclass != playerobj) && (ob->z != nominalheight) &&\
+                      (!IsPlatform(ob->tilex,ob->tiley)) && \
+                      (DiskAt(ob->tilex,ob->tiley) == NULL) \
+                     )
+
+#define InitSprayPart(newflags)                                          \
+   {                                                                     \
+   new->hitpoints = starthitpoints[gamestate.difficulty][b_robobossobj]; \
+   new->dir = dir*4;                                                     \
+   new->speed = 7*SPDPATROL;                                             \
+   new->door_to_open = -1;                                               \
+   new->flags |= (newflags);                                             \
+   }
+
+#define TryAbruptProximalDirections(trydir)             \
+   {                                                    \
+   next = dirorder[trydir][NEXT];                       \
+   prev = dirorder[trydir][PREV];                       \
+   if (GameRandomNumber("actor choose dir",0) < 128)    \
+      {                                                 \
+      dirtype temp = next;                              \
+                                                        \
+      next = prev;                                      \
+      prev = temp;                                      \
+      }                                                 \
+                                                        \
+   if (!dirtried[next])                                 \
+      {                                                 \
+      M_CHECKDIR(ob,next);                              \
+      dirtried[next]=1;                                 \
+      }                                                 \
+                                                        \
+   if (!dirtried[prev])                                 \
+      {                                                 \
+      M_CHECKDIR(ob,prev);                              \
+      dirtried[prev]=1;                                 \
+      }                                                 \
+                                                        \
+   }
+
+#define TrySmoothProximalDirections(trydir)                        \
+   {                                                               \
+                                                                   \
+   if (((trydir == olddir) || (dirdiff[trydir][olddir] < 2)) &&    \
+      (!dirtried[trydir]))                                         \
+      {                                                            \
+      M_CHECKDIR(ob,trydir);                                       \
+      dirtried[trydir] = 1;                                        \
+      }                                                            \
+   next = dirorder[olddir][NEXT];                                  \
+   prev = dirorder[olddir][PREV];                                  \
+                                                                   \
+   if (dirdiff[trydir][next] <= dirdiff[trydir][prev])             \
+      {                                                            \
+      start = next;                                                \
+      whichway = NEXT;                                             \
+      }                                                            \
+   else                                                            \
+      {                                                            \
+      start = prev;                                                \
+      whichway = PREV;                                             \
+      }                                                            \
+                                                                   \
+   for (tdir= start; tdir != dirorder[trydir][whichway];           \
+        tdir = dirorder[tdir][whichway]                            \
+       )                                                           \
+      {                                                            \
+      if (dirtried[tdir])                                          \
+         continue;                                                 \
+      M_CHECKDIR(ob,tdir);                                         \
+      dirtried[tdir]=1;                                            \
+      }                                                            \
+                                                                   \
+   }
+
+#define ChasePlayer(ob)                          \
+   {                                             \
+   dx= player->x-ob->x;                          \
+   dy= ob->y-player->y;                          \
+   if ((abs(dx) < 0xb000) && (abs(dy) < 0xb000)) \
+      return;                                    \
+   dummy.x = player->x;                          \
+   dummy.y = player->y;                          \
+   }
+
+#define RollStart(ob,state,angle)     \
+   {                                  \
+   int oldspeed = ob->speed;          \
+                                      \
+   ob->speed = ROLLMOMENTUM+0x200;    \
+   NewState(ob,state);                \
+   ParseMomentum(ob,angle);           \
+   ob->speed = oldspeed;              \
+   }                                  \
+
+#define CheckMinDist(destx,desty,dir)                    \
+   {                                                     \
+   curr = FindDistance(destx-ob->tilex,desty-ob->tiley); \
+   if (curr < min)                                       \
+      {                                                  \
+      min = curr;                                        \
+      ob->targettilex = destx;                           \
+      ob->targettiley = desty;                           \
+      ob->temp1 = dir;                                   \
+      }                                                  \
+   }
 
 // default = actor
 
-typedef struct  sat
- { int          x,y,z;
-	unsigned     flags;
-	int          hitpoints;
-	int          targetx,targety;
-	int          angle;
-	int          yzangle;
-	int          speed;
-	int          momentumx,momentumy,momentumz;
-	int          temp1,temp2,temp3;
-	int          whateverindex,targetindex;
+//==================== Some ActorTryMove macros ==============================
 
-	short        ticcount;
-	short        shapeoffset;
-	short        stateindex;
-	short        dirchoosetime;
+#define CheckProximitySpecials(ob,temp)                             \
+{                                                                   \
+   if (ocl == b_heinrichobj)                                       \
+      {                                                            \
+      if (tcl == playerobj)                                        \
+         {                                                         \
+         playertype *pstate;                                      \
+                                                                     \
+         M_LINKSTATE(temp,pstate);                                \
+         DamageThing(temp,5);                                     \
+         temp->whatever = ob;                                     \
+         temp->temp2 = COLUMNCRUSH;                               \
+         pstate->heightoffset += 4;                               \
+         if (pstate->heightoffset >= 30)                          \
+            pstate->heightoffset = 30;                           \
+         pstate->oldheightoffset = pstate->heightoffset;          \
+         }                                                         \
+      else                                                         \
+         {                                                         \
+         temp->momentumx = temp->momentumy = temp->momentumz = 0; \
+         temp->hitpoints = 0;                                     \
+         }                                                         \
+      if (temp->hitpoints <= 0)                                    \
+         temp->flags |= FL_HBM;                                     \
+      Collision(temp,ob,0,0);                                      \
+      continue;                                                    \
+      }                                                             \
+                                                                    \
+   else if ((ocl == b_darksnakeobj) && (tcl == playerobj)) \
+      {                                                     \
+      DamageThing(temp,1);                                      \
+      Collision(temp,ob,0,0);     \
+      M_CheckPlayerKilled(temp);                                   \
+      } \
+        \
+   if ((ocl == boulderobj) && (tcl >= lowguardobj) && (tcl < roboguardobj))\
+      {temp->momentumx = temp->momentumy = temp->momentumz = 0;     \
+       temp->hitpoints = 0;                                         \
+       temp->flags |= FL_HBM;                                       \
+       Collision(temp,ob,0,0);                                      \
+       SD_PlaySoundRTP(SD_ACTORSQUISHSND,temp->x,temp->y);          \
+       continue;                                                    \
+      }                                                             \
+                                                                    \
+   if (pusher && (ocl != tcl) && (!(temp->flags & FL_DYING))  &&    \
+       (tcl < roboguardobj)                                         \
+      )                                                             \
+      {if ((!ob->ticcount) && (ocl != collectorobj) && (ocl != diskobj))\
+          DamageThing(temp,5);                                      \
+                                                                    \
+       if (tcl == playerobj)                                        \
+         temp->flags |= FL_PUSHED;                                  \
+       Collision(temp,ob,ob->momentumx-temp->momentumx,ob->momentumy-temp->momentumy);\
+       M_CheckPlayerKilled(temp);                                   \
+       continue;                                                    \
+      }                                                             \
+                                                                    \
+   if (bouncer)                                                    \
+      {ob->momentumx = -ob->momentumx;                              \
+       continue;                                                    \
+      }                                                             \
+   }
 
-	byte         areanumber;
-	byte         obclass;
-	signed char  door_to_open;
-	signed char  dir;
-
- }saved_actor_type;
 
 
-typedef struct
- {thingtype which;
-  byte tilex,tiley;
-  fixed x,y,z;
- }tpoint;
+#define CheckStepping(ob,step,minzdiff)                         \
+{                                                               \
+ int cz = (ob->z - step->z + minzdiff);                         \
+                                                                \
+ if ((cz >= -MAXSTEPHEIGHT) && (cz <= MAXSTEPHEIGHT))           \
+      {if ((ob->obclass == playerobj) && (ob->temp2 == 0) &&    \
+           (ob->z != (step->z - minzdiff))                      \
+          )                                                     \
+         {                                                      \
+         playertype *pstate;                                    \
+                                                                \
+         M_LINKSTATE(ob,pstate);                                \
+                                                                \
+         pstate->heightoffset = pstate->oldheightoffset + cz;   \
+         ob->temp2 = (cz >= 0)?(STEPUP):(STEPDOWN);             \
+         }                                                      \
+      ob->z = step->z - minzdiff;                               \
+      tryz = ob->z + (ob->momentumz >> 16);                     \
+      dzt = minzdiff;                                           \
+      }                                                         \
+}
+
+#define SetCollectorTarget(xoffset,yoffset,newdir)                         \
+   {                                                                       \
+   ob->targettilex = ((dptr->tilex + (xoffset)) << TILESHIFT) + HALFGLOBAL1; \
+   ob->targettiley = ((dptr->tiley + (yoffset)) << TILESHIFT) + HALFGLOBAL1; \
+   ob->temp2 = newdir;                                                     \
+   if (GameRandomNumber("collector door search",0) < 100)                  \
+      return;                                                              \
+   }
+
+#define CheckAdjacentArea(x,y)        \
+   {                                  \
+   if (InMapBounds(x,y))              \
+      {                               \
+      temparea = AREANUMBER(x,y);     \
+      if (ValidAreanumber(temparea))  \
+         newarea = temparea;          \
+      }                               \
+   }
+
+#define DetonateMissile(x,y) \
+{MissileHit(x,y);             \
+ return false;                 \
+}                                \
+
+#define QuietDetonate(ob)            \
+   {                                 \
+   if (ob->soundhandle != -1)        \
+      SD_StopSound(ob->soundhandle); \
+   if (ob == missobj)                \
+      missobj = NULL;                \
+   NewState(ob,&s_megaremove);       \
+   return false;                     \
+   }
+
+#define SGN(x)  (((x) > 0)?(1):(-1))
+#define SHP(difficulty,ob)  (starthitpoints[difficulty][ob->obclass])
+#define CAP_OSCUROS_HITPOINTS(ob)                         \
+   {                                                      \
+   if (ob->hitpoints > (SHP(gamestate.difficulty,ob)<<1)) \
+      ob->hitpoints = (SHP(gamestate.difficulty,ob)<<1);  \
+   }
+
+typedef struct  sat {
+    int          x, y, z;
+    unsigned     flags;
+    int          hitpoints;
+    int          targetx, targety;
+    int          angle;
+    int          yzangle;
+    int          speed;
+    int          momentumx, momentumy, momentumz;
+    int          temp1, temp2, temp3;
+    int          whateverindex, targetindex;
+
+    short        ticcount;
+    short        shapeoffset;
+    short        stateindex;
+    short        dirchoosetime;
+
+    byte         areanumber;
+    byte         obclass;
+    signed char  door_to_open;
+    signed char  dir;
+
+} saved_actor_type;
+
+typedef enum {
+    down_in_a_hole = -1,
+    no_holes_available = 0,
+    holes_unreachable = 1,
+    hole_targetted = 2
+}   hiding_status;
+
+typedef enum {
+    NO_MOVEMENT,
+    Z_MOVEMENT_ONLY,
+    OK_TO_CONTINUE
+} movement_status;
+
+enum {
+    ESAU_USING_HOLES = 1,
+    ESAU_LEAVING_CONTROL_ROOM,
+    ESAU_USING_TOUCH_PEDASTALS,
+    ESAU_CHASING_PLAYER
+};
+
+typedef struct {
+    thingtype which;
+    byte tilex, tiley;
+    fixed x, y, z;
+} tpoint;
 
 
 //========================== Function Prototypes ==============================
@@ -279,7 +585,7 @@ void     HeatSeek(objtype*);
 boolean  CheckDoor(objtype *ob,doorobj_t*,int,int);
 boolean  NextToDoor(objtype*ob);
 void     MissileHit (objtype *ob,void*);
-int      Near(objtype*,void*,int);
+boolean  Near(objtype*,void*,int);
 void     FirstSighting(objtype*);
 void     SelectOrobotChaseDir(objtype*);
 void     SelectPathDir(objtype*);

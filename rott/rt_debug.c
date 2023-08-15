@@ -396,7 +396,6 @@ void DoWarp (void)
 
    MU_StoreSongPosition();
    MU_StartSong( song_secretmenu);
-   StopWind();
    ShutdownClientControls();
 
    SetupMenuBuf();
@@ -459,7 +458,6 @@ void DoJukeBox  (void)
 	if (iGLOBAL_SCREENWIDTH > 320) {
 		EnableScreenStretch();//bna++ shut on streech mode
 	}
-   StopWind();
    ShutdownClientControls();
 
    SetupMenuBuf();

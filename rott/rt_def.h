@@ -181,6 +181,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define FOCALLENGTH                       (0x5700l)             // in global coordinates
 #define MAXTICS                           10
 
+//dma
+#define T_FINEANGLE8	256
+#define T_FINEANGLE16	128
+
 //***************************************************************************
 //
 //    Map Constants/ macros

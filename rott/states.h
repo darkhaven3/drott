@@ -341,7 +341,6 @@ extern   statetype s_timekeeper;
 extern   statetype s_skeleton48;
 extern   statetype s_skeleton24;
 
-extern   statetype s_wind;
 extern   statetype s_remoteguts1;
 extern   statetype s_voidwait;
 extern   statetype s_ashwait;

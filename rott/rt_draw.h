@@ -34,18 +34,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define SCALECONSTANT			0x8000	//:thinking:
 
-//hudflags
-#define HUDFL_TOP_BAR           0x8000
-#define HUDFL_BOT_BAR           0x4000
+//idmypos-like -- R_DrawPlayerLocation
+#define R_DRAWTHINGLOCATION_X  296
+#define R_DRAWTHINGLOCATION_Y  16
 
 //=========================== macros =============================
 
 #define LightSourceAt(x,y)    (*(lights+((x)<<7)+(y)))
 #define SetLight(x,y,level)   (LightSourceAt((x),(y))|=(unsigned long)(level))
-
-//hudflags_t
-// used to store flags about which bars/elements of the HUD to draw.
-typedef uint16_t hudflags_t;
 
 //viewdim_t
 // holds the X and Y dimensions of the size of the render viewport.
