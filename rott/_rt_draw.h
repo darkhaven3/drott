@@ -30,6 +30,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define W_CHANGE  (WEAPONUPTICS || WEAPONDOWNTICS)
 
+//apogee screen stuff
+#define APOGEEXANGLE 913
+#define APOGEEXMAG   180
+#define APOGEESTARTY 0
+#define APOGEEENDY   100
+#define APOGEESCALESTART (FINEANGLES<<4)
+#define APOGEESCALEEND (FINEANGLES)
+#define APOGEESONGTIME (124-1)
+
+//missile stuff? why is this here?
+#define NUMEXPLOSIONTYPES 4
+
+//default colors for when no sky or floor
+#define CEILINGCOLOR 24
+#define FLOORCOLOR 32
+
 //[SHAR]
 #if (SHAREWARE == 0)
  #define NUMWEAPGRAPHICS 16
@@ -44,22 +60,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //transparency?
 #define FIXEDTRANSLEVEL (30)
 
-typedef struct
-{
-   int x;
-   int y;
-   int angle;
-   int scale;
-   int dx;
-   int dy;
-   int dangle;
-   int dscale;
-   int phase;
-   int time;
-   int pausetime;
-   int pausex;
-   int pausey;
+typedef struct {
+    int x;
+    int y;
+    int angle;
+    int scale;
+    int dx;
+    int dy;
+    int dangle;
+    int dscale;
+    int phase;
+    int time;
+    int pausetime;
+    int pausex;
+    int pausey;
 } screensaver_t;
+
+typedef struct {
+    char  name[11];
+    byte  numframes;
+} explosioninfo_t;
 
 void  DrawPlayerWeapon(void);
 boolean TransformPlane (int x1, int y1, int x2, int y2, visobj_t * plane);

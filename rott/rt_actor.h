@@ -418,7 +418,4 @@ void     ParseMomentum(objtype *ob,int angle);
 void     SpawnGroundExplosion(int x, int y, int z);
 void     RayShoot (objtype * shooter, int damage, int accuracy);
 void FindEmptyTile(int *stilex, int *stiley);
-void T_Wind( objtype *ob );
-void StopWind( void );
-
 #endif

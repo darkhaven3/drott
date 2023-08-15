@@ -923,8 +923,6 @@ void GameLoop (void)
          damagecount = 0;
          SetBorderColor (0);
 
-         StopWind();
-
          ShutdownClientControls();
 
          SD_Play (SD_LEVELDONESND);
@@ -1144,7 +1142,6 @@ void GameLoop (void)
             loadit = done = false;
 //		   SetTextMode (  ); //12345678
             Died ();
-            StopWind();
 			 DisableScreenStretch();//bna++ shut off streech mode
             while (damagecount>0)
                DoBorderShifts();
@@ -1201,7 +1198,6 @@ void GameLoop (void)
             break;
 
          case ex_warped:
-            StopWind();
             TurnShakeOff();
             SHAKETICS = 0xffff;
             gamestate.TimeCount = 0;
@@ -1229,7 +1225,6 @@ void GameLoop (void)
                gamestate.TimeCount = 0;
                gamestate.frame=0;
                }
-            StopWind();
 #if (SHAREWARE==0)
             if ((playstate==ex_bossdied) && (gamestate.mapon!=30))
                {
@@ -1335,7 +1330,6 @@ void GameLoop (void)
          break;
 
          case ex_gameover:
-            StopWind();
             DoEndCinematic();
             if (playstate==ex_gameover)
                {
@@ -1655,7 +1649,6 @@ void UpdateGameObjects ( void )
 
 void PauseLoop ( void )
 {
-   StopWind();
 
    UpdateClientControls ();
 
@@ -1698,249 +1691,146 @@ void PauseLoop ( void )
 
 
 
-void PlayLoop (void) {
-   volatile int atime;
+void PlayLoop(void) {
+    volatile int atime;
 
-   boolean canquit = true;
-   int     quittime = 0;
+    boolean canquit = true;
+    int     quittime = 0;
 
-   wami(3);
-
-
-   if ( (loadedgame == false) && (timelimitenabled == false) )
-      {
-      gamestate.TimeCount = 0;
-      gamestate.frame = 0;
-      }
+    if (!loadedgame && !timelimitenabled) {
+        gamestate.TimeCount = 0;
+        gamestate.frame = 0;
+    }
 
 fromloadedgame:
+    GamePaused = false;
+    if (!loadedgame) {
+        DrawPlayScreen(true);
+        missobj = NULL;
+    }
 
-   GamePaused = false;
+    else {
+        loadedgame = false;
+        DoLoadGameSequence();
+    }
 
-	if ( loadedgame == false )
-      {
-    	DrawPlayScreen( true );
-		missobj = NULL;
-		}
-	else
-		{
-		loadedgame = false;
-      DoLoadGameSequence();
-		}
+    drawtime = 0;
+    actortime = 0;
+    tics = 0;
 
-   drawtime  = 0;
-   actortime = 0;
-   tics      = 0;
+    if (!fizzlein) StartupClientControls();
+    else ShutdownClientControls();
 
-   if ( fizzlein == false )
-      {
-      StartupClientControls();
-      }
-   else
-      {
-      ShutdownClientControls();
-      }
+    // set detail level
+    doublestep = 2 - DetailLevel;
 
-   // set detail level
-   doublestep = 2 - DetailLevel;
+    ResetMessageTime();
+    DeletePriorityMessage(MSG_SYSTEM);
 
-   ResetMessageTime();
-   DeletePriorityMessage( MSG_SYSTEM );
+    if (gamestate.battlemode == battle_Normal && numplayers == 1) {
+        AddMessage("Comm-bat is for Modem and Network games.", MSG_GAME);
+        AddMessage("You will not be facing any", MSG_GAME);
+        AddMessage("opponents.  Have fun and explore.", MSG_GAME);
+    }
 
-   if ( ( gamestate.battlemode == battle_Normal ) &&
-      ( numplayers == 1 ) )
-      {
-      AddMessage( "Comm-bat is for Modem and Network games.", MSG_GAME );
-      AddMessage( "You will not be facing any", MSG_GAME );
-      AddMessage( "opponents.  Have fun and explore.", MSG_GAME );
-      }
+    while (playstate == ex_stillplaying) {
+        UpdateClientControls();
 
+        if (GamePaused) {
+            PauseLoop();
+            atime = 0;
 
-	while( playstate == ex_stillplaying )
-      {
-      UpdateClientControls();
-
-      if ( GamePaused )
-         {
-         PauseLoop();
-
-         atime = 0;
-
-         if ( RefreshPause )
-            {
+            if (RefreshPause) ThreeDRefresh();
+            else UpdateScreenSaver();
+        }
+        else {
+            if (controlupdatestarted == 1) UpdateGameObjects();
+            atime = 0;
             ThreeDRefresh();
-            }
-         else
-            {
-            UpdateScreenSaver();
-            }
-         }
-      else
-         {
-         if (controlupdatestarted == 1)
-            UpdateGameObjects();
+        }
 
-         atime = 0;
+        SyncToServer();
 
-         ThreeDRefresh();
-         }
+        drawtime = 0 - atime;
+        canquit = !MSG.messageon;   // Don't allow player to quit if entering message
 
-      SyncToServer();
+        PollKeyboard();
 
-		drawtime = 0 - atime;
+        MISCVARS->madenoise = false;
 
-      // Don't allow player to quit if entering message
-      canquit = !MSG.messageon;
+        AnimateWalls();
+        UpdateClientControls();
 
-      PollKeyboard();
+        if (AutoDetailOn) AdaptDetail();
 
-      MISCVARS->madenoise = false;
+        UpdateClientControls();
+        DoSprites();
+        DoAnimatedMaskedWalls();
+        UpdatePlayers();
+        DrawTime(false);
+        UpdateClientControls();
 
-      AnimateWalls();
+        if (!BATTLEMODE && CP_CheckQuick(LastScan)) {
+            boolean escaped = false;
 
-      UpdateClientControls();
-
-      #if (DEVELOPMENT == 1)
-         Z_CheckHeap();
-      #endif
-
-      if ( AutoDetailOn == true )
-         {
-   		AdaptDetail();
-         }
-
-      UpdateClientControls();
-
-      DoSprites();
-      DoAnimatedMaskedWalls();
-
-      UpdatePlayers();
-
-      DrawTime( false );
-
-      UpdateClientControls();
-
-      if ( ( !BATTLEMODE ) && ( CP_CheckQuick( LastScan ) ) )
-			{
-         boolean escaped=false;
-
-         if (LastScan == sc_Escape)
-            {
-            MU_StoreSongPosition();
-            MU_StartSong(song_menu);
-            escaped = true;
-            }
-         TurnShakeOff();
-         StopWind();
-         SetBorderColor( 0 );
-         ShutdownClientControls();
-         if (demoplayback==true)
-            {
-            FreeDemo();
-            playstate = ex_demodone;
-            if (demoexit==true)
-               {
-               QuitGame();
-               }
-            return;
+            if (LastScan == sc_Escape) {
+                MU_StoreSongPosition();
+                MU_StartSong(song_menu);
+                escaped = true;
             }
 
-         ControlPanel( LastScan );
+            TurnShakeOff();
+            SetBorderColor(0);
+            ShutdownClientControls();
 
-         // set detail level
-         doublestep = 2 - DetailLevel;
-
-         inmenu = false;
-
-         if ( playstate == ex_titles )
-            {
-            return;
+            if (demoplayback) {
+                FreeDemo();
+                playstate = ex_demodone;
+                if (demoexit) QuitGame();
+                return;
             }
 
-         if ( playstate == ex_stillplaying )
-            {
-            SetupScreen( false );
-            }
+            ControlPanel(LastScan);
 
-         if ( loadedgame == true )
-            {
-            goto fromloadedgame;
-            }
+            doublestep = 2 - DetailLevel;   // set detail level
+            inmenu = false;
 
-         if (
-              ( playstate == ex_stillplaying ) &&
-              ( ( fizzlein == false ) ||
-                ( GamePaused )
-              )
-            )
-            {
-            StartupClientControls();
+            if (playstate == ex_titles) return;
+            if (playstate == ex_stillplaying) SetupScreen(false);
+            if (loadedgame) goto fromloadedgame;
+            if (playstate == ex_stillplaying && (!fizzlein || GamePaused)) StartupClientControls();
+            if (playstate == ex_stillplaying && !GamePaused && escaped) {
+                MU_StartSong(song_level);
+                MU_RestoreSongPosition();
             }
+        }
 
-         if (
-              (playstate == ex_stillplaying) &&
-              (GamePaused == false) &&
-              (escaped == true)
-            )
-            {
-            MU_StartSong(song_level);
-            MU_RestoreSongPosition();
-            }
-         }
+        if (BATTLEMODE) {
+            if (!MSG.messageon) CheckRemoteRidicule(LastScan);
+            if (!quitactive) {
+                if (LastScan == sc_Escape && canquit) {
+                    quitactive = true;
+                    quittime = GetTicCount() + QUITTIMEINTERVAL;
 
-      if ( BATTLEMODE )
-         {
-         if ( MSG.messageon == false )
-            {
-            CheckRemoteRidicule( LastScan );
+                    if (!consoleplayer || !networkgame) AddMessage("Do you want to end this game? " "(\\FY\\O/\\FN\\O)", MSG_QUIT);
+                    else AddMessage("Do you want to exit to DOS? " "(\\FY\\O/\\EN\\O)", MSG_QUIT);
+                }
             }
-         if ( quitactive == false )
-            {
-            if ( ( LastScan == sc_Escape ) && ( canquit ) )
-               {
-               quitactive = true;
-               quittime   = GetTicCount() + QUITTIMEINTERVAL;
-
-               if ( (consoleplayer == 0) || (networkgame == false) )
-                  {
-                  AddMessage( "Do you want to end this game? "
-                     "(\\FY\\O/\\FN\\O)", MSG_QUIT );
-                  }
-               else
-                  {
-                  AddMessage( "Do you want to exit to DOS? "
-                     "(\\FY\\O/\\EN\\O)", MSG_QUIT );
-                  }
-               }
+            else {
+                if (GetTicCount() > quittime) quitactive = false;
+                else if (LastScan == sc_N) {
+                    DeletePriorityMessage(MSG_QUIT);
+                    quitactive = false;
+                }
+                else if (LastScan == sc_Y) {
+                    DeletePriorityMessage(MSG_QUIT);
+                    if (!consoleplayer || !networkgame) AddEndGameCommand();
+                    else AddQuitCommand();
+                }
             }
-         else
-            {
-            if ( GetTicCount() > quittime )
-               {
-               quitactive = false;
-               }
-            else if ( LastScan == sc_N )
-               {
-               DeletePriorityMessage( MSG_QUIT );
-               quitactive = false;
-               }
-            else if ( LastScan == sc_Y )
-               {
-               DeletePriorityMessage( MSG_QUIT );
-               if ( (consoleplayer == 0) || (networkgame==false) )
-                  {
-                  AddEndGameCommand();
-                  }
-               else
-                  {
-                  AddQuitCommand();
-                  }
-               }
-            }
-         }
-      }
-   waminot();
-   }
+        }
+    }
+}
 
 //******************************************************************************
 //
@@ -2081,7 +1971,6 @@ void PollKeyboard (void) {
          if ( !BATTLEMODE )
             {
             // Automap
-            StopWind();
             DoMap( player->tilex, player->tiley );
             }
          else

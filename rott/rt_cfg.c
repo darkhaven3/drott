@@ -225,24 +225,17 @@ void ReadUnsigned(const char* s1, unsigned long* val) {
 //******************************************************************************
 
 boolean ParseSoundFile(void) {
-
-    boolean retval = true;
     int version = 0;
     ReadInt("Version", &version);
 
     if (version == ROTTVERSION) {
-        ReadInt("MusicMode", &MusicMode);               // Read in Music Mode
-        ReadInt("FXMode", &FXMode);                     // Read in FX Mode
         ReadInt("MusicVolume", &MUvolume);              // Read in Music Volume
         ReadInt("FXVolume", &FXvolume);                 // Read in FX Volume
-        ReadInt("NumVoices", &NumVoices);               // Read in numvoices
-        ReadInt("NumChannels", &NumChannels);           // Read in numchannels
-        ReadInt("NumBits", &NumBits);                   // Read in numbits
         ReadBoolean("StereoReverse", &stereoreversed);  // Read in stereo reversal
+        return true;
     }
-    else retval = false;
 
-    return retval;
+    else return false;
 }
 
 
@@ -253,8 +246,6 @@ boolean ParseSoundFile(void) {
 //
 //******************************************************************************
 void SetSoundDefaultValues(void) {
-    int status;
-
     // icculus' SDL_mixer driver looks like a soundscape to us
     MusicMode = 6;
     FXMode = 6;
@@ -1839,5 +1830,3 @@ void ReadSETUPFiles (void)
       unlink (filename);          // Delete ROTT.ROT
    }
 }
-
-

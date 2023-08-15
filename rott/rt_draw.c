@@ -19,9 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // RT_DRAW.C
 
-#include "profile.h"
-#include "rt_def.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "rt_def.h"
 #include "watcom.h"
 #include "sprites.h"
 #include "rt_actor.h"
@@ -46,8 +48,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_game.h"
 #include "rt_vid.h"
 #include "rt_view.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include "rt_cfg.h"
 #include "rt_str.h"
 #include "develop.h"
@@ -56,33 +56,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "modexlib.h"
 #include "rt_rand.h"
 #include "rt_net.h"
-#include "rt_sc_a.h"
-#include "memcheck.h"   //MED
-
-//
-//defines
-//
-
-//apogee screen stuff
-#define APOGEEXANGLE 913
-#define APOGEEXMAG   180
-#define APOGEESTARTY 0
-#define APOGEEENDY   100
-#define APOGEESCALESTART (FINEANGLES<<4)
-#define APOGEESCALEEND (FINEANGLES)
-#define APOGEESONGTIME (124-1)
-
-//missile stuff? why is this here?
-#define NUMEXPLOSIONTYPES 4
-
-//default colors for when no sky or floor
-#define CEILINGCOLOR 24
-#define FLOORCOLOR 32
-
-typedef struct {
-    char  name[11];
-    byte  numframes;
-} ExplosionInfoType;
+#include "SDL.h"
 
 //
 // function prototypes from other modules
@@ -93,6 +67,13 @@ extern void VH_UpdateScreen(void);
 //
 // global variables
 //
+
+static explosioninfo_t ExplosionInfo[NUMEXPLOSIONTYPES] = {
+  {"EXPLOS1\0",20},
+  {"EXP1\0",20},
+  {"GREXP1\0",25},
+  {"PART1\0",12},
+};
 
 int iG_masked;
 int playerview = 0;
@@ -107,14 +88,14 @@ uint32_t*   lights;
 int32_t     wstart;
 
 
-const int dirangle8[9] = {0,FINEANGLES/8,2*FINEANGLES/8,3*FINEANGLES/8,4*FINEANGLES/8,
-                     5*FINEANGLES/8,6*FINEANGLES/8,7*FINEANGLES/8,8*FINEANGLES/8};
+const int32_t dirangle8[9] = { 0,  T_FINEANGLE8,2 * T_FINEANGLE8,3 * T_FINEANGLE8,4 * T_FINEANGLE8,
+                               5 * T_FINEANGLE8,6 * T_FINEANGLE8,7 * T_FINEANGLE8,8 * T_FINEANGLE8 };
 
-const int dirangle16[16] = {0,FINEANGLES/16,2*FINEANGLES/16,3*FINEANGLES/16,
-							  4*FINEANGLES/16,5*FINEANGLES/16,6*FINEANGLES/16,
-							  7*FINEANGLES/16,8*FINEANGLES/16,9*FINEANGLES/16,
-							  10*FINEANGLES/16,11*FINEANGLES/16,12*FINEANGLES/16,
-							  13*FINEANGLES/16,14*FINEANGLES/16,15*FINEANGLES/16};
+const int32_t dirangle16[16] = { 0,  T_FINEANGLE16, 2 * T_FINEANGLE16, 3 * T_FINEANGLE16,
+                                 4 * T_FINEANGLE16, 5 * T_FINEANGLE16, 6 * T_FINEANGLE16,
+                                 7 * T_FINEANGLE16, 8 * T_FINEANGLE16, 9 * T_FINEANGLE16,
+                                10 * T_FINEANGLE16,11 * T_FINEANGLE16,12 * T_FINEANGLE16,
+                                13 * T_FINEANGLE16,14 * T_FINEANGLE16,15 * T_FINEANGLE16 };
 
 //
 // math tables
@@ -128,11 +109,11 @@ int32_t   sintable[FINEANGLES+FINEANGLEQUAD+1],
 // refresh variables
 //
 
-fixed   viewx,viewy;                                                     // the focal point
-int     viewangle;
-int     c_startx, c_starty;
-fixed   viewsin,viewcos;
-int     tics;
+fixed32_t   viewx,viewy;                                                     // the focal point
+int32_t     viewangle;
+int32_t     c_startx, c_starty;
+fixed32_t   viewsin,viewcos;
+int32_t     tics;
 
 //
 // ray tracing variables
@@ -213,76 +194,41 @@ static const int weaponshape[NUMWEAPGRAPHICS] =     //[SHAR] why even separate t
 ==================
 */
 
-void BuildTables (void)
-{
+void BuildTables (void) {
   byte * table;
   byte * ptr;
   int   length;
-  int   i;
 
-//
-// load in tables file
-//
-
-   table=W_CacheLumpName("tables",PU_STATIC, CvtNull, 1);
+   table=W_CacheLumpName("tables",PU_STATIC, CvtNull, 1);   // load in tables file
    ptr=table;
 
-//
-// get size of first table
-//
-
-   memcpy(&length,ptr,sizeof(int));
+   memcpy(&length,ptr,sizeof(int));                 // get size of first table
    SwapIntelLong(&length);
-   
-//
-// skip first table
-//
 
-   ptr+=(length+1)*sizeof(int);
+   ptr+=(length+1)*sizeof(int);                     // skip first table
 
-//
-// get size of sin/cos table
-//
-
-   memcpy(&length,ptr,sizeof(int));
+   memcpy(&length,ptr,sizeof(int));                 // get size of sin/cos table
    SwapIntelLong(&length);
    ptr+=sizeof(int);
-   
-//
-// get sin/cos table
-//
-   memcpy(&sintable[0],ptr,length*sizeof(int));
+
+   memcpy(&sintable[0],ptr,length*sizeof(int));     // get sin/cos table
    SwapIntelLongArray(&sintable[0], length);
    ptr+=(length)*sizeof(int);
 
-//
-// get size of tangent table
-//
-
-   memcpy(&length,ptr,sizeof(int));
+   memcpy(&length,ptr,sizeof(int));                 // get size of tangent table
    SwapIntelLong(&length);
    ptr+=sizeof(int);
 
-//
-// get tangent table
-//
-   memcpy(tantable,ptr,length*sizeof(short));
+   memcpy(tantable,ptr,length*sizeof(short));       // get tangent table
    SwapIntelShortArray(tantable, length);
    ptr+=(length)*sizeof(short);
 
-//
-// get size of gamma table
-//
-
-   memcpy(&length,ptr,sizeof(int));
+   memcpy(&length,ptr,sizeof(int));                 // get size of gamma table
    SwapIntelLong(&length);
    ptr+=sizeof(int);
 
-//
-// get gamma table
-//
-   memcpy(&gammatable[0],ptr,length*sizeof(byte));
-   table=W_CacheLumpName("tables",PU_CACHE, CvtNull, 1);
+   memcpy(&gammatable[0],ptr,length*sizeof(byte));  // get gamma table
+   table=W_CacheLumpName("tables",PU_CACHE, CvtNull, 1);    //[INTERNAL] change cache tag? why?
 
    costable = (fixed *)&(sintable[FINEANGLES/4]);
 
@@ -298,66 +244,43 @@ void BuildTables (void)
    pretics[2]=0x10000;
    pretics[1]=0x10000;
 
-   for(i=0;i<ANGLES;i++)
-    {angletodir[i] = (i + (ANGLES/16))/(ANGLES/8);
-     if (angletodir[i] == 8)
-		angletodir[i] = 0;
-	 }
+   for (int i = 0; i < ANGLES; i++) {
+       angletodir[i] = (i + (ANGLES / 16)) / (ANGLES / 8);
+       if (angletodir[i] == 8) angletodir[i] = 0;
+   }
 
-   // Check out VENDOR.DOC file
-   CheckVendor();
-
-   if (!quiet)
-      printf("RT_DRAW: Tables Initialized\n");
+   CheckVendor();       // Check out VENDOR.DOC file
+   if (!quiet) printf("RT_Draw: Tables Initialized\n");
 }
 
 
 /*
 ========================
 =
-= TransformObject
+= R_TransformObject
 =
 ========================
 */
 
-boolean TransformObject (int x, int y, int *dispx, int *dispheight)
-{
+boolean R_TransformObject (int x, int y, int *dispx, int *dispheight) {
 
-  fixed gx,gy,gxt,gyt,nx,ny;
+  fixed32_t gx,gy,gxt,gyt,nx,ny;        //dma: explicit types
 
-
-//
-// translate point to view centered coordinates
-//
-  gx = x-viewx;
+  gx = x-viewx;     // translate point to view centered coordinates
   gy = y-viewy;
 
-//
-// calculate newx
-//
-  gxt = FixedMul(gx,viewcos);
+  gxt = FixedMul(gx,viewcos);   // calculate newx
   gyt = FixedMul(gy,viewsin);
   nx = gxt-gyt;
 
-  if (nx<MINZ)
-     return false;
+  if (nx<MINZ) return false;    // the midpoint could put parts of the shape into an adjacent wall
 
-  // the midpoint could put parts of the shape
-  // into an adjacent wall
-  //
-  // calculate newy
-  //
-  gxt = FixedMul(gx,viewsin);
+
+  gxt = FixedMul(gx,viewsin);   // calculate newy
   gyt = FixedMul(gy,viewcos);
   ny = gyt+gxt;
 
-
-//
-// calculate perspective ratio
-//
-
-  *dispx = centerx + ny*scale/nx;            // DEBUG: use assembly divide
-
+  *dispx = centerx + ny*scale/nx;   // calculate perspective ratio
   *dispheight = heightnumerator/nx;
 
   return true;
@@ -367,135 +290,112 @@ boolean TransformObject (int x, int y, int *dispx, int *dispheight)
 /*
 ========================
 =
-= TransformPoint
+= R_TransformPoint
 =
 ========================
 */
 
-void TransformPoint (int x, int y, int * screenx, int * height, int * texture, int vertical)
-{
+void R_TransformPoint(int x, int y, int* screenx, int* height, int* texture, int vertical) {
 
-  fixed gxt,gyt,nx,ny;
-  fixed gxtt,gytt;
-  int gx,gy;
-  int vx,vy;
-  int svs,svc;
+    fixed gxt, gyt, nx, ny;
+    fixed gxtt, gytt;
+    int gx, gy;
+    int vx, vy;
+    int svs, svc;
 
+    gx = x - viewx;     // translate point to view centered coordinates
+    gy = y - viewy;
 
-//
-// translate point to view centered coordinates
-//
-  gx = x-viewx;
-  gy = y-viewy;
+    gxt = FixedMul(gx, viewcos);   // calculate newx
+    gyt = FixedMul(gy, viewsin);
+    nx = gxt - gyt;
 
-//
-// calculate newx
-//
-  gxt = FixedMul(gx,viewcos);
-  gyt = FixedMul(gy,viewsin);
-  nx =gxt-gyt;
+    if (nx < 10) nx = 10;             //dma: magic? why?
 
-  if (nx<10)
-     nx=10;
+    gxtt = FixedMul(gx, viewsin);  // calculate newy
+    gytt = FixedMul(gy, viewcos);
+    ny = gytt + gxtt;
+
+    *screenx = centerx + ((ny * scale) / nx);
+    *height = heightnumerator / nx;
 
 
-//
-// calculate newy
-//
-  gxtt = FixedMul(gx,viewsin);
-  gytt = FixedMul(gy,viewcos);
-  ny = gytt+gxtt;
+    if (*screenx < 0) {
+        svc = (-centerx) * viewcos;
+        svs = (-centerx) * viewsin;
+        vx = (scale * viewcos) + svs;
+        vy = (-scale * viewsin) + svc;
+        if (vertical) {
+            if ((viewcos - viewsin) == 0) {
+                *height = 20000 << HEIGHTFRACTION;
+                return;
+            }
 
-// too close, don't overflow the divid'
+            gy = FixedScale(gx, vy, vx);
+            y = gy + viewy;
+            gyt = FixedMul(gy, viewsin);
+            nx = gxt - gyt;
+            if (nx < 10) nx = 10;
 
-
-  *screenx = centerx + ((ny*scale)/nx);            // DEBUG: use assembly divide
-
-  *height = heightnumerator/nx;
-
-
-  if (*screenx<0)
-     {
-     svc=(-centerx)*viewcos;
-     svs=(-centerx)*viewsin;
-     vx=(scale*viewcos)+svs;
-     vy=(-scale*viewsin)+svc;
-     if (vertical)
-        {
-        if ((viewcos-viewsin)==0)
-           {
-           *height=20000<<HEIGHTFRACTION;
-           return;
-           }
-        gy=FixedScale(gx,vy,vx);
-        y=gy+viewy;
-        gyt = FixedMul(gy,viewsin);
-		  nx =gxt-gyt;
-        if (nx<10)
-           nx=10;
-        *screenx = 0;
-        *height = heightnumerator/nx;
-		  }
-     else
-        {
-        if ((-viewsin-viewcos)==0)
-           {
-           *height=20000<<HEIGHTFRACTION;
-           return;
-           }
-        gx=FixedScale(gy,vx,vy);
-        x=gx+viewx;
-        gxt = FixedMul(gx,viewcos);
-        nx =gxt-gyt;
-        if (nx<10)
-           nx=10;
-        *screenx = 0;
-        *height = heightnumerator/nx;
+            *screenx = 0;
+            *height = heightnumerator / nx;
         }
-	  }
-  else if (*screenx>=viewwidth)
-     {
-     svc=(centerx)*viewcos;
-     svs=(centerx)*viewsin;
-     vx=(scale*viewcos)+svs;
-     vy=(-scale*viewsin)+svc;
-     if (vertical)
-        {
-        if ((viewcos+viewsin)==0)
-           {
-           *height=20000<<HEIGHTFRACTION;
-           return;
-           }
-        gy=FixedScale(gx,vy,vx);
-        y=gy+viewy;
-        gyt = FixedMul(gy,viewsin);
-        nx =gxt-gyt;
-        if (nx<10)
-			  nx=10;
-        *screenx = viewwidth-1;
-        *height = heightnumerator/nx;
+
+        else {
+            if ((-viewsin - viewcos) == 0) {
+                *height = 20000 << HEIGHTFRACTION;
+                return;
+            }
+            gx = FixedScale(gy, vx, vy);
+            x = gx + viewx;
+            gxt = FixedMul(gx, viewcos);
+            nx = gxt - gyt;
+            if (nx < 10) nx = 10;
+
+            *screenx = 0;
+            *height = heightnumerator / nx;
         }
-     else
-        {
-        if ((-viewsin+viewcos)==0)
-           {
-           *height=20000<<HEIGHTFRACTION;
-           return;
-           }
-        gx=FixedScale(gy,vx,vy);
-        x=gx+viewx;
-		  gxt = FixedMul(gx,viewcos);
-        nx =gxt-gyt;
-        if (nx<10)
-           nx=10;
-        *screenx = viewwidth-1;
-        *height = heightnumerator/nx;
+    }
+    else if (*screenx >= viewwidth) {
+        svc = (centerx)*viewcos;
+        svs = (centerx)*viewsin;
+        vx = (scale * viewcos) + svs;
+        vy = (-scale * viewsin) + svc;
+
+        if (vertical) {
+            if ((viewcos + viewsin) == 0) {
+                *height = 20000 << HEIGHTFRACTION;
+                return;
+            }
+
+            gy = FixedScale(gx, vy, vx);
+            y = gy + viewy;
+            gyt = FixedMul(gy, viewsin);
+            nx = gxt - gyt;
+            if (nx < 10) nx = 10;
+
+            *screenx = viewwidth - 1;
+            *height = heightnumerator / nx;
         }
-     }
-  if (vertical)
-     *texture=(y-*texture)&0xffff;
-  else
-     *texture=(x-*texture)&0xffff;
+
+        else {
+            if ((-viewsin + viewcos) == 0) {
+                *height = 20000 << HEIGHTFRACTION;
+                return;
+            }
+
+            gx = FixedScale(gy, vx, vy);
+            x = gx + viewx;
+            gxt = FixedMul(gx, viewcos);
+            nx = gxt - gyt;
+            if (nx < 10) nx = 10;
+
+            *screenx = viewwidth - 1;
+            *height = heightnumerator / nx;
+        }
+    }
+    if (vertical) *texture = (y - *texture) & 0xffff;
+    else *texture = (x - *texture) & 0xffff;
 }
 
 /*
@@ -506,49 +406,30 @@ void TransformPoint (int x, int y, int * screenx, int * height, int * texture, i
 ========================
 */
 
-boolean TransformSimplePoint (int x, int y, int * screenx, int * height, int * texture, int vertical)
-{
+boolean TransformSimplePoint (int32_t x, int32_t y, int32_t* screenx, int32_t* height, int32_t* texture, int32_t vertical) {
+  fixed32_t gxt,gyt,nx,ny;
+  fixed32_t gxtt,gytt;
+  int32_t gx,gy;
 
-  fixed gxt,gyt,nx,ny;
-  fixed gxtt,gytt;
-  int gx,gy;
-
-
-//
-// translate point to view centered coordinates
-//
-  gx = x-viewx;
+  gx = x-viewx;     // translate point to view centered coordinates
   gy = y-viewy;
 
-//
-// calculate newx
-//
-  gxt = FixedMul(gx,viewcos);
+
+  gxt = FixedMul(gx,viewcos);   // calculate newx
   gyt = FixedMul(gy,viewsin);
   nx =gxt-gyt;
 
-  if (nx<MINZ)
-     return false;
+  if (nx<MINZ) return false;
 
-
-//
-// calculate newy
-//
-  gxtt = FixedMul(gx,viewsin);
+  gxtt = FixedMul(gx,viewsin);  // calculate newy
   gytt = FixedMul(gy,viewcos);
   ny = gytt+gxtt;
 
-// too close, don't overflow the divid'
-
-
-  *screenx = centerx + ((ny*scale)/nx);            // DEBUG: use assembly divide
-
+  *screenx = centerx + ((ny*scale)/nx);
   *height = heightnumerator/nx;
 
-  if (vertical)
-     *texture=(y-*texture)&0xffff;
-  else
-     *texture=(x-*texture)&0xffff;
+  if (vertical) *texture=(y-*texture)&0xffff;
+  else *texture=(x-*texture)&0xffff;
 
   return true;
 }
@@ -562,58 +443,55 @@ boolean TransformSimplePoint (int x, int y, int * screenx, int * height, int * t
 ========================
 */
 
-boolean TransformPlane (int x1, int y1, int x2, int y2, visobj_t * plane)
-{
-  boolean result2;
-  boolean result1;
-  boolean vertical;
-  int txstart,txend;
+boolean TransformPlane(int x1, int y1, int x2, int y2, visobj_t* plane) {
+    boolean result2;
+    boolean result1;
+    boolean vertical;
+    int txstart, txend;
 
-  vertical=((x2-x1)==0);
-  plane->viewx=vertical;
-  txstart=plane->texturestart;
-  txend=plane->textureend;
-  result1=TransformSimplePoint(x1,y1,&(plane->x1),&(plane->h1),&(plane->texturestart),vertical);
-  result2=TransformSimplePoint(x2,y2,&(plane->x2),&(plane->h2),&(plane->textureend),vertical);
-  if (result1==true)
-     {
-     if (plane->x1>=viewwidth)
-        return false;
-     if (result2==false)
-        {
-        plane->textureend=txend;
-        TransformPoint(x2,y2,&(plane->x2),&(plane->h2),&(plane->textureend),vertical);
+    vertical = ((x2 - x1) == 0);
+    plane->viewx = vertical;
+    txstart = plane->texturestart;
+    txend = plane->textureend;
+
+    result1 = TransformSimplePoint(x1, y1, &(plane->x1), &(plane->h1), &(plane->texturestart), vertical);
+    result2 = TransformSimplePoint(x2, y2, &(plane->x2), &(plane->h2), &(plane->textureend), vertical);
+
+    if (result1) {
+        if (plane->x1 >= viewwidth) return false;
+        if (!result2) {
+            plane->textureend = txend;
+            R_TransformPoint(x2, y2, &(plane->x2), &(plane->h2), &(plane->textureend), vertical);
         }
-	  }
-  else
-     {
-     if (result2==false)
-        return false;
-     else
+    }
+    else
+    {
+        if (!result2) return false;
+        else
         {
-        if (plane->x2<0)
-           return false;
-        plane->texturestart=txstart;
-		  TransformPoint(x1,y1,&(plane->x1),&(plane->h1),&(plane->texturestart),vertical);
+            if (plane->x2 < 0)
+                return false;
+            plane->texturestart = txstart;
+            R_TransformPoint(x1, y1, &(plane->x1), &(plane->h1), &(plane->texturestart), vertical);
         }
-     }
-  if (plane->x1<0)
-     {
-     plane->texturestart=txstart;
-     TransformPoint(x1,y1,&(plane->x1),&(plane->h1),&(plane->texturestart),vertical);
-     }
-  if (plane->x2>=viewwidth)
-     {
-     plane->textureend=txend;
-     TransformPoint(x2,y2,&(plane->x2),&(plane->h2),&(plane->textureend),vertical);
-     }
+    }
+    if (plane->x1 < 0)
+    {
+        plane->texturestart = txstart;
+        R_TransformPoint(x1, y1, &(plane->x1), &(plane->h1), &(plane->texturestart), vertical);
+    }
+    if (plane->x2 >= viewwidth)
+    {
+        plane->textureend = txend;
+        R_TransformPoint(x2, y2, &(plane->x2), &(plane->h2), &(plane->textureend), vertical);
+    }
 
-  plane->viewheight=(plane->h1+plane->h2)>>1;
+    plane->viewheight = (plane->h1 + plane->h2) >> 1;
 
-  if ((plane->viewheight>=(2000<<HEIGHTFRACTION)) || (plane->x1>=viewwidth-1) || (plane->x2<=0))
-     return false;
+    if ((plane->viewheight >= (2000 << HEIGHTFRACTION)) || (plane->x1 >= viewwidth - 1) || (plane->x2 <= 0))
+        return false;
 
-  return true;
+    return true;
 }
 
 //==========================================================================
@@ -882,7 +760,7 @@ void DrawScaleds(void) {
 					  continue;     // not visible
 					 }
 
-			 result = TransformObject (statptr->x,statptr->y,&(visptr->viewx),&(visptr->viewheight));
+			 result = R_TransformObject (statptr->x,statptr->y,&(visptr->viewx),&(visptr->viewheight));
 
 			 if ((result==false) || (visptr->viewheight< (1<<(HEIGHTFRACTION+2))))
 				 continue;                         // to close to the object
@@ -991,8 +869,7 @@ void DrawScaleds(void) {
 		  || ( *(visspot+127)) )
 		  {
 
-//        result = TransformObject (obj->drawx, obj->drawy,&(visptr->viewx),&(visptr->viewheight));
-        result = TransformObject (obj->x, obj->y,&(visptr->viewx),&(visptr->viewheight));
+        result = R_TransformObject (obj->x, obj->y,&(visptr->viewx),&(visptr->viewheight));
         if ((result==false) || (visptr->viewheight< (1<<(HEIGHTFRACTION+2))))
 			  continue;                         // to close to the object
 		  if (obj->state->rotate)
@@ -2364,36 +2241,33 @@ void InterpolateMaskedWall (visobj_t * plane)
 /*
 ========================
 =
-= DrawPlayerLocation
+= RT_DrawThingLocation
 =
 ========================
 */
-#define PLX  296
-#define PLY  16
-void DrawPlayerLocation ( void )
+
+void RT_DrawThingLocation(objtype* mobj)
 {
-   int i;
-   char buf[30];
+    int i;
+    char buf[30];
 
-   CurrentFont=tinyfont;
+    CurrentFont = tinyfont;
 
-   for (i=0;i<18;i++)
-      memset((byte *)bufferofs+(ylookup[i+PLY])+PLX,0,6);
+    for (i = 0; i < 18; i++)
+        memset((byte*)bufferofs + (ylookup[i + R_DRAWTHINGLOCATION_Y]) + R_DRAWTHINGLOCATION_X, 0, 6);
 
-    px=PLX;
-    py=PLY;
-	VW_DrawPropString(strupr(itoa(player->x,&buf[0],16)));
+    px = R_DRAWTHINGLOCATION_X;
+    py = R_DRAWTHINGLOCATION_Y;
+    VW_DrawPropString(strupr(itoa(mobj->x, &buf[0], 16)));
 
-	px=PLX;
-	py=PLY+6;
-	VW_DrawPropString(strupr(itoa(player->y,&buf[0],16)));
+    px = R_DRAWTHINGLOCATION_X;
+    py = R_DRAWTHINGLOCATION_Y + 6;
+    VW_DrawPropString(strupr(itoa(mobj->y, &buf[0], 16)));
 
-	px=PLX;
-	py=PLY+12;
-	VW_DrawPropString(strupr(itoa(player->angle,&buf[0],16)));
+    px = R_DRAWTHINGLOCATION_X;
+    py = R_DRAWTHINGLOCATION_Y + 12;
+    VW_DrawPropString(strupr(itoa(mobj->angle, &buf[0], 16)));
 }
-
-
 
 /*
 ========================
@@ -2411,7 +2285,7 @@ void ThreeDRefresh(void) {
     // Erase old messages
     RestoreMessageBackground();
     bufferofs += screenofs;
-    RefreshClear();
+    R_RefreshClear();
     UpdateClientControls();
 
     visptr = &vislist[0];   // follow the walls from there to the right, drawing as we go
@@ -2461,7 +2335,7 @@ void ThreeDRefresh(void) {
 
     bufferofs -= screenofs;
     UpdateClientControls();
-    if (HUD) DrawPlayerLocation();
+    if (HUD) RT_DrawThingLocation(player);
 
     FlipPage();
     gamestate.frame++;
@@ -2727,6 +2601,7 @@ void ScaleAndRotateBuffer (int startangle, int endangle, int startscale, int end
    CalcTics();
    for (i=0;i<time;i+=tics)
       {//zxcv
+
       DrawRotatedScreen(Xh,Yh, (byte *)bufferofs,(angle>>16)&(FINEANGLES-1),scale>>6,0);
       FlipPage();
       scale+=(scalestep*tics);
@@ -3726,13 +3601,6 @@ static char     youWin8Msg[] =
            "\n"
            "      THE REAL END";
 
-ExplosionInfoType ExplosionInfo[NUMEXPLOSIONTYPES] = {
-  {"EXPLOS1\0",20},
-  {"EXP1\0",20},
-  {"GREXP1\0",25},
-  {"PART1\0",12},
-};
-
 
 typedef struct {
   byte  which;
@@ -3745,30 +3613,26 @@ typedef struct {
 
 static ExplosionType Explosions[MAXTRANSMITTEREXPLOSIONS];
 
-void ResetTransmitterExplosion ( ExplosionType * Explosion )
-{
-   Explosion->which=RandomNumber("Explosion",0)%NUMEXPLOSIONTYPES;
-   Explosion->frame=0;
-   Explosion->x=(RandomNumber("Explosion",2)>>1)+(160-64);
-   Explosion->y=(RandomNumber("Explosion",3)>>1);
+void ResetTransmitterExplosion(ExplosionType* Explosion) {
+    Explosion->which = RandomNumber("Explosion", 0) % NUMEXPLOSIONTYPES;
+    Explosion->frame = 0;
+    Explosion->x = (RandomNumber("Explosion", 2) >> 1) + (160 - 64);
+    Explosion->y = (RandomNumber("Explosion", 3) >> 1);
 }
 
 void CacheTransmitterExplosions(void) {
-   int i,j,num;
-
-   for (i = 0; i < NUMEXPLOSIONTYPES; i++) {
-       num = W_GetNumForName(ExplosionInfo[i].name);
-       for (j = 0; j < ExplosionInfo[i].numframes; j++)
-           W_CacheLumpNum(num + j, PU_CACHE, Cvt_patch_t, 1);
-   }
+    static int32_t num;
+    for (int i = 0; i < NUMEXPLOSIONTYPES; i++) {
+        num = W_GetNumForName(ExplosionInfo[i].name);
+        for (int j = 0; j < ExplosionInfo[i].numframes; j++)    W_CacheLumpNum(num + j, PU_CACHE, Cvt_patch_t, 1);
+    }
 }
 
 //might as well be inline (note: &Explosions is static)
 static inline void SetupTransmitterExplosions(void) {
-   for (int i=0;i<MAXTRANSMITTEREXPLOSIONS;i++) ResetTransmitterExplosion(&Explosions[i]);
+   for (int i=0;i<MAXTRANSMITTEREXPLOSIONS;i++)     ResetTransmitterExplosion(&Explosions[i]);
 }
-void UpdateTransmitterExplosions ( void )
-{
+void UpdateTransmitterExplosions(void) {
     for (int i = 0; i < MAXTRANSMITTEREXPLOSIONS; i++) {
         Explosions[i].frame += tics;
 
@@ -3776,7 +3640,6 @@ void UpdateTransmitterExplosions ( void )
             ResetTransmitterExplosion(&Explosions[i]);
             SD_Play(SD_EXPLODEFLOORSND + (RandomNumber("Explosion", 4) >> 7));
         }
-
     }
 }
 
@@ -4877,8 +4740,6 @@ void DoMicroStoryScreen ( void )
    VL_FadeOut (0, 255, 0, 0, 0, 20);
 }
 
-#ifndef DOS
-
 void  DrawMenuPost (int height, byte * src, byte * buf)
 {
 	int frac = hp_startfrac;
@@ -4901,196 +4762,129 @@ void  DrawMapPost (int height, byte * src, byte * buf)
 	}
 }
 
-void DrawRotRow(int count, byte * dest, byte * src)
-{
-	unsigned eax, ecx, edx;
-//	unsigned a, b, c,d;
-	 byte * srctmp;
-	 byte * desttmp;
+void DrawRotRow(int count, byte* dest, byte* src) {
+    unsigned eax, ecx, edx;
+    byte* srctmp;
+    byte* desttmp;
 
-	ecx = mr_yfrac;
-	edx = mr_xfrac;
+    ecx = mr_yfrac;
+    edx = mr_xfrac;
 
-	if ((iGLOBAL_SCREENWIDTH == 320)||(iG_masked==true))  
-	{
-		while (count--) {
-			eax = edx >> 16;
-			if (eax < 256 && (ecx >> 16) < 512) {
-				eax = (eax << 9) | ((ecx << 7) >> (32-9));
-			} else {
-				eax = 0;
-			}
-			
-			*dest++ = src[eax];
-			
-			edx += mr_xstep;
-			ecx += mr_ystep;
-		}
-	}else if (iGLOBAL_SCREENWIDTH == 640) {
-		while (count--) {
-			eax = edx >> 16;
-			if (eax < (256*2.0) && (ecx >> 16) < (512*1.8)) {
-				eax = (eax << 10) | ((ecx << 6) >> (32-10));
-			} else {
-				eax = 0;
-			}
-			
-			*dest++ = src[eax];
-			
-			edx += mr_xstep;
-			ecx += mr_ystep;
-		}
-	}else if (iGLOBAL_SCREENWIDTH >= 800) {
+    if ((iGLOBAL_SCREENWIDTH == 320) || (iG_masked == true)) {
+        while (count--) {
+            eax = edx >> 16;
+            if (eax < 256 && (ecx >> 16) < 512) {
+                eax = (eax << 9) | ((ecx << 7) >> (32 - 9));
+            }
+            else {
+                eax = 0;
+            }
 
+            *dest++ = src[eax];
 
+            edx += mr_xstep;
+            ecx += mr_ystep;
+        }
+    }
+    else if (iGLOBAL_SCREENWIDTH == 640) {
+        while (count--) {
+            eax = edx >> 16;
+            if (eax < (256 * 2.0) && (ecx >> 16) < (512 * 1.8)) {
+                eax = (eax << 10) | ((ecx << 6) >> (32 - 10));
+            }
+            else eax = 0;
 
-	srctmp = src;
-	desttmp = dest;
+            *dest++ = src[eax];
+            edx += mr_xstep;
+            ecx += mr_ystep;
+        }
+    }
+    else if (iGLOBAL_SCREENWIDTH >= 800) {
+        srctmp = src;
+        desttmp = dest;
+        desttmp -= (iGLOBAL_SCREENWIDTH * 1);
+        ecx = mr_yfrac;
+        edx = mr_xfrac;
 
-	desttmp -= (iGLOBAL_SCREENWIDTH*1);
+        while (count--) {
+            eax = edx >> 16;
 
-	ecx = mr_yfrac;
-	edx = mr_xfrac;
-	//count = 800
-//zxcv
-	while (count--) { 
-		eax = edx >> 16;//edx=4146069504 eax=63264  edx/eax = 65536->0x10000
-		 
-		//a=(eax << 9); //=eax*512
-		//a=(eax << 7); //=eax*128
-		//a=512|128; = 640;
-		//SetTextMode (  );
-		//a=(ecx >> 16);//ecx=4102225920 a=62595   ecx/65536 = 62595
+            //         Y-dir                    x-dir
+            if (eax < (256 * 2.5) && (ecx >> 16) < (512 * 2))
+                eax = (eax << 10) | ((ecx << 6) >> (32 - 10));
+            else eax = 0;
 
-		//         Y-dir                    x-dir
-		if (eax < (256*2.5) && (ecx >> 16) < (512*2)) {
-			//eax = (eax << 9) | ((ecx << 7) >> (32-9));
-			eax = (eax << 10) | ((ecx << 6) >> (32-10));
-	/*		eax = (eax * 512*2) ;
-								//(23)
-			eax += 	 ((ecx ) >> (32-9));//ecx=196608
-			*/
-		} else {
-			eax = 0;
+            *desttmp++ = srctmp[eax];
+            edx += mr_xstep;
+            ecx += mr_ystep;
+        }
 
-			
-		}
- 		//desttmp -= centeroffset;	
-		*desttmp++ = srctmp[eax];
-		//*desttmp++ = srctmp[eax];
-		
-		edx += mr_xstep;
-		ecx += mr_ystep;
-	}
-
-	}
+    }
 }
 
-void DrawMaskedRotRow(int count, byte * dest, byte * src)
-{
-	unsigned eax;
-	unsigned xfrac, yfrac;
-	
-	xfrac = mr_xfrac;
-	yfrac = mr_yfrac;
-	
-	while (count--) {
-		eax = xfrac >> 16;
-		if (eax < 256 && (yfrac >> 16) < 512) {
-			eax = (eax << 9) | ((yfrac << 7) >> (32-9));
-		} else {
-			eax = 0;
-		}
-		
-		if (src[eax] != 0xff) *dest = src[eax];
-		dest++;
-		
-		xfrac += mr_xstep;
-		yfrac += mr_ystep;
-	}
+void DrawMaskedRotRow(int count, byte* dest, byte* src) {
+    unsigned eax;
+    unsigned xfrac, yfrac;
+
+    xfrac = mr_xfrac;
+    yfrac = mr_yfrac;
+
+    while (count--) {
+        eax = xfrac >> 16;
+        if (eax < 256 && (yfrac >> 16) < 512)   eax = (eax << 9) | ((yfrac << 7) >> (32 - 9));
+        else eax = 0;
+
+        if (src[eax] != 0xff) *dest = src[eax];
+        dest++;
+
+        xfrac += mr_xstep;
+        yfrac += mr_ystep;
+    }
 }
 
-void DrawSkyPost (byte * buf, byte * src, int height)
-{
+void DrawSkyPost(byte* buf, byte* src, int height) {
+    // bna fix for missing sky by high res eg 800x600
+    // when sky is >400 (max skyheight) then reverse mouintain to missing spot
 
-// bna fix for missing sky by high res eg 800x600
-// when sky is >400 (max skyheight) then reverse mouintain to missing spot
-// there should be 200 line of mouintain (400+200) = 600 height lines
-// not the best solution but what it works
+    if (iGLOBAL_SCREENWIDTH > 320) {
+        int orgh = 0;
+        if (height > 400) orgh = height;
 
-	if (iGLOBAL_SCREENWIDTH > 320){
-	// bna section start
-		//int n = 0;
-		int orgh = 0;//height;
-		if (height > 400){orgh=height;}
+        while (height--) {
+            if ((orgh > 0) && (height < (orgh - 400))) {
+                src -= 2;
+                *buf = shadingtable[*src];
+            }
+            else *buf = shadingtable[*src];
 
-		while (height--) {
-			if ((orgh > 0)&&( height<(orgh-400))){
-				src-=2;
-				*buf = shadingtable[*src];
-			}else{
+            buf += linewidth;
+            src++;
+        }
+    }
+    else {
+        int i = 0;
+        byte* const orig_src = src;
 
-				*buf = shadingtable[*src];
-			}
-			buf += linewidth;
-			src++;
-		}
-	// bna section end
-	}
-	else
-	{
-	int i = 0;
-	byte *const orig_src = src;
-	// org code
-		while (height--) {
-			*buf = shadingtable[*src];
-			
-			buf += linewidth;
-			src = orig_src + (++i*200/iGLOBAL_SCREENHEIGHT);
-		}
-	//	
-	}
-  
-	/*
-	int lw = linewidth * 2;
-	int h  = height;
-
-	while (h--) {
-		*(buf) = shadingtable[*src];
-		buf += lw;
-		*(buf) = shadingtable[*src];
-		buf += lw;
-		
-		//buf += lw;
-		src++;
-		
-	}*/
+        while (height--) {
+            *buf = shadingtable[*src];
+            buf += linewidth;
+            src = orig_src + (++i * 200 / iGLOBAL_SCREENHEIGHT);
+        }
+    }
 }
 
-void RefreshClear (void) {
-	int start, base;
-	
+void R_RefreshClear (void) {
+    int start = min(centery, viewheight);
+    int base;
+
 	memset(spotvis, 0, sizeof(spotvis));
 	
-	if (fandc) {
-		return;
-	}
-	
-	start = min(centery, viewheight);
-	
-	if (start > 0) {
-		VL_Bar(0, 0, iGLOBAL_SCREENHEIGHT, start, CEILINGCOLOR);
-	} else {
-		start = 0;
-	}
+	if (fandc) return;
+	if (start > 0) VL_Bar(0, 0, iGLOBAL_SCREENHEIGHT, start, CEILINGCOLOR);
+	else start = 0;
 	
 	base = start;
-	
 	start = min(viewheight-start, viewheight);
-	if (start > 0) {
-		VL_Bar(0, base, iGLOBAL_SCREENHEIGHT, start, FLOORCOLOR);
-	}
+
+	if (start > 0) VL_Bar(0, base, iGLOBAL_SCREENHEIGHT, start, FLOORCOLOR);
 }
-
-#endif
-

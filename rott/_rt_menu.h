@@ -171,6 +171,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PSTRW  110
 #define PBOXH  12
 
+#define DELAYAMT  2
+#define SNDCARDS  12
+#define CP_NO     0
+#define CP_ESC    -1
+#define CP_YES    1
+#define MAXCURSORNUM 24
+#define KEYNAMEINDEX 21
+#define NORMALKEY_X  74
+#define NORMALKEY_Y  16
+#define MOUSEBTNINDEX 17
+#define JOYBTNINDEX 17
+#define NUMCONTROLNAMES 21
+#define CONTROLSELECT_X  106
+#define COLORX 113
+#define COLORY 43
+#define COLORW 60
+#define COLORH 96
 
 #define QUICKSAVEBACKUP ("rottgamf.rot")
 //******************************************************************************
@@ -241,16 +258,12 @@ void DrawHalfStep (int x, int y);
 
 void DrawCtlScreen (void);
 void DrawCtlButtons (void);
-void DrawSoundMenu (void);
 void DrawCustomScreen (void);
 void DrawLoadSaveScreen (int loadsave);
 void DrawLoadSaveScreenAlt (int loadsave);
-void DrawMusicMenu (void);
 void DrawNewGame (void);
 void DrawNewGameDiff (int w);
 void DrawNewPlayerDiff (int w);
-void DrawFXMenu (void);
-void DrawFXButtons (void);
 void DrawCustomJoystick (void);
 void DrawCustomMouse (void);
 void DrawCustomSpecial (void);

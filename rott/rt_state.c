@@ -674,17 +674,7 @@ statetype s_gas1 = {false,SPR42_GRATE,0,NULL,0,&s_gas1};
 //================== player stuff =======================================/
 
 statetype s_p_bazooka1 = {16,SPR_BJMISS11,3,T_Projectile,0,&s_p_bazooka1};
-
 statetype s_p_grenade = {16,SPR_BJMISS11,3,T_Projectile,0,&s_p_grenade};
-
-/*
-statetype s_p_misssmoke4 = {false,MISSSMOKE4,7,NULL,0,NULL};
-statetype s_p_misssmoke3 = {false,MISSSMOKE3,7,NULL,0,&s_p_misssmoke4};
-statetype s_p_misssmoke2 = {false,MISSSMOKE2,7,NULL,0,&s_p_misssmoke3};
-statetype s_p_misssmoke1 = {false,MISSSMOKE1,3,NULL,0,&s_p_misssmoke2};
-*/
-
-
 statetype s_basemarker8 = {false,FLASH8,3,NULL,0,&s_basemarker1};
 statetype s_basemarker7 = {false,FLASH7,3,NULL,0,&s_basemarker8};
 statetype s_basemarker6 = {false,FLASH6,3,NULL,0,&s_basemarker7};
@@ -956,8 +946,6 @@ statetype s_collectorfdoor1 = {false,DOPE1,2,T_CollectorFindDoor,0,&s_collectorf
 #endif
 
 statetype s_timekeeper = {false,NOTHING,140,T_End,0,NULL};
-
-statetype s_wind = {false,-1,10,T_Wind,0,&s_wind};
 
 
 statetype s_deadblood8 = {false,NOTHING,0,T_Blood,0,&s_deadblood8};

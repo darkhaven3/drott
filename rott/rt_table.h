@@ -596,7 +596,7 @@ statetype * statetable[MAXSTATES]=
 &s_collectorfdoor2,
 &s_collectorfdoor1,
 &s_tag,
-&s_wind,
+NULL,
 &s_timekeeper,
 &s_remoteguts1,
 &s_remoteguts2,

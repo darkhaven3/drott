@@ -25,6 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef DOS
+#include <dos.h>
+#include <conio.h>
+#endif
+
 #include "rt_build.h"
 #include "_rt_buil.h"
 #include "rt_dr_a.h"
@@ -227,7 +232,8 @@ void InterpolatePlane (visobj_t * plane)
 //
 //******************************************************************************
 
-void   DrawPlanePosts (void) {
+void   DrawPlanePosts (void)
+{
    int height;
    char * buf;
    byte * shape;
@@ -237,10 +243,20 @@ void   DrawPlanePosts (void) {
 
    shadingtable=colormap+(16<<8);
 
+#ifdef DOS
+   for (plane=0;plane<4;plane++)
+#endif
 
+      {
+      VGAWRITEMAP(plane);
       buf=(byte *)(bufferofs);
 
-      for (i=0;i<viewwidth;i++,buf++) {
+#ifdef DOS
+      for (i=plane;i<viewwidth;i+=4,buf++)
+#else
+      for (i=0;i<viewwidth;i++,buf++)
+#endif
+         {
          height=(posts[i].wallheight);
          if (height<=4)
             continue;
@@ -254,6 +270,7 @@ void   DrawPlanePosts (void) {
             }
          DrawRotPost (height,shape+posts[i].texture,buf,posts[i].offset);
          }
+      }
 }
 
 //******************************************************************************
@@ -531,8 +548,11 @@ void PositionMenuBuf( int angle, int distance, boolean drawbackground )
    CurrentFont=oldfont;
    FlipPage();
    titleshade+=titleshadedir;
-   if (abs(titleshade-16)>6) titleshadedir=-titleshadedir;
-   if (!BackgroundDrawn) BackgroundDrawn=true;
+   if (abs(titleshade-16)>6)
+      titleshadedir=-titleshadedir;
+   if (BackgroundDrawn == false) {
+       BackgroundDrawn = true;
+   }
 }
 
 //******************************************************************************
