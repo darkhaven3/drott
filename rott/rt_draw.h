@@ -135,5 +135,9 @@ void DrawRotatedScreen(int cx, int cy, byte* destscreen, int angle, int scale, i
 void InterpolateMaskedWall(visobj_t* plane);
 void InterpolateDoor(visobj_t* plane);
 void InterpolateWall(visobj_t* plane);
+void R_RefreshClear(void);
+void R_DrawWallColumn(byte* buf);
+void DrawMenuPost(int height, byte* src, byte* buf); // IN rt_dr_a.asm	//?
+void DrawMapPost(int height, byte* src, byte* buf); // IN rt_dr_a.asm	//?
 
 #endif

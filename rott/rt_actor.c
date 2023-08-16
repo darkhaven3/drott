@@ -346,10 +346,7 @@ static statetype * UPDATE_STATES[NUMSTATES][NUMENEMIES] =
 
 #endif
 
-
-
 #define TABLE_ACTOR(ob)  ((ob->obclass >= lowguardobj) && (ob->obclass <= wallopobj))
-
 
 void T_Reset(objtype*ob);
 void ApplyGravity(objtype *ob);
@@ -367,12 +364,10 @@ static int     ACTORFRICTION     =    0xf000;
 static int     DIAGADJUST        =    0xb504;
 static boolean MissileSound      =    true;
 
-
-boolean FirstExplosionState(statetype* state) {
+boolean FirstExplosionState(const statetype* state) {
         if ((state == &s_explosion1) || (state == &s_grexplosion1) || (state == &s_staticexplosion1)) return true;
         else return false;
 }
-
 
 inline void SetGibSpeed(int speed) {
     MISCVARS->gibspeed = speed;
@@ -486,8 +481,7 @@ void SaveActors(byte** buffer, int* size) {
                 Debug("\nsave actor %d, type %d has target %d", temp->whichactor, temp->obclass, tact->whichactor);
             }
             else if (tact->which == SPRITE) {
-                statobj_t* tstat;
-                tstat = (statobj_t*)(temp->target);
+                const statobj_t* tstat = (statobj_t*)(temp->target);
                 dummy.targetindex = (tstat->whichstat | SG_PSTAT);
             }
             else dummy.targetindex = -1; // It must be a push wall, and we don't save that
@@ -1366,7 +1360,7 @@ void T_ElevDisk(objtype* ob) {
             return;
         }
     }
-    if (master && (!(ob->flags & FL_SYNCED))) {
+    if (!(ob->flags & FL_SYNCED)) {
         int dz = abs(master->z - ob->z);
         if ((dz > 0) && (dz < 8)) {
             SetElevatorDiskVariables(ob, master->z, master->momentumz, master->temp1, master->temp3, master->dirchoosetime);
@@ -1508,7 +1502,6 @@ void T_Spring(objtype* ob) {
 
 void T_Count(objtype* ob) {
     int index;
-    wall_t* tswitch;
     touchplatetype* temp;
     objtype* tempactor;
 
@@ -1569,8 +1562,6 @@ void T_Count(objtype* ob) {
                 tempactor = (objtype*)(temp->whichobj);
                 tempactor->flags &= ~FL_ACTIVE;
             }
-
-        tswitch = (wall_t*)actorat[ob->temp1][ob->temp2];
     }
 }
 
@@ -1805,7 +1796,7 @@ void SpawnFirebomb(objtype* ob, int damage, int which) {
             if (tempdoor->position < 0x8000) doorat = 1;
         }
 
-        if ((tempwall && M_ISWALL(tempwall)) || doorat || (new->tilex <= 0) || (new->tilex > MAPSIZE - 1) || (new->tiley <= 0) || (new->tiley > MAPSIZE - 1)) {
+        if ((tempwall && M_ISWALL(tempwall)) || doorat || !new->tilex || (new->tilex > MAPSIZE - 1) || !new->tiley || (new->tiley > MAPSIZE - 1)) {
             new->z = ob->z;
             SetFinePosition(new, ob->x, ob->y);
             SetVisiblePosition(new, ob->x, ob->y);
@@ -1955,7 +1946,7 @@ void MissileHitActor(objtype* owner, objtype* missile, objtype* victim, int dama
 }
 
 void MissileHit(objtype* ob, void* hitwhat) {
-    int damage = 0, random, tcl = 0, ocl, fireweapon = 0, sound, hitmomx, hitmomy;
+    int damage = 0, random, tcl = 0, ocl, sound, hitmomx, hitmomy;
     objtype* tempactor = NULL, * owner;
 
     if (ob == missobj) missobj = NULL;
@@ -2026,7 +2017,6 @@ void MissileHit(objtype* ob, void* hitwhat) {
         case fireballobj:
             NewState(ob, &s_explosion1);
             damage = (random >> 3) + 10;
-            fireweapon = 1;
             break;
         case missileobj:
             NewState(ob, &s_explosion1);
@@ -2038,7 +2028,6 @@ void MissileHit(objtype* ob, void* hitwhat) {
             if ((!tempactor) || (tempactor->which == ACTOR) || (tempactor->which == SPRITE)) NewState(ob, &s_explosion1);
             else if (M_ISWALL(tempactor) || (tempactor->which == DOOR)) NewState(ob, &s_crossdone1);
             damage = EnvironmentDamage(ob);
-            fireweapon = 1;
             break;
         case inertobj:
             ob->state = NULL;
@@ -2090,7 +2079,6 @@ void MissileHit(objtype* ob, void* hitwhat) {
         case dmfballobj:
             NewState(ob, &s_explosion1);
             damage = (random >> 3) + 20;
-            fireweapon = 1;
             break;
         case h_mineobj:
             NewState(ob, &s_explosion1);
@@ -2146,7 +2134,7 @@ void T_Spears(objtype* ob) {
 }
 
 void T_CrushUp(objtype* ob) {
-    int dx, dy, dist, dz, i, playeron;
+    int dx, dy, dist, dz, i;
 
     if ((!ob->ticcount) && (ob->state->condition & SF_SOUND) && areabyplayer[ob->areanumber]) SD_PlaySoundRTP(BAS[ob->obclass].operate, ob->x, ob->y);
     dist = ACTORSIZE + 0x2000;
@@ -2154,7 +2142,6 @@ void T_CrushUp(objtype* ob) {
     else if (ob->state->condition & SF_DOWN) ob->temp1 -= 4;
 
     ob->temp2 = maxheight - ob->temp1 + 32;
-    playeron = 0;
 
     for (i = 0; i < numplayers; i++) {
         dx = abs(PLAYER[i]->x - ob->x);
@@ -2163,7 +2150,6 @@ void T_CrushUp(objtype* ob) {
 
         if ((dx < dist) && (dy < dist) && (dz < 65)) {
             ob->flags &= ~FL_BLOCK;
-            playeron = 1;
             if ((!ob->ticcount) && (ob->state->condition & SF_CRUSH) && (levelheight < 2) && (!(ob->flags & FL_DYING))) {
                 DamageThing(PLAYER[i], EnvironmentDamage(ob));
                 if (PLAYER[i]->hitpoints <= 0) PLAYER[i]->flags |= FL_HBM;
@@ -2189,19 +2175,17 @@ void T_CrushUp(objtype* ob) {
 }
 
 void T_CrushDown(objtype* ob) {
-    int dx, dy, dz, i, playeron;
+    int dx, dy, dz, i;
 
     if ((!ob->ticcount) && (ob->state->condition & SF_SOUND) && areabyplayer[ob->areanumber]) SD_PlaySoundRTP(BAS[ob->obclass].operate, ob->x, ob->y);
 
     ob->temp2 = ob->z;
-    playeron = 0;
     for (i = 0; i < numplayers; i++) {
         dx = abs(PLAYER[i]->x - ob->x);
         dy = abs(PLAYER[i]->y - ob->y);
         dz = abs(PLAYER[i]->z - ob->z);
 
         if ((dx < STANDDIST) && (dy < STANDDIST) && (dz < 20)) {
-            playeron = 1;
             ob->flags &= ~FL_BLOCK;
             if ((!ob->ticcount) && (ob->state->condition & SF_CRUSH) && (!(ob->flags & FL_DYING))) {
                 DamageThing(PLAYER[i], EnvironmentDamage(ob));
@@ -3392,7 +3376,7 @@ boolean MissileTryMove(objtype* ob, int tryx, int tryy, int tryz) {
     statobj_t* tempstat;
     boolean         areatried[NUMAREAS] = { 0 };
 
-    sprrad = 0x4500;
+    sprrad = PROJSIZE + 0x1000;
     actrad = ACTORSIZE + 0x2800;
     ocl = ob->obclass;
     radius = PROJSIZE - 0x2200;
@@ -3414,7 +3398,6 @@ boolean MissileTryMove(objtype* ob, int tryx, int tryy, int tryz) {
         return false;
     }
 
-    sprrad = PROJSIZE + 0x1000;
     tilexlow = (int)((tryx - radius) >> TILESHIFT);
     tileylow = (int)((tryy - radius) >> TILESHIFT);
     tilexhigh = (int)((tryx + radius) >> TILESHIFT);
@@ -3675,10 +3658,8 @@ void ResolveRide(objtype* ob) {
 }
 
 void MoveActor(objtype* ob) {
-    int linked, oldarea, newarea,
-        tilex, tiley, oldtilex, oldtiley;
+    int oldarea, newarea, tilex, tiley, oldtilex, oldtiley;
 
-    linked = 0;
     ResolveRide(ob);
     oldtilex = ob->tilex;
     oldtiley = ob->tiley;
@@ -4280,7 +4261,6 @@ movement_status CheckRegularWalls(objtype* ob, int tryx, int tryy, int tryz) {
     for (y = tileylow; y <= tileyhigh; y++)
         for (x = tilexlow; x <= tilexhigh; x++) {
             wall_t*     tempwall = (wall_t*)actorat[x][y];
-            int         wall = tilemap[x][y];
             if (tempwall) {
                 if (tempwall->which == WALL) {
                     if (ocl == boulderobj) {
@@ -4328,7 +4308,7 @@ movement_status CheckStaticObjects(objtype* ob, int tryx, int tryy, int tryz) {
     int dx, dy, dzt, dztp1, x, y;
     statobj_t* tempstat;
     int sprrad, oldsrad, sprtrad;
-    boolean specialstat = false, widestat = false, zstoppable;
+    boolean specialstat, widestat, zstoppable;
     int sprxlow, sprxhigh, sprylow, spryhigh;
     boolean SPRSTOP;
     classtype ocl = ob->obclass;
@@ -6143,8 +6123,7 @@ void T_NME_Attack(objtype* ob) {
     }
     else if ((ob->temp3 == 3) || (ob->temp3 == 4)) {  // drunk
         SD_PlaySoundRTP(BAS[ob->obclass].fire + 2, ob->x, ob->y);
-        if (!ob->temp3) perpangle = angle + ANGLES / 4;
-        else perpangle = angle - ANGLES / 4;
+        perpangle = angle - ANGLES / 4;
         Fix(perpangle);
         for (i = 0; i < (2 + gamestate.difficulty); i++) {
             SpawnMissile(ob, missileobj, 0x6000, angle, &s_missile1, 0x8000);
@@ -7681,8 +7660,6 @@ void A_Shoot(objtype* ob) {
         ob->yzangle = FINEANGLES - atan2_appx(dist, dz << 10);
 
         if ((ob->yzangle > MAXYZANGLE) && (ob->yzangle < FINEANGLES - MAXYZANGLE)) ob->yzangle = MAXYZANGLE;
-
-        dist >>= 16;
         accuracy = (WHICHACTOR << 4) + ((gamestate.difficulty) << 6);
         num = GameRandomNumber("A_Shoot3", ob->obclass);
 
@@ -7728,7 +7705,7 @@ void  A_MissileWeapon(objtype* ob) {
     statetype* nstate;
 
 
-    if (!ob->obclass == wallopobj && !ob->obclass == roboguardobj) ActorMovement(ob);
+    if (! (ob->obclass == wallopobj) && ! (ob->obclass == roboguardobj)) ActorMovement(ob);
 
     if (!ob->ticcount) {
 #if (SHAREWARE == 0)
@@ -8069,8 +8046,6 @@ void SelectPathDir(objtype* ob) {
                 ob->dir = spot;
                 ParseMomentum(ob, dirangle8[ob->dir]);
             }
-            dx = centerx - ob->x;
-            dy = centery - ob->y;
             SetFinePosition(ob, centerx, centery);
             SetVisiblePosition(ob, centerx, centery);
         }
@@ -8134,7 +8109,7 @@ void ActivateEnemy(objtype* ob) {
 
     if (ob->obclass == b_heinrichobj) ob->speed = 7 * ob->speed / 2;
     else if (ob->obclass == b_darianobj) ob->speed = 3 * SPDPATROL;
-    if (ob->door_to_open != -1) ob->door_to_open = -1; // ignore the door opening command
+    ob->door_to_open = -1;      // ignore the door opening command
     ob->dirchoosetime = 0;
 }
 
@@ -8174,7 +8149,7 @@ void FirstSighting(objtype* ob) {
 
     if (ob->obclass == b_heinrichobj) ob->speed = 7 * ob->speed / 2;
     else if (ob->obclass == b_darianobj) ob->speed = 3 * SPDPATROL;
-    if (ob->door_to_open != -1) ob->door_to_open = -1; // ignore the door opening command
+    ob->door_to_open = -1;      // ignore the door opening command
 
     ob->dirchoosetime = 0;
     ob->flags |= (FL_ATTACKMODE | FL_FIRSTATTACK);
