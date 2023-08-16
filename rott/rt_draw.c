@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_stat.h"
 #include "rt_draw.h"
 #include "_rt_draw.h"
-#include "rt_dr_a.h"
 #include "rt_fc_a.h"
 #include "rt_scale.h"
 #include "rt_floor.h"
@@ -50,7 +49,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_view.h"
 #include "rt_cfg.h"
 #include "rt_str.h"
-#include "develop.h"
 #include "rt_sound.h"
 #include "rt_msg.h"
 #include "modexlib.h"
@@ -58,16 +56,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rt_net.h"
 #include "SDL.h"
 
-//
 // function prototypes from other modules
-//
-
 extern void VH_UpdateScreen(void);
 
-//
 // global variables
-//
-
 static explosioninfo_t ExplosionInfo[NUMEXPLOSIONTYPES] = {
   {"EXPLOS1\0",20},
   {"EXP1\0",20},
@@ -87,7 +79,6 @@ byte   mapseen[MAPSIZE][MAPSIZE];
 uint32_t*   lights;
 int32_t     wstart;
 
-
 const int32_t dirangle8[9] = { 0,  T_FINEANGLE8,2 * T_FINEANGLE8,3 * T_FINEANGLE8,4 * T_FINEANGLE8,
                                5 * T_FINEANGLE8,6 * T_FINEANGLE8,7 * T_FINEANGLE8,8 * T_FINEANGLE8 };
 
@@ -97,42 +88,29 @@ const int32_t dirangle16[16] = { 0,  T_FINEANGLE16, 2 * T_FINEANGLE16, 3 * T_FIN
                                 10 * T_FINEANGLE16,11 * T_FINEANGLE16,12 * T_FINEANGLE16,
                                 13 * T_FINEANGLE16,14 * T_FINEANGLE16,15 * T_FINEANGLE16 };
 
-//
 // math tables
-//
-
 int16_t   tantable[FINEANGLES];
 int32_t   sintable[FINEANGLES+FINEANGLEQUAD+1],
 		  *costable = sintable+(FINEANGLES/4);
 
-//
 // refresh variables
-//
-
 fixed32_t   viewx,viewy;                                                     // the focal point
 int32_t     viewangle;
 int32_t     c_startx, c_starty;
 fixed32_t   viewsin,viewcos;
 int32_t     tics;
 
-//
 // ray tracing variables
-//
-
 int32_t    xintercept,yintercept;
-
 int doublestep=0;
 int hp_startfrac;
 int hp_srcstep;
-
 int levelheight;
-
 int actortime=0;
 int drawtime=0;
+int firstcoloffset = 0;
 
 visobj_t vislist[MAXVISIBLE], * visptr, * visstep, * farthest;    //[visobj extension] related to sortedvislist[]?
-
-int firstcoloffset=0;
 
 /*
 ==================
@@ -262,28 +240,24 @@ void BuildTables (void) {
 ========================
 */
 
-boolean R_TransformObject (int x, int y, int *dispx, int *dispheight) {
+boolean R_TransformObject(int x, int y, int* dispx, int* dispheight) {
+    fixed32_t gx = x - viewx;     // translate point to view centered coordinates
+    fixed32_t gy = y - viewy;
+    fixed32_t gxt = FixedMul(gx, viewcos);   // calculate newx
+    fixed32_t gyt = FixedMul(gy, viewsin);
+    fixed32_t nx = gxt - gyt;
+    fixed32_t ny;
 
-  fixed32_t gx,gy,gxt,gyt,nx,ny;        //dma: explicit types
+    if (nx < MINZ) return false;    // the midpoint could put parts of the shape into an adjacent wall
 
-  gx = x-viewx;     // translate point to view centered coordinates
-  gy = y-viewy;
+    gxt = FixedMul(gx, viewsin);   // calculate newy
+    gyt = FixedMul(gy, viewcos);
+    ny = gyt + gxt;
 
-  gxt = FixedMul(gx,viewcos);   // calculate newx
-  gyt = FixedMul(gy,viewsin);
-  nx = gxt-gyt;
+    *dispx = centerx + ny * scale / nx;   // calculate perspective ratio
+    *dispheight = heightnumerator / nx;
 
-  if (nx<MINZ) return false;    // the midpoint could put parts of the shape into an adjacent wall
-
-
-  gxt = FixedMul(gx,viewsin);   // calculate newy
-  gyt = FixedMul(gy,viewcos);
-  ny = gyt+gxt;
-
-  *dispx = centerx + ny*scale/nx;   // calculate perspective ratio
-  *dispheight = heightnumerator/nx;
-
-  return true;
+    return true;
 }
 
 
@@ -296,7 +270,6 @@ boolean R_TransformObject (int x, int y, int *dispx, int *dispheight) {
 */
 
 void R_TransformPoint(int x, int y, int* screenx, int* height, int* texture, int vertical) {
-
     fixed gxt, gyt, nx, ny;
     fixed gxtt, gytt;
     int gx, gy;
@@ -406,32 +379,29 @@ void R_TransformPoint(int x, int y, int* screenx, int* height, int* texture, int
 ========================
 */
 
-boolean TransformSimplePoint (int32_t x, int32_t y, int32_t* screenx, int32_t* height, int32_t* texture, int32_t vertical) {
-  fixed32_t gxt,gyt,nx,ny;
-  fixed32_t gxtt,gytt;
-  int32_t gx,gy;
+boolean TransformSimplePoint(int32_t x, int32_t y, int32_t* screenx, int32_t* height, int32_t* texture, int32_t vertical) {
+    fixed32_t ny;
+    fixed32_t gxtt, gytt;
 
-  gx = x-viewx;     // translate point to view centered coordinates
-  gy = y-viewy;
+    fixed32_t gx  = x - viewx;
+    fixed32_t gy  = y - viewy;
+    fixed32_t gxt = FixedMul(gx, viewcos);    //transform to view-centered coordinates
+    fixed32_t gyt = FixedMul(gy, viewsin);
+    fixed32_t nx  = gxt - gyt;
 
+    if (nx < MINZ) return false;
 
-  gxt = FixedMul(gx,viewcos);   // calculate newx
-  gyt = FixedMul(gy,viewsin);
-  nx =gxt-gyt;
+    gxtt = FixedMul(gx, viewsin);  // calculate newy
+    gytt = FixedMul(gy, viewcos);
+    ny = gytt + gxtt;
 
-  if (nx<MINZ) return false;
+    *screenx = centerx + ((ny * scale) / nx);
+    *height = heightnumerator / nx;
 
-  gxtt = FixedMul(gx,viewsin);  // calculate newy
-  gytt = FixedMul(gy,viewcos);
-  ny = gytt+gxtt;
+    if (vertical) *texture = (y - *texture) & 0xffff;
+    else *texture = (x - *texture) & 0xffff;
 
-  *screenx = centerx + ((ny*scale)/nx);
-  *height = heightnumerator/nx;
-
-  if (vertical) *texture=(y-*texture)&0xffff;
-  else *texture=(x-*texture)&0xffff;
-
-  return true;
+    return true;
 }
 
 
@@ -444,18 +414,13 @@ boolean TransformSimplePoint (int32_t x, int32_t y, int32_t* screenx, int32_t* h
 */
 
 boolean TransformPlane(int x1, int y1, int x2, int y2, visobj_t* plane) {
-    boolean result2;
-    boolean result1;
-    boolean vertical;
-    int txstart, txend;
+    boolean vertical = (x2-x1)==0;
+    int txstart = plane->texturestart;
+    int txend = plane->textureend;
 
-    vertical = ((x2 - x1) == 0);
     plane->viewx = vertical;
-    txstart = plane->texturestart;
-    txend = plane->textureend;
-
-    result1 = TransformSimplePoint(x1, y1, &(plane->x1), &(plane->h1), &(plane->texturestart), vertical);
-    result2 = TransformSimplePoint(x2, y2, &(plane->x2), &(plane->h2), &(plane->textureend), vertical);
+    boolean result1 = TransformSimplePoint(x1, y1, &(plane->x1), &(plane->h1), &(plane->texturestart), vertical);
+    boolean result2 = TransformSimplePoint(x2, y2, &(plane->x2), &(plane->h2), &(plane->textureend), vertical);
 
     if (result1) {
         if (plane->x1 >= viewwidth) return false;
@@ -464,37 +429,28 @@ boolean TransformPlane(int x1, int y1, int x2, int y2, visobj_t* plane) {
             R_TransformPoint(x2, y2, &(plane->x2), &(plane->h2), &(plane->textureend), vertical);
         }
     }
-    else
-    {
+    else {
         if (!result2) return false;
-        else
-        {
-            if (plane->x2 < 0)
-                return false;
+        else {
+            if (plane->x2 < 0) return false;
             plane->texturestart = txstart;
             R_TransformPoint(x1, y1, &(plane->x1), &(plane->h1), &(plane->texturestart), vertical);
         }
     }
-    if (plane->x1 < 0)
-    {
+    if (plane->x1 < 0) {
         plane->texturestart = txstart;
         R_TransformPoint(x1, y1, &(plane->x1), &(plane->h1), &(plane->texturestart), vertical);
     }
-    if (plane->x2 >= viewwidth)
-    {
+    if (plane->x2 >= viewwidth) {
         plane->textureend = txend;
         R_TransformPoint(x2, y2, &(plane->x2), &(plane->h2), &(plane->textureend), vertical);
     }
 
     plane->viewheight = (plane->h1 + plane->h2) >> 1;
 
-    if ((plane->viewheight >= (2000 << HEIGHTFRACTION)) || (plane->x1 >= viewwidth - 1) || (plane->x2 <= 0))
-        return false;
-
+    if (plane->viewheight >= (2000 << HEIGHTFRACTION) || plane->x1 >= viewwidth - 1 || plane->x2 <= 0) return false;
     return true;
 }
-
-//==========================================================================
 
 /*
 ====================
@@ -506,29 +462,18 @@ boolean TransformPlane(int x1, int y1, int x2, int y2, visobj_t* plane) {
 ====================
 */
 
-int       CalcHeight (void)
-{
-        fixed  gxt,gyt,nx;
-   long            gx,gy;
+int32_t CalcHeight(void) {
+    int64_t   gx  = xintercept - viewx;
+    int64_t   gy  = yintercept - viewy;
 
-   gx = xintercept-viewx;
-   gxt = FixedMul(gx,viewcos);
+    fixed32_t gxt = FixedMul(gx, viewcos);
+    fixed32_t gyt = FixedMul(gy, viewsin);
+    fixed32_t nx  = gxt - gyt;
 
-   gy = yintercept-viewy;
-   gyt = FixedMul(gy,viewsin);
+    if (nx < mindist) nx = mindist; // don't let divide overflo'
 
-   nx = gxt-gyt;
-
-	if (nx<mindist)
-		nx=mindist; // don't let divide overflo'
-
-	return (heightnumerator/nx);
+    return (heightnumerator / nx);
 }
-
-
-//==========================================================================
-
-
 
 /*
 =====================
@@ -538,27 +483,19 @@ int       CalcHeight (void)
 =====================
 */
 
-int  StatRotate (statobj_t *temp)
-{
-	int    angle;
-	int    dx,dy;
-
-	dx = temp->x - player->x;
-	dy = player->y - temp->y;
-	angle = atan2_appx(dx,dy);
+int32_t StatRotate (statobj_t *temp) {
+    int32_t dx = temp->x - player->x;
+    int32_t dy = player->y - temp->y;
+    int32_t angle = atan2_appx(dx, dy);
 
 	angle = angle-VANG180-dirangle8[temp->count];
 	angle+=ANGLES/16;
-	while (angle>=ANGLES)
-		angle-=ANGLES;
-	while (angle<0)
-		angle+=ANGLES;
+
+	while (angle>=ANGLES) angle-=ANGLES;
+	while (angle<0) angle+=ANGLES;
 
 	return angle/(ANGLES/8);
-
 }
-
-
 
 
 /*
@@ -569,55 +506,35 @@ int  StatRotate (statobj_t *temp)
 =====================
 */
 
-int   CalcRotate (objtype *ob)
-{
-	int    angle,viewangle;
-	int    dx,dy;
-	int    rotation;
+int   CalcRotate(objtype* ob) {
+    int    angle;
+    int    rotation;
+    int    dx = ob->x - player->x;  // this isn't exactly correct, as it should vary by a trig value'
+    int    dy = player->y - ob->y;  // but it is close enough with only eight rotations
+    int    viewangle = atan2_appx(dx, dy);
 
-	// this isn't exactly correct, as it should vary by a trig value'
-	// but it is close enough with only eight rotations
-	/*
-	if (ob->obclass == b_robobossobj)
-		viewangle = player->angle;
-	else
-		viewangle = player->angle + (centerx - ob->viewx)/8;*/
-	dx = ob->x - player->x;
-	dy = player->y - ob->y;
-	viewangle = atan2_appx(dx,dy);
+    if (ob->obclass >= p_bazookaobj || ob->obclass == missileobj) angle = viewangle - ob->angle;
+    else if ((ob->obclass > wallopobj) && (ob->obclass != b_darksnakeobj)) angle = (viewangle - ANG180) - ob->angle;
+    else if (ob->state->rotate == 16) angle = (viewangle - ANG180) - dirangle16[ob->dir];
+    else angle = (viewangle - ANG180) - dirangle8[ob->dir];
 
-	if ((ob->obclass >= p_bazookaobj) || (ob->obclass == missileobj))
-	  {angle = viewangle - ob->angle;
-	  }
-	else if ((ob->obclass > wallopobj) && (ob->obclass != b_darksnakeobj))
-		angle =  (viewangle-ANG180)- ob->angle;
-	else if (ob->state->rotate == 16)
-		angle =  (viewangle-ANG180)- dirangle16[ob->dir];
-	else
-		angle =  (viewangle-ANG180)- dirangle8[ob->dir];
+    if (ob->state->rotate == 1) angle += ANGLES / 16;
+    else if (ob->state->rotate == 16) angle += ANGLES / 32;
 
-	if (ob->state->rotate == true)
-	  angle += ANGLES/16;
-	else if (ob->state->rotate == 16)
-	  angle += ANGLES/32;
+    while (angle >= ANGLES) angle -= ANGLES;
+    while (angle < 0)       angle += ANGLES;    //simplify
 
-	while (angle>=ANGLES)
-		angle-=ANGLES;
-	while (angle<0)
-		angle+=ANGLES;
+    if (ob->state->rotate == 2) {      // 2 rotation pain frame
+        rotation = 4 * (angle / (ANG180));
+        return rotation;
+    }
 
-	if (ob->state->rotate == 2)        // 2 rotation pain frame
-		{rotation = 4*(angle/(ANG180));
-		 return rotation;
-		}
-
-	if (ob->state->rotate == 16)
-	  {rotation = angle/(ANGLES/16);
-		return rotation;
-	  }
-	rotation = angle/(ANGLES/8);
-	return rotation;
-
+    if (ob->state->rotate == 16) {
+        rotation = angle / (ANGLES / 16);
+        return rotation;
+    }
+    rotation = angle / (ANGLES / 8);
+    return rotation;
 }
 
 /*
@@ -629,29 +546,22 @@ int   CalcRotate (objtype *ob)
 ======================
 */
 
-#define SGN(x)          ((x>0) ? (1) : ((x==0) ? (0) : (-1)))
-
-/*--------------------------------------------------------------------------*/
-int CompareHeights(s1p,s2p) visobj_t **s1p,**s2p;
-{
+int CompareHeights(visobj_t** s1p, visobj_t** s2p) {
    return SGN((*s1p)->viewheight-(*s2p)->viewheight);
 }
 
-void SwitchPointers(s1p,s2p) visobj_t **s1p,**s2p;
-{
-   visobj_t * temp;
-   temp=*s1p;
+void SwitchPointers(visobj_t** s1p, visobj_t** s2p) {
+   visobj_t* temp=*s1p;
+
    *s1p=*s2p;
    *s2p=temp;
 }
 
 
-void SortVisibleList( int numvisible, visobj_t * vlist )
-{
-   int i;
-   for (i=0;i<numvisible;i++)
-      sortedvislist[i]=&(vlist[i]);
-   hsort((char *)&(sortedvislist[0]),numvisible,sizeof(visobj_t *),&CompareHeights,&SwitchPointers);
+void SortVisibleList(int numvisible, visobj_t* vlist) {
+    for (int i = 0; i < numvisible; i++)
+        sortedvislist[i] = &(vlist[i]);
+    hsort((char*)&(sortedvislist[0]), numvisible, sizeof(visobj_t*), &CompareHeights, &SwitchPointers);
 }
 
 /*
@@ -664,338 +574,200 @@ void SortVisibleList( int numvisible, visobj_t * vlist )
 =====================
 */
 
-#define HF_1 (24)
-#define HF_2 (72)
-
 void DrawScaleds(void) {
+    int   i, numvisible;
+    int   gx, gy;
+    unsigned short int* tilespot;
+    byte* visspot;
+    boolean result;
+    statobj_t* statptr;
+    objtype* obj;
+    maskedwallobj_t* tmwall;
 
-  int   i,numvisible;
-  int   gx,gy;
-  unsigned short int  *tilespot;
-  byte   *visspot;
-  boolean result;
-  statobj_t *statptr;
-  objtype   *obj;
-  maskedwallobj_t* tmwall;
+    // place maskwall objects
+    for (tmwall = FIRSTMASKEDWALL; tmwall; tmwall = tmwall->next) {
+        if (spotvis[tmwall->tilex][tmwall->tiley]) {
+            mapseen[tmwall->tilex][tmwall->tiley] = 1;
+            if (tmwall->vertical) {
+                gx = (tmwall->tilex << 16) + SCALECONSTANT;    //:thinking:
+                gy = (tmwall->tiley << 16);
+                visptr->texturestart = 0;
+                visptr->textureend = 0;
+                if (viewx < gx) result = TransformPlane(gx, gy, gx, gy + 0xffff, visptr);
+                else result = TransformPlane(gx, gy + 0xffff, gx, gy, visptr);
+                visptr->shapenum = tmwall->bottomtexture;
+                visptr->altshapenum = tmwall->midtexture;
+                visptr->viewx = tmwall->toptexture;
+                visptr->shapesize = 2;
+            }
+            else {
+                gx = (tmwall->tilex << 16);
+                gy = (tmwall->tiley << 16) + 0x8000;
+                visptr->texturestart = 0;
+                visptr->textureend = 0;
+                if (viewy < gy) result = TransformPlane(gx + 0xffff, gy, gx, gy, visptr);
+                else result = TransformPlane(gx, gy, gx + 0xffff, gy, visptr);
+                visptr->shapenum = tmwall->bottomtexture;
+                visptr->altshapenum = tmwall->midtexture;
+                visptr->viewx = tmwall->toptexture;
+                visptr->shapesize = 2;
+            }
+            if ((tmwall->flags & MW_TOPFLIPPING) && (nonbobpheight > 64)) visptr->viewx++;
+            else if ((tmwall->flags & MW_BOTTOMFLIPPING) && (nonbobpheight > maxheight - 32)) visptr->shapenum++;
 
-//
-// place maskwall objects
-//
-  for(tmwall=FIRSTMASKEDWALL;tmwall;tmwall=tmwall->next)
-	  {
-	  if (spotvis[tmwall->tilex][tmwall->tiley])
-		  {
-		  mapseen[tmwall->tilex][tmwall->tiley]=1;
-		  if (tmwall->vertical)
-			  {
-			  gx=(tmwall->tilex<<16)+SCALECONSTANT;    //:thinking:
-			  gy=(tmwall->tiley<<16);
-			  visptr->texturestart=0;
-			  visptr->textureend=0;
-			  if (viewx<gx)
-				  result=TransformPlane(gx,gy,gx,gy+0xffff,visptr);
-			  else
-				  result=TransformPlane(gx,gy+0xffff,gx,gy,visptr);
-			  visptr->shapenum=tmwall->bottomtexture;
-			  visptr->altshapenum=tmwall->midtexture;
-			  visptr->viewx=tmwall->toptexture;
-			  visptr->shapesize=2;
-			  }
-		  else
-			  {
-			  gx=(tmwall->tilex<<16);
-			  gy=(tmwall->tiley<<16)+0x8000;
-			  visptr->texturestart=0;
-			  visptr->textureend=0;
-			  if (viewy<gy)
-				  result=TransformPlane(gx+0xffff,gy,gx,gy,visptr);
-			  else
-				  result=TransformPlane(gx,gy,gx+0xffff,gy,visptr);
-			  visptr->shapenum=tmwall->bottomtexture;
-			  visptr->altshapenum=tmwall->midtexture;
-			  visptr->viewx=tmwall->toptexture;
-			  visptr->shapesize=2;
-			  }
-		  if ((tmwall->flags&MW_TOPFLIPPING) &&
-            (nonbobpheight>64)
-			  )
-			  {
-			  visptr->viewx++;
-			  }
-		  else if ((tmwall->flags&MW_BOTTOMFLIPPING) &&
-                 (nonbobpheight>maxheight-32)
-					 )
-			  {
-			  visptr->shapenum++;
-			  }
-		  if ((visptr < &vislist[MAXVISIBLE-1]) && (result==true)) // don't let it overflo'
-			  visptr++;
-		  }
-	  }
-//
-// place static objects
-//
-  UpdateClientControls();
-  for (statptr = firstactivestat ; statptr; statptr=statptr->nextactive)
-  {  //redraw:
-			 if((visptr->shapenum = statptr->shapenum) == NOTHING)
-				  continue;
+            if ((visptr < &vislist[MAXVISIBLE - 1]) && (result == true)) visptr++;  // don't let it overflo'
+        }
+    }
 
-          visptr->shapenum += shapestart;
-			 if ((visptr->shapenum <= shapestart) ||
-				  (visptr->shapenum >= shapestop))
-			  Error("actor shapenum %d out of range (%d-%d)",visptr->shapenum,shapestart,shapestop);
+    // place static objects
+    UpdateClientControls();
+    for (statptr = firstactivestat; statptr; statptr = statptr->nextactive) {
+        if ((visptr->shapenum = statptr->shapenum) == NOTHING) continue;
 
-          visspot = statptr->visspot;
-			 if (!((*(visspot-0)) ||
-					 (*(visspot-1)) ||
-					 (*(visspot+1)) ||
-					 (*(visspot-129)) ||
-					 (*(visspot-128)) ||
-					 (*(visspot-127)) ||
-					 (*(visspot+129)) ||
-					 (*(visspot+128)) ||
-					 (*(visspot+127))))
-					 {statptr->flags &= ~FL_VISIBLE;
-					  continue;     // not visible
-					 }
+        visptr->shapenum += shapestart;
+        if ((visptr->shapenum <= shapestart) || (visptr->shapenum >= shapestop)) Error("actor shapenum %d out of range (%d-%d)", visptr->shapenum, shapestart, shapestop);
 
-			 result = R_TransformObject (statptr->x,statptr->y,&(visptr->viewx),&(visptr->viewheight));
+        visspot = statptr->visspot;
+        if (!((*(visspot - 0)) || (*(visspot - 1))   || (*(visspot + 1))     ||
+            (*(visspot - 129)) || (*(visspot - 128)) || (*(visspot - 127))   ||
+            (*(visspot + 129)) || (*(visspot + 128)) || (*(visspot + 127)))) {
+                statptr->flags &= ~FL_VISIBLE;
+                continue;     // not visible
+        }
 
-			 if ((result==false) || (visptr->viewheight< (1<<(HEIGHTFRACTION+2))))
-				 continue;                         // to close to the object
-			 statptr->flags |= FL_SEEN;
+        result = R_TransformObject(statptr->x, statptr->y, &(visptr->viewx), &(visptr->viewheight));
 
-			 statptr->flags |= FL_VISIBLE;
+        if (!result || (visptr->viewheight < (1 << (HEIGHTFRACTION + 2)))) continue;  // to close to the object
+        statptr->flags |= FL_SEEN;
+        statptr->flags |= FL_VISIBLE;
 
-			 if (statptr->flags & FL_ROTATING)
-				 visptr->shapenum += StatRotate(statptr);
+        if (statptr->flags & FL_ROTATING) visptr->shapenum += StatRotate(statptr);
+        if (statptr->flags & FL_TRANSLUCENT) {
+            visptr->shapesize = 1;
+            if (statptr->flags & FL_FADING) visptr->h2 = transparentlevel;
+            else visptr->h2 = FIXEDTRANSLEVEL;
+            SetSpriteLightLevel(statptr->x, statptr->y, visptr, 0, (statptr->flags & FL_FULLLIGHT));
+        }
+        else if (statptr->flags & FL_SOLIDCOLOR) {
+            visptr->shapesize = 4;
+            visptr->h2 = statptr->hitpoints;
+        }
+        else if (statptr->flags & FL_COLORED) {
+            visptr->shapesize = 0;
+            SetColorLightLevel(statptr->x, statptr->y, visptr, 0, statptr->hitpoints, (statptr->flags & FL_FULLLIGHT));
+        }
+        else {
+            visptr->shapesize = 0;
+            SetSpriteLightLevel(statptr->x, statptr->y, visptr, 0, (statptr->flags & FL_FULLLIGHT));
+        }
 
-			 if (statptr->flags&FL_TRANSLUCENT)
-				 {
-				 visptr->shapesize=1;
-				 if (statptr->flags&FL_FADING)
-					 visptr->h2=transparentlevel;
-				 else
-					 visptr->h2=FIXEDTRANSLEVEL;
-             SetSpriteLightLevel(statptr->x,statptr->y,visptr,0,(statptr->flags&FL_FULLLIGHT));
-				 }
-			 else if (statptr->flags&FL_SOLIDCOLOR)
-				 {
-				 visptr->shapesize=4;
-				 visptr->h2=statptr->hitpoints;
-				 }
-			 else if (statptr->flags&FL_COLORED)
-				 {
-				 visptr->shapesize=0;
-					 SetColorLightLevel(statptr->x,statptr->y,visptr,
-                                   0,statptr->hitpoints,
-                                   (statptr->flags&FL_FULLLIGHT));
-				 }
-          else
-				 {
-				 visptr->shapesize=0;
-             SetSpriteLightLevel(statptr->x,statptr->y,visptr,0,(statptr->flags&FL_FULLLIGHT));
-				 }
+        visptr->h1 = pheight - statptr->z;
+        if ((statptr->itemnumber != (unsigned int)-1) && (statptr->flags & FL_HEIGHTFLIPPABLE)) {
+            if (statptr->itemnumber == stat_disk) {
+                int value;
+                value = nonbobpheight - statptr->z - 32;
+                if ((value <= HF_2) && (value > HF_1)) visptr->shapenum++;
+                else if ((value <= HF_1) && (value >= -HF_1)) visptr->shapenum += 2;
+                else if ((value < -HF_1) && (value >= -HF_2)) visptr->shapenum += 3;
+                else if (value < -HF_2) visptr->shapenum += 4;
+            }
+            else if ((nonbobpheight - statptr->z) < -16) visptr->shapenum++;
+        }
 
-			 visptr->h1=pheight-statptr->z;
+        if (visptr < &vislist[MAXVISIBLE - 1]) visptr++;    // don't let it overflo'
+    }
 
-			 if ((statptr->itemnumber != (unsigned int)-1) &&
-				  (statptr->flags&FL_HEIGHTFLIPPABLE)
-				 )
-				 {
-				 if (statptr->itemnumber==stat_disk)
-					 {
-					 int value;
-                value=nonbobpheight-statptr->z-32;
-					 if ((value<=HF_2) && (value>HF_1))
-						 {
-						 visptr->shapenum++;
-						 }
-					 else if ((value<=HF_1) && (value>=-HF_1))
-						 {
-						 visptr->shapenum+=2;
-						 }
-					 else if ((value<-HF_1) && (value>=-HF_2))
-						 {
-						 visptr->shapenum+=3;
-						 }
-					 else if (value<-HF_2)
-						 {
-						 visptr->shapenum+=4;
-						 }
-					 }
-             else if ((nonbobpheight-statptr->z)<-16)
-					 {
-					 visptr->shapenum++;
-					 }
-				 }
+    // place active objects
+    UpdateClientControls();
+    for (obj = firstactive; obj; obj = obj->nextactive) {
+        if (obj == player) continue;
+        if ((visptr->shapenum = obj->shapenum) == NOTHING) continue;    // no shape
 
-			 if (visptr < &vislist[MAXVISIBLE-1]) // don't let it overflo'
-				visptr++;
+        visptr->shapenum += shapestart;
+        if ((visptr->shapenum <= shapestart) || (visptr->shapenum >= shapestop)) Error("actor shapenum %d out of range (%d-%d)", visptr->shapenum, shapestart, shapestop);
+        visspot = &spotvis[obj->tilex][obj->tiley];
+        tilespot = &tilemap[obj->tilex][obj->tiley];
 
+        // could be in any of the nine surrounding tiles
+        if (    *visspot          || (*(visspot - 1))   || (*(visspot + 1))
+            || (*(visspot - 129)) || (*(visspot - 128)) || (*(visspot - 127))
+            || (*(visspot + 129)) || (*(visspot + 128)) || (*(visspot + 127))) {
 
-  }
-//
-// place active objects
-//
-  UpdateClientControls();
-  for (obj = firstactive;obj;obj=obj->nextactive)
-	  {
-	  if (obj==player)
-		  continue;
+            result = R_TransformObject(obj->x, obj->y, &(visptr->viewx), &(visptr->viewheight));
+            if (!result || (visptr->viewheight < (1 << (HEIGHTFRACTION + 2)))) continue;  // to close to the object
+            if (obj->state->rotate) visptr->shapenum += CalcRotate(obj);
 
-	  if ((visptr->shapenum = obj->shapenum) == NOTHING)
-		  continue;                         // no shape
+            visptr->shapesize = 0;
 
-	  visptr->shapenum += shapestart;
-     if ((visptr->shapenum <= shapestart) ||
-				  (visptr->shapenum >= shapestop))
-		  Error("actor shapenum %d out of range (%d-%d)",visptr->shapenum,shapestart,shapestop);
-	  visspot = &spotvis[obj->tilex][obj->tiley];
-	  tilespot = &tilemap[obj->tilex][obj->tiley];
+            if (player->flags & FL_SHROOMS) {
+                visptr->shapesize = 4;
+                visptr->h2 = (GetTicCount() & 0xff);
+            }
+            if (obj->obclass == playerobj) {
+                if (obj->flags & FL_GODMODE) {
+                    visptr->shapesize = 4;
+                    visptr->h2 = 240 + (GetTicCount() & 0x7);
+                }
+                else if (obj->flags & FL_COLORED) {
+                    playertype* pstate;
+                    M_LINKSTATE(obj, pstate);
 
-	  //
-	  // could be in any of the nine surrounding tiles
-	  //
-	  if (*visspot
-		  || ( *(visspot-1))
-		  || ( *(visspot+1))
-		  || ( *(visspot-129))
-		  || ( *(visspot-128))
-		  || ( *(visspot-127))
-		  || ( *(visspot+129))
-		  || ( *(visspot+128))
-		  || ( *(visspot+127)) )
-		  {
+                    SetColorLightLevel(obj->x, obj->y, visptr, obj->dir, pstate->uniformcolor, (obj->flags & FL_FULLLIGHT));
+                }
+                else SetSpriteLightLevel(obj->x, obj->y, visptr, obj->dir, (obj->flags & FL_FULLLIGHT));
+            }
+            else {
+                if ((obj->obclass >= b_darianobj) && (obj->obclass <= b_robobossobj) && MISCVARS->redindex) visptr->colormap = redmap + ((MISCVARS->redindex - 1) << 8);
+                else SetSpriteLightLevel(obj->x, obj->y, visptr, obj->dir, (obj->flags & FL_FULLLIGHT));
+            }
 
-        result = R_TransformObject (obj->x, obj->y,&(visptr->viewx),&(visptr->viewheight));
-        if ((result==false) || (visptr->viewheight< (1<<(HEIGHTFRACTION+2))))
-			  continue;                         // to close to the object
-		  if (obj->state->rotate)
-			  visptr->shapenum += CalcRotate (obj);
+            visptr->h1 = pheight - obj->z;
 
-        visptr->shapesize=0;
+            if (obj->obclass == diskobj) {
+                int value = nonbobpheight - obj->z - 32;
+                if (value <= HF_2 && value > HF_1) visptr->shapenum++;
+                else if (value <= HF_1 && value >= -HF_1) visptr->shapenum += 2;
+                else if (value < -HF_1 && value >= -HF_2) visptr->shapenum += 3;
+                else if (value < -HF_2) visptr->shapenum += 4;
+            }
+            else if (obj->obclass == pillarobj && (nonbobpheight - obj->z) < -16) visptr->shapenum++;
 
-		  if (player->flags&FL_SHROOMS)
-			  {
-			  visptr->shapesize=4;
-			  visptr->h2=(GetTicCount()&0xff);
-			  }
-		  if (obj->obclass==playerobj)
-			  {
-			  if (obj->flags&FL_GODMODE)
-				  {
-				  visptr->shapesize=4;
-				  visptr->h2=240+(GetTicCount()&0x7);
-				  }
-			  else if (obj->flags & FL_COLORED)
-				  {
-				  playertype *pstate;
+            if (visptr < &vislist[MAXVISIBLE - 1]) visptr++;    // don't let it overflo'
 
-				  M_LINKSTATE(obj,pstate);
-					  SetColorLightLevel(obj->x,obj->y,visptr,
-                                    obj->dir,pstate->uniformcolor,
-                                    (obj->flags&FL_FULLLIGHT) );
-				  }
-			  else
-              SetSpriteLightLevel(obj->x,obj->y,visptr,obj->dir,(obj->flags&FL_FULLLIGHT));
+            obj->flags |= FL_SEEN;
+            obj->flags |= FL_VISIBLE;
+        }
+        else
+            obj->flags &= ~FL_VISIBLE;
+    }
 
-			  }
-		  else
-			  {
-			  if ((obj->obclass >= b_darianobj) && (obj->obclass <= b_robobossobj) &&
-				  MISCVARS->redindex)
-              {
-				  visptr->colormap=redmap+((MISCVARS->redindex-1)<<8);
-              }
-           else
-              {
-              SetSpriteLightLevel(obj->x,obj->y,visptr,obj->dir,(obj->flags&FL_FULLLIGHT));
-              }
-           }
-
-		  visptr->h1= pheight - obj->z;
-
-        if (obj->obclass==diskobj)
-           {
-           int value;
-           value=nonbobpheight-obj->z-32;
-           if ((value<=HF_2) && (value>HF_1))
-              {
-              visptr->shapenum++;
-              }
-           else if ((value<=HF_1) && (value>=-HF_1))
-              {
-              visptr->shapenum+=2;
-              }
-           else if ((value<-HF_1) && (value>=-HF_2))
-              {
-              visptr->shapenum+=3;
-              }
-           else if (value<-HF_2)
-              {
-              visptr->shapenum+=4;
-              }
-           }
-        else if ( (obj->obclass==pillarobj) &&
-                  ((nonbobpheight-obj->z)<-16)
-                )
-           {
-           visptr->shapenum++;
-           }
-
-		  if (visptr < &vislist[MAXVISIBLE-1]) // don't let it overflo'
-			  visptr++;
-		  obj->flags |= FL_SEEN;
-		  obj->flags |= FL_VISIBLE;
-		  }
-	  else
-		  obj->flags &= ~FL_VISIBLE;
-	  }
-//
-// draw from back to front
-//
-	numvisible = visptr-&vislist[0];
-	if (!numvisible)
-		return;                                     // no visible objects
-	SortVisibleList( numvisible, &vislist[0] );
-   UpdateClientControls();
-   for (i = 0; i<numvisible; i++)
-		{
-      //
-      // draw farthest
-      //
-
-      if (sortedvislist[i]->shapesize==4) {
-      
-        ScaleSolidShape(sortedvislist[i]);
-        
-      } else if (sortedvislist[i]->shapesize==3) {
-
-         InterpolateDoor (sortedvislist[i]);
-
-      } else if (sortedvislist[i]->shapesize==2) {
-
-         InterpolateMaskedWall (sortedvislist[i]);
-
-      } else if (sortedvislist[i]->shapesize==1) {
-
-         ScaleTransparentShape(sortedvislist[i]);
-
-      } else {
-
-         ScaleShape(sortedvislist[i]);
-
-      }
-
-      }
+    // draw from back to front
+    numvisible = visptr - &vislist[0];
+    if (!numvisible) return; // no visible objects
+    SortVisibleList(numvisible, &vislist[0]);
+    UpdateClientControls();
+    for (i = 0; i < numvisible; i++)
+    {
+        // draw farthest
+        switch (sortedvislist[i]->shapesize) {
+        case 4:
+            ScaleSolidShape(sortedvislist[i]);
+            break;
+        case 3:
+            InterpolateDoor(sortedvislist[i]);
+            break;
+        case 2:
+            InterpolateMaskedWall(sortedvislist[i]);
+            break;
+        case 1:
+            ScaleTransparentShape(sortedvislist[i]);
+            break;
+        default:
+            ScaleShape(sortedvislist[i]);
+            break;
+        }
+    }
 }
-
-//==========================================================================
-
-
-
 
 
 /*
@@ -3020,152 +2792,109 @@ void ShutdownScreenSaver ( void )
 //
 //******************************************************************************
 
-#define SPINSIZE  40
-#define MAXSPEED  8
-void UpdateScreenSaver ( void )
-{
-	//EnableScreenStretch();
-   if (ScreenSaver->time!=-1)
-      {
-      ScreenSaver->time-=tics;
-      if (ScreenSaver->time<0)
-         {
-         ScreenSaver->phase++;
-         SetupScreenSaverPhase();
-         }
-      }
-   ScreenSaver->x+=ScreenSaver->dx*tics;
-   ScreenSaver->y+=ScreenSaver->dy*tics;
-   ScreenSaver->angle=(ScreenSaver->angle+(ScreenSaver->dangle*tics))&(FINEANGLES-1);
-   ScreenSaver->scale+=ScreenSaver->dscale*tics;
-   if (ScreenSaver->x<SPINSIZE)
-      {
-      ScreenSaver->x=SPINSIZE;
-      ScreenSaver->dx=abs(ScreenSaver->dx);
-      ScreenSaver->dy+=(RandomNumber("Rotate",0)>>6)-2;
-      }
-   else if (ScreenSaver->x>iGLOBAL_SCREENWIDTH-SPINSIZE)
-      {
-      ScreenSaver->x=iGLOBAL_SCREENWIDTH-SPINSIZE;
-      ScreenSaver->dx=-(abs(ScreenSaver->dx));
-      ScreenSaver->dy+=(RandomNumber("Rotate",0)>>6)-2;
-      }
-   if (ScreenSaver->y<SPINSIZE)
-      {
-      ScreenSaver->y=SPINSIZE;
-      ScreenSaver->dy=abs(ScreenSaver->dy);
-      ScreenSaver->dx+=(RandomNumber("Rotate",0)>>6)-2;
-      }
-   else if (ScreenSaver->y>iGLOBAL_SCREENHEIGHT-SPINSIZE)
-      {
-      ScreenSaver->y=iGLOBAL_SCREENHEIGHT-SPINSIZE;
-      ScreenSaver->dy=-(abs(ScreenSaver->dy));
-      ScreenSaver->dx+=(RandomNumber("Rotate",0)>>6)-2;
-      }
+void UpdateScreenSaver(void) {
+    if (ScreenSaver->time != -1) {
+        ScreenSaver->time -= tics;
+        if (ScreenSaver->time < 0) {
+            ScreenSaver->phase++;
+            SetupScreenSaverPhase();
+        }
+    }
 
-   if (abs(ScreenSaver->dx)>MAXSPEED)
-      ScreenSaver->dx=SGN(ScreenSaver->dx)*MAXSPEED;
+    ScreenSaver->x += ScreenSaver->dx * tics;
+    ScreenSaver->y += ScreenSaver->dy * tics;
+    ScreenSaver->angle = (ScreenSaver->angle + (ScreenSaver->dangle * tics)) & (FINEANGLES - 1);
+    ScreenSaver->scale += ScreenSaver->dscale * tics;
 
-   if (abs(ScreenSaver->dy)>MAXSPEED)
-      ScreenSaver->dy=SGN(ScreenSaver->dy)*MAXSPEED;
+    if (ScreenSaver->x < SPINSIZE) {
+        ScreenSaver->x = SPINSIZE;
+        ScreenSaver->dx = abs(ScreenSaver->dx);
+        ScreenSaver->dy += (RandomNumber("Rotate", 0) >> 6) - 2;
+    }
+    else if (ScreenSaver->x > iGLOBAL_SCREENWIDTH - SPINSIZE) {
+        ScreenSaver->x = iGLOBAL_SCREENWIDTH - SPINSIZE;
+        ScreenSaver->dx = -(abs(ScreenSaver->dx));
+        ScreenSaver->dy += (RandomNumber("Rotate", 0) >> 6) - 2;
+    }
 
-   DrawRotatedScreen(ScreenSaver->x,ScreenSaver->y, (byte *)bufferofs,ScreenSaver->angle,ScreenSaver->scale,0);
+    if (ScreenSaver->y < SPINSIZE) {
+        ScreenSaver->y = SPINSIZE;
+        ScreenSaver->dy = abs(ScreenSaver->dy);
+        ScreenSaver->dx += (RandomNumber("Rotate", 0) >> 6) - 2;
+    }
+    else if (ScreenSaver->y > iGLOBAL_SCREENHEIGHT - SPINSIZE) {
+        ScreenSaver->y = iGLOBAL_SCREENHEIGHT - SPINSIZE;
+        ScreenSaver->dy = -(abs(ScreenSaver->dy));
+        ScreenSaver->dx += (RandomNumber("Rotate", 0) >> 6) - 2;
+    }
 
-   ScreenSaver->pausetime-=tics;
-   if (ScreenSaver->pausetime<=0)
-   {
-      ScreenSaver->pausetime=PAUSETIME;
-	  if (iGLOBAL_SCREENWIDTH == 320){
-		  ScreenSaver->pausex=RandomNumber ("pausex",0)%240;
-		  ScreenSaver->pausey=RandomNumber ("pausey",0)%168;
-      }else if (iGLOBAL_SCREENWIDTH == 640){
-		  ScreenSaver->pausex=RandomNumber ("pausex",0)%480;
-		  ScreenSaver->pausey=RandomNumber ("pausey",0)%403;
-	  }else if (iGLOBAL_SCREENWIDTH >= 800){
-		  ScreenSaver->pausex=RandomNumber ("pausex",0)%600;
-		  ScreenSaver->pausey=RandomNumber ("pausey",0)%504;
-	  }
-   }
-   DrawPauseXY (ScreenSaver->pausex, ScreenSaver->pausey);
+    if (abs(ScreenSaver->dx) > MAXSPEED) ScreenSaver->dx = SGN(ScreenSaver->dx) * MAXSPEED;
+    if (abs(ScreenSaver->dy) > MAXSPEED) ScreenSaver->dy = SGN(ScreenSaver->dy) * MAXSPEED;
 
-   FlipPage();
+    DrawRotatedScreen(ScreenSaver->x, ScreenSaver->y, (byte*)bufferofs, ScreenSaver->angle, ScreenSaver->scale, 0);
+    ScreenSaver->pausetime -= tics;
+
+    if (ScreenSaver->pausetime <= 0) {
+        ScreenSaver->pausetime = PAUSETIME;
+        ScreenSaver->pausex = RandomNumber("pausex", 0) % (int32_t)(iGLOBAL_SCREENWIDTH * 0.75);
+        ScreenSaver->pausey = RandomNumber("pausey", 0) % (int32_t)(iGLOBAL_SCREENHEIGHT - 96);
+    }
+    DrawPauseXY(ScreenSaver->pausex, ScreenSaver->pausey);
+    FlipPage();
 }
 
-//******************************************************************************
+
 //
 // DrawBackground - copy FROM background
 //
-//******************************************************************************
 
-void DrawBackground ( byte * bkgnd ) {
-   int size = linewidth*200;
-   memcpy((byte *)bufferofs,bkgnd,size);
-   bkgnd+=size;
+void DrawBackground(uint8_t* bkgnd) {
+    int size = linewidth * 200;
+    memcpy((uint8_t*)bufferofs, bkgnd, size);
+    bkgnd += size;
 }
 
 
-//******************************************************************************
 //
 // PrepareBackground - copy TO background
 //
-//******************************************************************************
 
-void PrepareBackground ( byte * bkgnd ) {
-   int size = linewidth*200;
-   memcpy(bkgnd,(byte *)bufferofs,size);
-   bkgnd+=size;
+void PrepareBackground(uint8_t* bkgnd) {
+    int size = linewidth * 200;
+    memcpy(bkgnd, (uint8_t*)bufferofs, size);
+    bkgnd += size;
 }
 
-//******************************************************************************
+
 //
 // WarpString
 //
-//******************************************************************************
 
-void WarpString(int x, int y, int endx, int endy, int time, byte * back, char * str) {
-   int dx;
-   int dy;
-   int cx;
-   int cy;
-   int starttime;
+void WarpString(int x, int y, int endx, int endy, int time, byte* back, char* str) {
+    int dx = ((endx - x) << 16) / time;
+    int dy = ((endy - y) << 16) / time;
+    int cx = x << 16;
+    int cy = y << 16;
+    int starttime = time;
 
+    LastScan = 0;
+    CalcTics();
 
-   LastScan = 0;
+    while (time > 0) {
+        DrawBackground(back);
+        US_ClippedPrint(cx >> 16, cy >> 16, str);
+        FlipPage();
 
-
-   dx=((endx-x)<<16)/time;
-   dy=((endy-y)<<16)/time;
-   cx=x<<16;
-   cy=y<<16;
-   starttime=time;
-
-   CalcTics();
-
-   while (time>0)
-      {
-
-      DrawBackground ( back );
-      US_ClippedPrint (cx>>16, cy>>16, str);
-      FlipPage();
-
-      CalcTics();
-      cx+=dx*tics;
-      cy+=dy*tics;
-      time-=tics;
-      if (LastScan != 0)
-         break;
-      }
-
+        CalcTics();
+        cx += dx * tics;
+        cy += dy * tics;
+        time -= tics;
+        if (LastScan != 0) break;
+    }
 }
 
 
 #if (SHAREWARE==1)
-//******************************************************************************
-//
-// DoEndCinematic
-//
-//******************************************************************************
-
 //******************************************************************************
 //
 // WarpSprite
@@ -3206,106 +2935,6 @@ void WarpSprite (
          break;
       }
 }
-
-
-char *EndCinematicPicNames[5] =
-         {
-         "lwgshoo2",
-         "hg2shoo2",
-         "ankshoo1",
-         "ligrise4",
-         "tritoss5",
-
-         };
-
-#define NUMENDMESSAGES 24
-
-
-char *EndCinematicText[NUMENDMESSAGES] =
-  {
-  "You've won the battle, Cassatt.\n"
-  "But when the Oscuridos return,\n"
-  "will you be ready as they wage\n"
-  "their Dark War?",
-
-  "Armed with only a pistol and 30\n"
-  "bucks, you must stop the minions of\n"
-  "El Oscuro before they kill millions\n"
-  "of innocent people.",
-
-  "But for now, hey, enjoy the medal\n"
-  "you received and take a vacation.\n"
-  "You've earned it. Maybe on \n"
-  "San Nicolas Island . . ." ,
-
-  "Thanks for playing. If you liked\n"
-  "\"The HUNT Begins\", check Ordering\n"
-  "Info for information about \n"
-  "continuing your adventure.",
-
-  "Okay, you can stop reading now.",
-
-  "Press a key. That's all there is.\n"
-  "Thanks.",
-
-  "Are you lazy, or illiterate?\n"
-  "PRESS A KEY.",
-
-  "Look, this is pointless. You\n"
-  "are done. Push off.",
-
-  "Okay, show's over.  Nothing\n"
-  "more to see here.",
-
-  "Wow, you must like this fine\n"
-  "background screen.",
-
-  "For waiting this long, you get . . .\n"
-  "nothing!  Go away!",
-
-  "I mean, I like you as a friend,\n"
-  "but . . .",
-
-  "\"Bob\"",
-
-  "All right, um . . . you found the\n"
-  "secret message! Congratulations!",
-
-  "Didn't work, huh?  Okay, how about\n"
-  "this . . .",
-
-  "THE END",
-
-  "Dang. Thought I had you there.",
-
-  "Stop watching.",
-
-  "You know that if you registered,\n"
-  "there would be a lot more cool\n"
-  "stuff happening right now.",
-
-  "Episode IV: A New Hope\n",
-
-  "Just think of all the new secret\n"
-  "messages you could find hidden\n"
-  "in the registered version!",
-
-  "Someone right now is probably\n"
-  "enjoying the really exciting\n"
-  "ending of the registered version.",
-
-  "ROTT was filmed before\n"
-  "a live audience.",
-
-  "No animals were harmed during the\n"
-  "creation of this video game, although\n"
-  "one dog did get its butt spanked\n"
-  "when it peed on the carpet.\n",
-
-
-  };
-char NextGameString1[] = "The Developers of Incredible Power";
-char NextGameString2[] = "shall return";
 
 void DoEndCinematic ( void )
 {
@@ -3496,120 +3125,12 @@ finalfade:
 }
 #else
 
-// REGISTERED VERSION ======================================================
-
-static char    burnCastle1Msg []=
-        "The monastery burns.\n"
-        "\n"
-        "El Oscuro is dead.\n"
-        "\n"
-        "The world is safe.\n";
-
-// If all Snake Eggs not destroyed on final level:
-
-
-static char    notDoneMsg[] =
-          "Unfortunately not all\n"
-          "of El Oscuro's larvae\n"
-          "were destroyed.\n"
-          "\n"
-          "Thirty years later,\n"
-          "a descendant of\n"
-          "El Oscuro wiped out\n"
-          "the entire world,\n"
-          "but nice job anyway.\n";
-
-static char    tryAgainMsg[] =
-          "Try Again.\n"
-          "\n"
-          "The world will not be\n"
-          "safe until all of El\n"
-          "Oscuro's larvae are\n"
-          "destroyed. Find them.\n";
-
-// If all snake eggs destroyed:
-static char    doneMsg[] =
-          "You have destroyed\n"
-          "El Oscuro and all his\n"
-          "descendants.  Well done!\n";
-
-// On Triad background, in bigger font.
-static char    youWin1Msg[] =
-        "So, HUNT Members, how\n"
-        "do you think the\n"
-        "mission went?\n";
-
-// Place menu pix of characters here (maybe modem frame too?)
-static char    youWin2Msg[] =
-        "Barrett: Well, I think\n"
-        "I got shin splints from\n"
-        "all those jump pads.\n"
-        "But hey, action-wise,\n"
-        "I've been in tougher\n"
-        "bar fights, for crying\n"
-        "out loud.\n";
-
-static char    youWin3Msg[] =
-        "Cassatt: Apart from\n"
-        "the other HUNT members\n"
-        "saying I look like\n"
-        "Richard Mulligan, it\n"
-        "was quite a success.\n"
-        "And some of the\n"
-        "monastery's ironwork\n"
-        "was very nice.\n";
-
-static char    youWin4Msg[] =
-        "Ni: it was quite easy,\n"
-        "actually.  I just\n"
-        "pictured the enemy\n"
-        "having the face of\n"
-        "my ex-husband, and\n"
-        "man, I was a force\n"
-        "of Nature.\n";
-
-static char    youWin5Msg[] =
-        "Wendt: I was kind of\n"
-        "disappointed. I think\n"
-        "I used the missile\n"
-        "weapons way too much.\n"
-        "Next time, bullets\n"
-        "only.  Nothing sweeter\n"
-        "than a head shot from\n"
-        "a hundred feet.\n";
-
-static char    youWin6Msg[] =
-        "Freeley: I'm still\n"
-        "trying to adjust in\n"
-        "the aftermath.  It's\n"
-        "kinda tough.  I mean,\n"
-        "I save the damn world,\n"
-        "and all people ask\n"
-        "about is my name.\n"
-        "Sheesh.\n";
-
-// On caching screen
-
-static char     youWin7Msg[] =
-           "The HUNT is victorious!\n"
-           "\n"
-           "         THE END\n";
-
-
-static char     youWin8Msg[] =
-           "Now go and celebrate!\n"
-           "\n"
-           "      THE REAL END";
-
-
 typedef struct {
   byte  which;
   byte  frame;
   byte  x;
   byte  y;
 } ExplosionType;
-
-#define MAXTRANSMITTEREXPLOSIONS 30
 
 static ExplosionType Explosions[MAXTRANSMITTEREXPLOSIONS];
 
@@ -3632,6 +3153,7 @@ void CacheTransmitterExplosions(void) {
 static inline void SetupTransmitterExplosions(void) {
    for (int i=0;i<MAXTRANSMITTEREXPLOSIONS;i++)     ResetTransmitterExplosion(&Explosions[i]);
 }
+
 void UpdateTransmitterExplosions(void) {
     for (int i = 0; i < MAXTRANSMITTEREXPLOSIONS; i++) {
         Explosions[i].frame += tics;
@@ -4207,24 +3729,20 @@ static char     actors13Msg[] =
            "\n"
            "Tom Hall\n";
 
-
 static char     cut1Msg[] =
            "Deathfire Monk\n"
            "\n"
            "Mark Dochtermann\n";
-
 
 static char     cut2Msg[] =
            "Over Patrol\n"
            "\n"
            "Pat Miller\n";
 
-
 static char     cut3Msg[] =
            "Low Guard\n"
            "\n"
            "Marianna Vayntrub\n";
-
 
 static char     cut4Msg[] =
            "Strike Team\n"
@@ -4236,13 +3754,10 @@ static char     cut5Msg[] =
            "\n"
            "William Scarboro\n";
 
-
 static char     cut6Msg[] =
            "High Guard\n"
            "\n"
            "Stephen Hornback\n";
-
-
 
 static char     playersCutMsg[] =
            "Actors who were\n"
@@ -4763,43 +4278,26 @@ void  DrawMapPost (int height, byte * src, byte * buf)
 }
 
 void DrawRotRow(int count, byte* dest, byte* src) {
-    unsigned eax, ecx, edx;
-    byte* srctmp;
-    byte* desttmp;
+    uint32_t eax;
+    uint32_t ecx = mr_yfrac;
+    uint32_t edx = mr_xfrac;
+    uint8_t* srctmp = src;
+    uint8_t* desttmp = dest - iGLOBAL_SCREENWIDTH;
 
-    ecx = mr_yfrac;
-    edx = mr_xfrac;
+    while (count--) {
+        eax = edx >> 16;
 
-    if ((iGLOBAL_SCREENWIDTH == 320) || (iG_masked == true)) {
-        while (count--) {
-            eax = edx >> 16;
-            if (eax < 256 && (ecx >> 16) < 512) {
-                eax = (eax << 9) | ((ecx << 7) >> (32 - 9));
-            }
-            else {
-                eax = 0;
-            }
+        if (eax < 256 * (int)(iGLOBAL_SCREENWIDTH / 320) && (ecx >> 16) < (512 * (int)(iGLOBAL_SCREENWIDTH / 200)))
+            eax = (eax << 10) | ((ecx << 6) >> (32 - 10));
+        else eax = 0;
 
-            *dest++ = src[eax];
-
-            edx += mr_xstep;
-            ecx += mr_ystep;
-        }
+        *desttmp++ = srctmp[eax];
+        edx += mr_xstep;
+        ecx += mr_ystep;
     }
-    else if (iGLOBAL_SCREENWIDTH == 640) {
-        while (count--) {
-            eax = edx >> 16;
-            if (eax < (256 * 2.0) && (ecx >> 16) < (512 * 1.8)) {
-                eax = (eax << 10) | ((ecx << 6) >> (32 - 10));
-            }
-            else eax = 0;
 
-            *dest++ = src[eax];
-            edx += mr_xstep;
-            ecx += mr_ystep;
-        }
-    }
-    else if (iGLOBAL_SCREENWIDTH >= 800) {
+    /*** dma: freeres, old code ***
+    if (iGLOBAL_SCREENWIDTH == 800) {
         srctmp = src;
         desttmp = dest;
         desttmp -= (iGLOBAL_SCREENWIDTH * 1);
@@ -4808,8 +4306,6 @@ void DrawRotRow(int count, byte* dest, byte* src) {
 
         while (count--) {
             eax = edx >> 16;
-
-            //         Y-dir                    x-dir
             if (eax < (256 * 2.5) && (ecx >> 16) < (512 * 2))
                 eax = (eax << 10) | ((ecx << 6) >> (32 - 10));
             else eax = 0;
@@ -4819,7 +4315,7 @@ void DrawRotRow(int count, byte* dest, byte* src) {
             ecx += mr_ystep;
         }
 
-    }
+    }*/
 }
 
 void DrawMaskedRotRow(int count, byte* dest, byte* src) {
@@ -4875,15 +4371,14 @@ void DrawSkyPost(byte* buf, byte* src, int height) {
 
 void R_RefreshClear (void) {
     int start = min(centery, viewheight);
-    int base;
+    int base  = start;
 
 	memset(spotvis, 0, sizeof(spotvis));
 	
 	if (fandc) return;
 	if (start > 0) VL_Bar(0, 0, iGLOBAL_SCREENHEIGHT, start, CEILINGCOLOR);
 	else start = 0;
-	
-	base = start;
+
 	start = min(viewheight-start, viewheight);
 
 	if (start > 0) VL_Bar(0, base, iGLOBAL_SCREENHEIGHT, start, FLOORCOLOR);

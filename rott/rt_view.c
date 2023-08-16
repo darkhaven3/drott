@@ -67,7 +67,7 @@ int    baseminshade;
 int    basemaxshade;
 int    viewheight;
 int    viewwidth;
-longword   heightnumerator;
+uint32_t   heightnumerator;
 fixed  scale;
 int    screenofs;
 int    centerx;

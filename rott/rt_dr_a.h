@@ -26,9 +26,4 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //***************************************************************************
 
-void R_RefreshClear(void);
-void R_DrawWallColumn (byte * buf);
-void  DrawMenuPost (int height, byte * src, byte * buf); // IN rt_dr_a.asm	//?
-void  DrawMapPost (int height, byte * src, byte * buf); // IN rt_dr_a.asm	//?
-
 #endif
