@@ -2425,70 +2425,66 @@ void RotateBuffer (int startangle, int endangle, int startscale, int endscale, i
 //
 //******************************************************************************
 
-void DrawRotatedScreen(int cx, int cy, byte *destscreen, int angle, int scale, int masked)
-{//ZXCV
-   int     c, s;
-   int     xst, xct;
-   int     y;
+void DrawRotatedScreen(int cx, int cy, byte* destscreen, int angle, int scale, int masked) {
+    int     c, s;
+    int     xst, xct;
+    int     y;
 
-   byte    * screen;
-   //int Xres = 320;//old value
-   //int Yres = 200;//old val
+    byte* screen;
 
-   int Xr = iGLOBAL_SCREENWIDTH;//640;
-   int Yr = (iGLOBAL_SCREENHEIGHT);//400; //bna aaaa fix
+    int Xr = iGLOBAL_SCREENWIDTH;
+    int Yr = iGLOBAL_SCREENHEIGHT;
 
-//	   SetTextMode (  );
-   c = FixedMulShift(scale,costable[angle],11);
-   s = FixedMulShift(scale,sintable[angle],11);
+    //dma
+    //int32_t Ysm = (int32_t)(iGLOBAL_SCREENWIDTH * 0.4) << 16;
+    //int32_t Xsm = (int32_t)(iGLOBAL_SCREENHEIGHT * 1.28) << 16;
+    //int32_t Ysm = (int32_t) (128 / iGLOBAL_SCREENHEIGHT * 0.55) << 16;
+    //int32_t Xsm = (int32_t) (256 / iGLOBAL_SCREENWIDTH * 0.5) << 16;
+    int32_t Ysm = 128 << 16;
+    int32_t Xsm = 256 << 16;
 
-//   c = c/2; //these values are to rotate degres or?
-//   s = s/2;
-//   xst & xct= start center values ;
-   if ((iGLOBAL_SCREENWIDTH == 320 )||(masked == true)) {
-	   xst = (((-cx)*s)+(128<<16))-(cy*c);
-	   xct = (((-cx)*c)+(256<<16)+(1<<18)-(1<<16))+(cy*s);
-   }
-   else if ((iGLOBAL_SCREENWIDTH == 640 )&&(masked == false)) {
-	   xst = (((-cx)*s)+((268)<<16))-(cy*c);
-	   xct = (((-cx)*c)+((317)<<16)+(1<<18)-(1<<16))+(cy*s);
-   }//y=268;x=317
-   else if ((iGLOBAL_SCREENWIDTH >= 800 )&&(masked == false)) {
-	   xst = (((-cx)*s)+((328)<<16))-(cy*c);
-	   xct = (((-cx)*c)+((397)<<16)+(1<<18)-(1<<16))+(cy*s);
-   }//328 397
+    c = FixedMulShift(scale, costable[angle], 11);
+    s = FixedMulShift(scale, sintable[angle], 11);
 
-   mr_xstep=s;
-   mr_ystep=c;
+    //   c = c/2; //these values are to rotate degres or?
+    //   s = s/2;
+    //   xst & xct= start center values ;
+    /*
+    if ((iGLOBAL_SCREENWIDTH == 320) || (masked == true)) {
+        xst = (((-cx) * s) + (128 << 16)) - (cy * c);
+        xct = (((-cx) * c) + (256 << 16) + (1 << 18) - (1 << 16)) + (cy * s);
+    }
+    else if ((iGLOBAL_SCREENWIDTH == 640) && (masked == false)) {
+        xst = (((-cx) * s) + ((268) << 16)) - (cy * c);
+        xct = (((-cx) * c) + ((317) << 16) + (1 << 18) - (1 << 16)) + (cy * s);
+    }//y=268;x=317
+    else if ((iGLOBAL_SCREENWIDTH >= 800) && (masked == false)) {
+        xst = (((-cx) * s) + ((328) << 16)) - (cy * c);
+        xct = (((-cx) * c) + ((397) << 16) + (1 << 18) - (1 << 16)) + (cy * s);
+    }*/
 
-  
-   if ((iGLOBAL_SCREENWIDTH == 800)&&(masked==0)) {
-        screen=destscreen+iGLOBAL_SCREENWIDTH;//bna aaaa fix
-   }else{
-		screen=destscreen;
-   }
+    //dma
+    xst = (-cx * s) + Ysm - (cy * c);
+    xct = (-cx * c) + Xsm + 0x40000 - 0x10000 + (cy * s);
 
-   if (masked==0)
-      {
-		 // paint hole 800x600 screen
-		 { 
-         mr_yfrac=xct;
-         mr_xfrac=xst;
-         VGAWRITEMAP(plane);
-         for (y=0; y<Yr; y++,mr_xfrac+=c,mr_yfrac-=s)
-            DrawRotRow(Xr,screen+ylookup[y],RotatedImage);
-         }
-      }
-   else
-      {
-         {
-         mr_yfrac=xct;
-         mr_xfrac=xst;
-         VGAWRITEMAP(plane);
-         for (y=0; y<Yr; y++,mr_xfrac+=c,mr_yfrac-=s)
-            DrawMaskedRotRow(Xr,screen+ylookup[y],RotatedImage);
-         }
-      }
+    mr_xstep = s;
+    mr_ystep = c;
+
+    if (iGLOBAL_SCREENWIDTH == 800 && !masked) screen = destscreen + iGLOBAL_SCREENWIDTH;//bna aaaa fix
+    else screen = destscreen;
+
+    if (!masked) { // paint hole 800x600 screen
+        mr_yfrac = xct;
+        mr_xfrac = xst;
+        for (y = 0; y < Yr; y++, mr_xfrac += c, mr_yfrac -= s)
+            DrawRotRow(Xr, screen + ylookup[y], RotatedImage);
+    }
+    else {
+        mr_yfrac = xct;
+        mr_xfrac = xst;
+        for (y = 0; y < Yr; y++, mr_xfrac += c, mr_yfrac -= s)
+            DrawMaskedRotRow(Xr, screen + ylookup[y], RotatedImage);
+    }
 
 }
 
@@ -4286,9 +4282,8 @@ void DrawRotRow(int count, byte* dest, byte* src) {
 
     while (count--) {
         eax = edx >> 16;
-
-        if (eax < 256 * (int)(iGLOBAL_SCREENWIDTH / 320) && (ecx >> 16) < (512 * (int)(iGLOBAL_SCREENWIDTH / 200)))
-            eax = (eax << 10) | ((ecx << 6) >> (32 - 10));
+        if (eax < 256 * (iGLOBAL_SCREENWIDTH / 320) && (ecx >> 16) < (512 * (iGLOBAL_SCREENHEIGHT / 300)))
+            eax = (eax << 10) | ((ecx << 6) >> 22);
         else eax = 0;
 
         *desttmp++ = srctmp[eax];
@@ -4347,7 +4342,7 @@ void DrawSkyPost(byte* buf, byte* src, int height) {
         if (height > 400) orgh = height;
 
         while (height--) {
-            if ((orgh > 0) && (height < (orgh - 400))) {
+            if (orgh > 0 && height < (orgh - 400)) {
                 src -= 2;
                 *buf = shadingtable[*src];
             }
