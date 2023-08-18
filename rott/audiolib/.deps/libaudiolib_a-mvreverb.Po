@@ -1,4 +1,0 @@
-libaudiolib_a-mvreverb.o: mvreverb.c multivoc.h platform.h _multivc.h
-multivoc.h:
-platform.h:
-_multivc.h:
