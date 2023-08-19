@@ -22,9 +22,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // RT_DEF.H Zee big one
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "develop.h"
-#define SAVE_SCREEN  1
 
 #if PLATFORM_UNIX
 #include <unistd.h>
@@ -39,7 +39,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <malloc.h>
 #include <fcntl.h>
 #include <io.h>
-//#define alloca(x) _alloca(x)
 #define access(x, y) _access(x, y)
 #define F_OK  0
 #elif (defined __GNUC__)
@@ -94,7 +93,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endif
 
 #define PI      3.141592657
-#define LONG(a) ((int)a)
 #define M_PI            3.14159
 
 #ifndef O_BINARY
@@ -150,16 +148,10 @@ long filelength(int handle);
 //
 //***************************************************************************
 #define VIEWGLOBAL              0x10000         // globals visable flush to wall
-/*
-#define VIEWWIDTH               MAXSCREENWIDTH//320*2             // size of view window
-#define VIEWHEIGHT              MAXSCREENHEIGHT//200*2
-#define MAXSCANLINES            MAXSCREENHEIGHT//200*2             // size of ylookup table
-*/
 #define CHARWIDTH               2
 #define TILEWIDTH               4
 #define STATUSLINES             16
-
-
+#define SAVE_SCREEN             1       //d:?
 
 //***************************************************************************
 //
@@ -192,23 +184,23 @@ long filelength(int handle);
 //***************************************************************************
 
 
-#define GLOBAL1                           (1l<<16)
-#define TILEGLOBAL                        GLOBAL1
-#define PIXGLOBAL                         (GLOBAL1/64)
-#define TILESHIFT                         16l
-#define UNSIGNEDSHIFT                     8
-#define PLAYERSIZE                        0x5700l                       // player radius
-#define MAPSIZE                           128                         // maps are 64*64 max
-#define NUMAREAS                          47
-#define MAPSPOT(x,y,plane)                (mapplanes[plane][MAPSIZE*(y)+(x)])
-#define AREATILE                          107
-#define ICONARROWS                        72
-#define PUSHABLETILE                      80
-#define ELEVATORTILE                      72
-#define ALTELEVATORTILE                   106
-#define LASTLEVELVALUE                    459
-
-#define AREANUMBER(x,y)                   (MAPSPOT((x),(y),0)-AREATILE)
+#define GLOBAL1                 (1l<<16)
+#define TILEGLOBAL              GLOBAL1
+#define PIXGLOBAL               (GLOBAL1/64)
+#define TILESHIFT               16l
+#define UNSIGNEDSHIFT           8
+#define PLAYERSIZE              0x5700l                       // player radius
+#define MAPSIZE                 128                           // maps are 128*128 max
+#define NUMAREAS                47
+#define MAPSPOT(x,y,plane)      (mapplanes[plane][(MAPSIZE*y)+x])
+#define AREATILE                107
+#define ICONARROWS              72
+#define PUSHABLETILE            80
+#define ELEVATORTILE            72
+#define ALTELEVATORTILE         106
+#define LASTLEVELVALUE          459         //d:?
+#define AREANUMBER(x,y)         (MAPSPOT(x,y,0)-AREATILE)
+#define NUMTXBUTTONS            16          //d:?
 
 //***************************************************************************
 //
@@ -228,8 +220,7 @@ long filelength(int handle);
 
 #define RUNSPEED                6000
 #define MINACTORDIST            0x9000l
-#define MAXSTATS                400                           // max number of lamps, bonus, etc
-
+#define MAXSTATS                400          // max number of lamps, bonus, etc
 #define MAXWALLTILES            105          // max number of wall tiles
 #define MAXACTORS               600
 #define NORTH                   0
@@ -270,11 +261,11 @@ long filelength(int handle);
 
 ///////////////////      GLOBAL DATA TYPES ///////////////////////////////
 
-
-typedef unsigned char           byte;
-typedef unsigned short int      word;
-typedef unsigned int            longword;
-typedef int fixed;
+//d: type specificity
+typedef uint8_t         byte;
+typedef uint16_t        word;
+typedef uint32_t        longword;
+typedef int32_t         fixed;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -284,7 +275,8 @@ typedef int fixed;
 
 /* boolean is serialized at the moment, and watcomc made it a byte. */
 
-typedef unsigned char boolean;
+typedef uint8_t boolean;
+
 enum {
     false, true
 };
@@ -311,7 +303,6 @@ typedef enum
 }
 thingtype;
 
-#define NUMTXBUTTONS    16
 enum    {
     bt_nobutton=-1,
     bt_attack=0,
@@ -371,15 +362,12 @@ typedef enum    { wp_pistol,
 
                 } weapontype;
 
-
-
 enum    {
     gd_baby,
     gd_easy,
     gd_medium,
     gd_hard
 };
-
 
 typedef enum    {
     ex_stillplaying,
@@ -436,11 +424,11 @@ enum    {
 #define FL_SOLIDCOLOR           0x4000000
 #define FL_SEEN                 0x8000000
 #define FL_COLORED              0x10000000
-#define FL_FULLLIGHT       0x80000000
+#define FL_FULLLIGHT            0x80000000
 
 //=================== ACTOR FLAGS =====================================//
 
-#define FL_NEVERMARK            4
+#define FL_NEVERMARK            0x4
 #define FL_ATTACKMODE           0x10
 #define FL_FIRSTATTACK          0x20
 #define FL_ISFIRE               0x20

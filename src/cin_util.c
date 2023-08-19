@@ -15,36 +15,5 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "cin_glob.h"
-#include "modexlib.h"
 
-
-/*
-==============
-=
-= CinematicGetPalette
-=
-= Return an 8 bit / color palette
-=
-==============
-*/
-
-void CinematicGetPalette (byte *pal)
-{
-    STUB_FUNCTION;
-}
-
-/*
-==============
-=
-= CinematicSetPalette
-=
-= Sets an 8 bit / color palette
-=
-==============
-*/
-
-void CinematicSetPalette (byte *pal)
-{
-    STUB_FUNCTION;
-}
+//d: empty module!

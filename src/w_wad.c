@@ -113,7 +113,7 @@ void W_AddFile (char *_filename)
             printf("    Adding single file %s.\n",filename);
         fileinfo = &singleinfo;
         singleinfo.filepos = 0;
-        singleinfo.size = LONG(filelength(handle));
+        singleinfo.size = (int32_t) (filelength(handle));
         ExtractFileBase (filename, singleinfo.name);
         numlumps++;
     }
@@ -125,8 +125,8 @@ void W_AddFile (char *_filename)
         read (handle, &header, sizeof(header));
         if (strncmp(header.identification,"IWAD",4))
             Error ("Wad file %s doesn't have IWAD id\n",filename);
-        header.numlumps = IntelLong(LONG(header.numlumps));
-        header.infotableofs = IntelLong(LONG(header.infotableofs));
+        header.numlumps = IntelLong((int32_t)header.numlumps);
+        header.infotableofs = IntelLong((int32_t)header.infotableofs);
         length = header.numlumps*sizeof(filelump_t);
         fileinfo = alloca (length);
         if (!fileinfo)
@@ -141,18 +141,15 @@ void W_AddFile (char *_filename)
 // Fill in lumpinfo
 //
     Z_Realloc((void **)&lumpinfo,numlumps*sizeof(lumpinfo_t));
-//        lumpinfo = realloc (lumpinfo, numlumps*sizeof(lumpinfo_t));
-//        if (!lumpinfo)
-//           Error("W_AddFile: Could not realloc %ld bytes",numlumps*sizeof(lumpinfo_t));
     lump_p = &lumpinfo[startlump];
 
     for (i=startlump ; i<(unsigned int)numlumps ; i++,lump_p++, fileinfo++)
     {
-        fileinfo->filepos = IntelLong(LONG(fileinfo->filepos));
-        fileinfo->size = IntelLong(LONG(fileinfo->size));
+        fileinfo->filepos = IntelLong((int32_t)(fileinfo->filepos));
+        fileinfo->size = IntelLong((int32_t)(fileinfo->size));
         lump_p->handle = handle;
-        lump_p->position = LONG(fileinfo->filepos);
-        lump_p->size = LONG(fileinfo->size);
+        lump_p->position = (int32_t)(fileinfo->filepos);
+        lump_p->size = (int32_t)(fileinfo->size);
         strncpy (lump_p->name, fileinfo->name, 8);
     }
 }

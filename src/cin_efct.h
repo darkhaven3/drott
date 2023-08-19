@@ -52,7 +52,6 @@ paletteevent * SpawnCinematicPalette ( char * name );
 void DrawFlic ( flicevent * flic );
 void DrawCinematicBackdrop ( backevent * back );
 void DrawCinematicBackground ( backevent * back );
-void DrawPalette (paletteevent * event);
 void DrawCinematicSprite ( spriteevent * sprite );
 void DrawClearBuffer ( void );
 void DrawBlankScreen ( void );

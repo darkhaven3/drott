@@ -50,3 +50,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+*.vsidx
+*.sqlite
+*.json
+src/.vs/src/v17/.wsuo
+*.db
+*.db-shm
+*.db-wal
+*.opendb
+*.ipch
