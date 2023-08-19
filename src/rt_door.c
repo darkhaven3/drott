@@ -40,6 +40,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "engine.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 /*=============================================================================
 
@@ -3071,60 +3072,20 @@ void MoveDoors (void)
 /*
 ===============
 =
-= GetAreaNumber
+= RT_GetAreaNumber
 =
 ===============
 */
-int GetAreaNumber ( int tilex, int tiley, int dir )
-{
-    int up,dn,lt,rt;
 
-    up=MAPSPOT(tilex,tiley-1,0)-AREATILE;
-    dn=MAPSPOT(tilex,tiley+1,0)-AREATILE;
-    lt=MAPSPOT(tilex-1,tiley,0)-AREATILE;
-    rt=MAPSPOT(tilex+1,tiley,0)-AREATILE;
-    if ((up<=0) || (up>NUMAREAS)) up=0;
-    if ((dn<=0) || (dn>NUMAREAS)) dn=0;
-    if ((lt<=0) || (lt>NUMAREAS)) lt=0;
-    if ((rt<=0) || (rt>NUMAREAS)) rt=0;
-    switch (dir)
-    {
-    case north:
-        if (up)
-            return up;
-        else if (dn)
-            return dn;
-        break;
-    case south:
-        if (dn)
-            return dn;
-        else if (up)
-            return up;
-        break;
-    case east:
-        if (rt)
-            return rt;
-        else if (lt)
-            return lt;
-        break;
-    case west:
-        if (lt)
-            return lt;
-        else if (rt)
-            return rt;
-        break;
-    }
-    if (up)
-        return up;
-    else if (dn)
-        return dn;
-    else if (lt)
-        return lt;
-    else if (rt)
-        return rt;
-    else
-        Error("Cannot find an area number for tile at x=%d y=%d\n",tilex,tiley);
-    return -1;
+int32_t RT_GetAreaNumber(int32_t tilex, int32_t tiley, int32_t dir) {
+    int32_t AtSpot = MAPSPOT((tilex + DirectionIntegrals[dir].x),
+                             (tiley + DirectionIntegrals[dir].y), 0) - AREATILE;
+
+    if (AtSpot < 0 || AtSpot > NUMAREAS) return 0;
+    else if (dir > NUMDIRECTIONS || dir == nodir)
+        Error("RT_GetAreaNumber(%d, %d, %d): invalid direction\n", tilex, tiley, dir);
+
+    else return AtSpot;
 }
 
 /*
@@ -3167,7 +3128,7 @@ void SpawnPushWall (int tilex, int tiley, int lock, int texture, int dir, int ty
     lastpwallobj->texture = texture;
     if (!(texture&0x1000))
         PreCacheLump(texture,PU_CACHEWALLS,cache_pic_t);
-    lastpwallobj->areanumber = GetAreaNumber(tilex,tiley,lastpwallobj->dir);
+    lastpwallobj->areanumber = RT_GetAreaNumber(tilex,tiley,lastpwallobj->dir);
 
     MAPSPOT (tilex, tiley, 0)=(word)(lastpwallobj->areanumber+AREATILE);
 

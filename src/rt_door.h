@@ -230,7 +230,6 @@ void MoveDoors(void);
 void SpawnPushWall (int tilex, int tiley, int lock, int texture, int dir, int type);
 void MovePWalls(void);
 void WallPushing (int pwall);
-void PushWall (int pwall, int dir);
 void OperatePushWall (int pwall, int dir, boolean localplayer );
 void ActivatePushWall (long pwall);
 void ActivateMoveWall (long pwall);
@@ -265,4 +264,6 @@ void LinkedOpenDoor (long door);
 int IsWall (int tilex, int tiley);
 int IsDoor (int tilex, int tiley);
 int IsMaskedWall (int tilex, int tiley);
+
+int32_t RT_GetAreaNumber(int32_t tilex, int32_t tiley, int32_t dir);
 #endif

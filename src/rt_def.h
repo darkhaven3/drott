@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // RT_DEF.H Zee big one
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "develop.h"
 
@@ -207,7 +208,7 @@ long filelength(int handle);
 #define ELEVATORTILE                      72
 #define ALTELEVATORTILE                   106
 #define LASTLEVELVALUE                    459
-
+#define NUMTXBUTTONS    16
 #define AREANUMBER(x,y)                   (MAPSPOT((x),(y),0)-AREATILE)
 
 //***************************************************************************
@@ -236,6 +237,8 @@ long filelength(int handle);
 #define EAST                    1
 #define SOUTH                   2
 #define WEST                    3
+
+#define NUMDIRECTIONS   8
 
 //***************************************************************************
 //
@@ -268,14 +271,23 @@ long filelength(int handle);
 //
 //***************************************************************************
 
-///////////////////      GLOBAL DATA TYPES ///////////////////////////////
+/////////////////// GLOBAL DATA TYPES ///////////////////////////////
 
 
-typedef unsigned char           byte;
-typedef unsigned short int      word;
-typedef unsigned int            longword;
-typedef int fixed;
+typedef uint8_t     byte;
+typedef uint16_t    word;
+typedef uint32_t    longword;
+typedef int32_t     fixed;
 
+typedef int32_t     fixed32_t;
+
+typedef struct {
+    fixed32_t x, y;
+} vector2_t;
+
+typedef struct {
+    fixed32_t x, y, z;
+} vector3_t;
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -311,7 +323,6 @@ typedef enum
 }
 thingtype;
 
-#define NUMTXBUTTONS    16
 enum    {
     bt_nobutton=-1,
     bt_attack=0,
@@ -419,6 +430,17 @@ enum    {
 
 /////////////////      GLOBAL STRUCTURE TYPES     //////////////////////////
 
+//d: from the center of a given tile, directions point in this x,y
+const vector2_t DirectionIntegrals[NUMDIRECTIONS] = {
+    {1,  0},    //e
+    {1, -1},    //ne
+    {0, -1},    //n
+    {-1,-1},    //nw
+    {-1, 0},    //w
+    {-1, 1},    //sw
+    {0,  1},    //s
+    {1,  1}     //se
+};
 
 //=================== SHARED FLAGS =====================================//
 

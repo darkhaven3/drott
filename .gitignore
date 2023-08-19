@@ -58,3 +58,4 @@ dkms.conf
 *.lock
 *.json
 *.sqlite
+src/.vs/src/v17/.wsuo

@@ -7644,7 +7644,6 @@ void PushWallMove(int num)
                 pushem=true;
             break;
         default:
-            //Error ("Pushwall #%d has an illegal direction %d \n",num,pwall->dir);
             break;
         }
 
