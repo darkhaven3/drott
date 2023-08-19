@@ -32,9 +32,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "rt_view.h"
 #include "queue.h"
 #include "lumpy.h"
-//#include "SDL2/SDL2_rotozoom.h"
-//#include <SDL2/SDL_image.h>
-
 
 static void StretchMemPicture ();
 // GLOBAL VARIABLES
@@ -48,23 +45,16 @@ char 	   *iG_buf_center;
 
 
 SDL_Surface *sdl_surface = NULL;
-
 SDL_Window * window = NULL;
-
-static SDL_Renderer * renderer = NULL;
-
 SDL_Surface *unstretch_sdl_surface = NULL;
-
-static SDL_Texture *sdl_texture = NULL;
-
 SDL_Surface *temp = NULL;
 
-//Queue *sdl_draw_obj_queue = NULL;
+static SDL_Renderer* renderer = NULL;
+static SDL_Texture* sdl_texture = NULL;
 
 boolean doRescaling = false;
 
 int    linewidth;
-//int    ylookup[MAXSCREENHEIGHT];
 int    ylookup[MAXSCREENHEIGHT];//just set to max res
 byte  *page1start;
 byte  *page2start;
@@ -107,7 +97,7 @@ void GraphicsMode ( void )
     if (sdl_fullscreen)
         flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
     
-    window = SDL_CreateWindow("Rise of the Triad",
+    window = SDL_CreateWindow( DROTT_APP_STRING,
                                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT,
                                flags);

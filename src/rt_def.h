@@ -24,7 +24,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 #include "develop.h"
-#define SAVE_SCREEN  1
 
 #if PLATFORM_UNIX
 #include <unistd.h>
@@ -39,9 +38,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <malloc.h>
 #include <fcntl.h>
 #include <io.h>
-//#define alloca(x) _alloca(x)
-#define access(x, y) _access(x, y)
-#define F_OK  0
+
 #elif (defined __GNUC__)
 #define __int64 long long
 #else
@@ -74,8 +71,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endif
 
 //
+// drott constants
 //
-//
+
+#define DROTT_APP_STRING    "drott 0.2.0"
+#define DROTT_VER_STRING    "0.2.0"
+
 //***************************************************************************
 //
 //    Global Constants
@@ -141,6 +142,10 @@ long filelength(int handle);
 
 #define STUB_FUNCTION fprintf(stderr,"STUB: %s at " __FILE__ ", line %d, thread %d\n",__FUNCTION__,__LINE__,getpid())
 
+#define access(x, y) _access(x, y)
+
+#define F_OK  0     //d:?
+
 #define far
 #define cdecl
 
@@ -150,15 +155,10 @@ long filelength(int handle);
 //
 //***************************************************************************
 #define VIEWGLOBAL              0x10000         // globals visable flush to wall
-/*
-#define VIEWWIDTH               MAXSCREENWIDTH//320*2             // size of view window
-#define VIEWHEIGHT              MAXSCREENHEIGHT//200*2
-#define MAXSCANLINES            MAXSCREENHEIGHT//200*2             // size of ylookup table
-*/
 #define CHARWIDTH               2
 #define TILEWIDTH               4
 #define STATUSLINES             16
-
+#define SAVE_SCREEN             1
 
 
 //***************************************************************************

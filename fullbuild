@@ -4,6 +4,6 @@ make
 cd ..
 cp src/drott.exe src/drott-debug.exe
 cp src/drott.exe src/drott-release.exe
-rm src/rott.exe
+rm src/drott.exe
 strip -s src/drott-release.exe
 cp src/drott-release.exe /c/games/rott/drott.exe
