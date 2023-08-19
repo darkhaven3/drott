@@ -107,7 +107,7 @@ void GraphicsMode ( void )
     if (sdl_fullscreen)
         flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
     
-    window = SDL_CreateWindow("drott 0.2.0",
+    window = SDL_CreateWindow("Rise of the Triad",
                                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT,
                                flags);

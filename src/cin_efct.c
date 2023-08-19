@@ -210,6 +210,8 @@ paletteevent * SpawnCinematicPalette ( char * name )
 
     palette = SafeMalloc ( sizeof (paletteevent) );
 
+    // copy name of palette
+
     strcpy ( palette->name, name );
 
     return palette;
@@ -267,6 +269,9 @@ void DrawFlic ( flicevent * flic )
     char flicname[40];
 
     curpal = SafeMalloc (768);
+
+    CinematicGetPalette (curpal);
+
     DrawFadeout ( );
 
     if (flic->usefile==false)
@@ -279,12 +284,18 @@ void DrawFlic ( flicevent * flic )
         strcat(flicname,".fli");
     }
 
+// med
+//   PlayFlic ( flicname, buf, flic->usefile, flic->loop);
+
     if (flic->loop==true)
         ClearCinematicAbort();
 
     DrawFadeout ( );
 
     DrawBlankScreen ( );
+
+    CinematicSetPalette (curpal);
+
     SafeFree (curpal);
     GetCinematicTics ();
     GetCinematicTics ();
@@ -542,6 +553,24 @@ void PrecacheCinematicSprite ( spriteevent * sprite )
     }
 }
 
+
+/*
+=================
+=
+= DrawPalette
+=
+=================
+*/
+
+void DrawPalette (paletteevent * event)
+{
+    byte * pal;
+
+    pal=W_CacheLumpName(event->name,PU_CACHE, CvtNull, 1);
+    XFlipPage ();
+    CinematicSetPalette (pal);
+}
+
 /*
 =================
 =
@@ -571,6 +600,7 @@ void DrawFadeout ( void )
     byte newpal[768];
     int      i,j;
 
+    CinematicGetPalette (&origpal[0]);
     for (j = 0; j < FADEOUTTIME; j++)
     {
         for (i = 0; i < 768; i++)
@@ -578,6 +608,7 @@ void DrawFadeout ( void )
             newpal[i] = ( origpal[i] * (FADEOUTTIME - j - 1) ) / FADEOUTTIME;
         }
         WaitVBL();
+        CinematicSetPalette (&newpal[0]);
         CinematicDelay();
     }
     VL_ClearVideo (0);
@@ -733,7 +764,7 @@ boolean DrawCinematicEffect ( enum_eventtype type, void * effect )
         return false;
         break;
     case palette:
-        XFlipPage();
+        DrawPalette ( (paletteevent *) effect );
         return false;
         break;
     case fadeout:

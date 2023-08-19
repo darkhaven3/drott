@@ -38,6 +38,7 @@ OBJS += cin_efct.o
 OBJS += cin_evnt.o
 OBJS += cin_glob.o
 OBJS += cin_main.o
+OBJS += cin_util.o
 OBJS += dosutil.o
 OBJS += engine.o
 OBJS += isr.o
