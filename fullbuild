@@ -1,4 +1,5 @@
 cd ./src
+make clean
 make
 cd ..
 cp src/drott.exe src/drott-debug.exe
