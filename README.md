@@ -1,4 +1,18 @@
-# rottexpr
+# drott 0.2.0
+
+Based on rottexpr, which in turn is based on the icculus port
+... which then came from WinRott, probably...
+
+A list of new features after the fact, which will grow in the future:
+* Up to 999 FLRCL textures can be defined and used in user maps/wads.
+* An unlimited number of skies can be defined in user maps/wads.
+
+You can find the original source that this is based on at
+https://github.com/LTCHIPS/rottexpr
+
+The original readme from LTCHIPS follows.
+
+===============================================================================
 
 Based off of the icculus Rise of the Triad source port
 (can be found here: https://icculus.org/rott/)
