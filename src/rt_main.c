@@ -15,6 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
 #include "rt_def.h"
 #include "lumpy.h"
 #include <stdio.h>
@@ -86,14 +87,13 @@ int32_t         warpa=0;
 int32_t         polltime;
 int32_t         oldpolltime;
 int32_t         pheight;
-int             NoSound;        //d:?
+boolean         NoSound;        //d:?
 
-boolean SCREENSHOTS             = false;
-boolean MONOPRESENT             = false;
-boolean MAPSTATS                = false;
-boolean TILESTATS               = false;
-boolean HUD                     = false;
-boolean IS8250                  = false;
+boolean SCREENSHOTS = false;
+boolean MONOPRESENT = false;
+boolean MAPSTATS    = false;
+boolean TILESTATS   = false;
+boolean HUD         = false;
 
 boolean dopefish;
 boolean newlevel = false;
@@ -120,19 +120,6 @@ int maxtimelimit;
 boolean timelimitenabled;
 boolean demoexit;
 boolean noecho;
-
-void CheckCommandLineParameters( void );
-void PlayTurboGame( void );
-void Init_Tables (void);
-void CheckRemoteRidicule ( int scancode );
-void SetRottScreenRes (int Width, int Height);
-
-extern void crash_print (int);
-extern int setup_homedir (void);
-extern void ComSetTime(void);
-extern void VH_UpdateScreen(void);
-extern void RecordDemoQuery(void);
-extern int CountDigits(const int number);
 
 int G_weaponscale;
 extern int iDropDemo;
@@ -165,9 +152,7 @@ int main (int argc, char *argv[]) {
     signal (11, crash_print);
 
     if (setup_homedir() == -1) return 1;
-
-    // Set which release version we're on
-    gamestate.Version = ROTTVERSION;
+    gamestate.Version = ROTTVERSION;    // Set which release version we're on
 
 #if ( SHAREWARE == 1 )
     BATTMAPS = strdup(STANDARDBATTLELEVELS);
@@ -178,21 +163,15 @@ int main (int argc, char *argv[]) {
     BATTMAPS = strdup(SITELICENSEBATTLELEVELS);
 
     FixFilePath(BATTMAPS);
-    if (!access(BATTMAPS, R_OK))
-    {
-        gamestate.Product = ROTT_SITELICENSE;
-    }
-    else
-    {
+    if (!access(BATTMAPS, R_OK)) gamestate.Product = ROTT_SITELICENSE;
+
+    else {
         free(BATTMAPS);
         BATTMAPS = strdup(SUPERROTTBATTLELEVELS);
         FixFilePath(BATTMAPS);
-        if (!access(BATTMAPS, R_OK))
-        {
-            gamestate.Product = ROTT_SUPERCD;
-        }
-        else
-        {
+        if (!access(BATTMAPS, R_OK)) gamestate.Product = ROTT_SUPERCD;
+
+        else {
             free(BATTMAPS);
             BATTMAPS = strdup(STANDARDBATTLELEVELS);
             FixFilePath(BATTMAPS);
@@ -203,22 +182,16 @@ int main (int argc, char *argv[]) {
 
     DrawRottTitle ();
     gamestate.randomseed=-1;
-
     gamestate.autorun = 0;
     StartupSoftError();
-//   UL_ErrorStartup ();
-
     CheckCommandLineParameters();
 
     // Start up Memory manager with a certain amount of reserved memory
- 
     Z_Init(50000,1000000);
-
     IN_Startup ();
 
     InitializeGameCommands();
-    if (standalone==false)
-    {
+    if (!standalone) {
         ReadConfig ();
         ReadSETUPFiles ();
         doublestep=0;
@@ -226,41 +199,16 @@ int main (int argc, char *argv[]) {
         BuildTables ();
         GetMenuInfo ();
     }
-    
-   
 
     SetRottScreenRes (iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
 
-//   if (modemgame==true)
-//      {
-//      SCREENSHOTS=true;
-//      if (standalone==false)
-//         {
-//         MenuFixup ();
-//         }
-//      MAPSTATS=true;
-//      }
-    if (standalone==false)
-    {
+    if (!standalone) {
         int status2 = 0;
 
-        if ( !NoSound && !IS8250 )
-        {
-            if (!quiet)
-                printf( "MU_Startup: " );
+        if (!NoSound) {
+            if (!quiet) printf("MU_Startup: ");
             MU_Startup(false);
-            if (!quiet)
-                printf( "%s\n", MUSIC_ErrorString( MUSIC_Error ) );
-        }
-        else if ( IS8250 )
-        {
-            printf( "==============================================================================\n");
-            printf( "WARNING: 8250 detected.\n" );
-            printf( "Music has been disabled.  This is necessary to maintain high interrupt\n" );
-            printf( "rates with the 8250 UART which will improve overall game performance.\n");
-            printf( "                      < Press any key to continue >\n");
-            printf( "==============================================================================\n");
-            getch();
+            if (!quiet) printf( "%s\n", MUSIC_ErrorString( MUSIC_Error ) );
         }
 
         if (!NoSound)
@@ -473,7 +421,6 @@ void CheckCommandLineParameters( void )
     MONOPRESENT=false;
     MAPSTATS=false;
     TILESTATS=false;
-    IS8250 = false;
     demoexit = false;
 
     modemgame=false;
@@ -685,8 +632,6 @@ void CheckCommandLineParameters( void )
             startlevel = (ParseNum(_argv[i + 1])-1);
             break;
         case 15:
-            IS8250 = true;
-            break;
         case 16:
             break;
         case 17:
@@ -1090,26 +1035,23 @@ void GameLoop (void)
             playstate = ex_titles;
         }
 
-        switch (playstate)
-        {
+        switch (playstate) {
         case ex_titles:
 
             BATTLE_Shutdown();
             MU_StartSong(song_title);
             EnableScreenStretch();
-            if ((NoWait==false)&&(!modemgame))
-            {
+            if (!NoWait && !modemgame) {
                 byte dimpal[768];
-                int i;
 
-                for (i = 0; i < 0x300; i++)
-                    dimpal[i] = origpal[i]>>2;
+                for (int j = 0; j < 0x300; j++)
+                    dimpal[j] = origpal[j]>>2;
+
                 CalcTics();
                 CalcTics();
                 IN_ClearKeysDown ();
                 while (IN_GetMouseButtons()) {}
-                while ((!LastScan) && (!IN_GetMouseButtons()))
-                {
+                while ((!LastScan) && (!IN_GetMouseButtons())) {
                     int i;
                     byte *tempbuf;
                     MenuFadeOut();
@@ -1386,8 +1328,7 @@ void GameLoop (void)
             ShutdownClientControls();
             TurnShakeOff();
             SHAKETICS = 0xffff;
-            if (timelimitenabled == false)
-            {
+            if (!timelimitenabled) {
                 gamestate.TimeCount = 0;
                 gamestate.frame=0;
             }
@@ -1396,7 +1337,7 @@ void GameLoop (void)
             if ((playstate==ex_bossdied) && (gamestate.mapon!=30))
             {
                 
-                int shape;
+                int shape = 0;
                 lbm_t * LBM;
                 byte *s;
                 patch_t *p;
@@ -1410,45 +1351,25 @@ void GameLoop (void)
                 {
                 case 6:
                     shape = W_GetNumForName("deadstev");
+                    str = "\"General\" John Darian";
                     break;
                 case 14:
                     shape = W_GetNumForName("deadjoe");
+                    str = "Sebastian \"Doyle\" Krist";
                     break;
                 case 22:
                     shape = W_GetNumForName("deadrobo");
+                    str = "the NME";
                     break;
                 case 33:
                     shape = W_GetNumForName("deadtom");
+                    str = "El Oscuro";
                     break;
-//                  default:
-//                     Error("Boss died on an illegal level\n");
-//                     break;
                 }
                 s = W_CacheLumpNum (shape, PU_CACHE, Cvt_patch_t, 1);
                 p = (patch_t *)s;
                 DrawNormalSprite ((320-p->origsize)>>1, (230-(p->height-p->topoffset))>>1, shape);
-                switch (gamestate.mapon)
-                {
-                case 6:
-                    str = "\"General\" John Darian";
-                    //strncpy(&str[0],"\"General\" John Darian");
-                    break;
-                case 14:
-                    str = "Sebastian \"Doyle\" Krist";
-                    //strcpy(&str[0],"Sebastian \"Doyle\" Krist");
-                    break;
-                case 22:
-                    str = "the NME";
-                    //strcpy(&str[0],"the NME");
-                    break;
-                case 33:
-                    str = "El Oscuro";
-                    //strcpy(&str[0],"El Oscuro");
-                    break;
-//                  default:
-//                     Error("Boss died on an illegal level\n");
-//                     break;
-                }
+
                 CurrentFont=smallfont;
                 US_MeasureStr (&width, &height, "%s", str);
                 US_ClippedPrint ((320-width)>>1, 180, str);
@@ -2072,12 +1993,10 @@ fromloadedgame:
 //
 //******************************************************************************
 
-void CheckRemoteRidicule ( int scancode )
-{
+void CheckRemoteRidicule (int lScanCode) {
     int num=-1;
 
-    switch (scancode)
-    {
+    switch (lScanCode) {
     case sc_F1:
         num=0;
         break;
@@ -2091,19 +2010,13 @@ void CheckRemoteRidicule ( int scancode )
         num=3;
         break;
     case sc_F5:
-        if ( !Keyboard[ sc_RShift ] )
-        {
-            num=4;
-        }
+        if (!Keyboard[sc_RShift]) num=4;
         break;
     case sc_F6:
         num=5;
         break;
     case sc_F7:
-        if ( !Keyboard[ sc_RShift ] )
-        {
-            num=6;
-        }
+        if (!Keyboard[sc_RShift]) num=6;
         break;
     case sc_F8:
         num=7;
@@ -2115,24 +2028,11 @@ void CheckRemoteRidicule ( int scancode )
         num=9;
         break;
     }
-    if (num>=0)
-    {
+    if (num>=0) {
         AddRemoteRidiculeCommand ( consoleplayer, MSG_DIRECTED_TO_ALL, num );
         LastScan=0;
     }
 }
-
-//******************************************************************************
-//
-// DoBossKey ()
-//
-//******************************************************************************
-
-void DoBossKey ( void )
-{
-    STUB_FUNCTION;
-}
-
 
 //******************************************************************************
 //
@@ -2338,7 +2238,6 @@ void PollKeyboard
         {
             Keyboard[ sc_F12 ] = false;
             LastScan = 0;
-            DoBossKey();
         }
 
         // Gamma correction

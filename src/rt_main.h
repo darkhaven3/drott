@@ -39,81 +39,78 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define  STANDARDBATTLELEVELS (DATADIR "HUNTBGIN.RTC")
 #endif
 
-enum
-{   vl_low,
+enum {
+    vl_low,
     vl_medium,
     vl_high,
     vl_excessive
 };
 
 // Enum for each version of the game
-typedef enum
-{
+typedef enum {
     ROTT_SHAREWARE,
     ROTT_REGISTERED,
     ROTT_SUPERCD,
     ROTT_SITELICENSE
 } version_type;
 
-typedef struct
-{
-    int GodModeTime;
-    int DogModeTime;
-    int ShroomsModeTime;
-    int ElastoModeTime;
-    int AsbestosVestTime;
-    int BulletProofVestTime;
-    int GasMaskTime;
-    int MercuryModeTime;
+typedef struct {
+    int32_t GodModeTime;
+    int32_t DogModeTime;
+    int32_t ShroomsModeTime;
+    int32_t ElastoModeTime;
+    int32_t AsbestosVestTime;
+    int32_t BulletProofVestTime;
+    int32_t GasMaskTime;
+    int32_t MercuryModeTime;
 
-    int GodModeRespawnTime;
-    int DogModeRespawnTime;
-    int ShroomsModeRespawnTime;
-    int ElastoModeRespawnTime;
-    int AsbestosVestRespawnTime;
-    int BulletProofVestRespawnTime;
-    int GasMaskRespawnTime;
-    int MercuryModeRespawnTime;
+    int32_t GodModeRespawnTime;
+    int32_t DogModeRespawnTime;
+    int32_t ShroomsModeRespawnTime;
+    int32_t ElastoModeRespawnTime;
+    int32_t AsbestosVestRespawnTime;
+    int32_t BulletProofVestRespawnTime;
+    int32_t GasMaskRespawnTime;
+    int32_t MercuryModeRespawnTime;
 
 } specials;
 
 
-typedef struct
-{
-    unsigned Version;
-    // Variable for which version of the game can be played
+typedef struct {
+    // Variables for which version of the game can be played
     version_type Product;
+    uint32_t     Version;
 
-    int     TimeCount;
-    int     frame;
-    int     secrettotal,treasuretotal,killtotal;
-    int     secretcount,treasurecount,killcount;
-    int     supertotal,healthtotal,missiletotal;
-    int     supercount,healthcount,missilecount;
-    int     democratictotal,planttotal;
-    int     democraticcount,plantcount;
-    int     dipballs;
-    int     difficulty;
-    int     violence;
-    int     mapon;
-    int     score;
-    int     episode;
-    int     battlemode;
-    int     battleoption;
-    int     randomseed;
-    boolean teamplay;
-    boolean DODEMOCRATICBONUS1;
-    boolean DOGROUNDZEROBONUS;
-    int     autorun;
+    int32_t  TimeCount;
+    int32_t  frame;
+    int32_t  secrettotal,treasuretotal,killtotal;
+    int32_t  secretcount,treasurecount,killcount;
+    int32_t  supertotal,healthtotal,missiletotal;
+    int32_t  supercount,healthcount,missilecount;
+    int32_t  democratictotal,planttotal;
+    int32_t  democraticcount,plantcount;
+    int32_t  dipballs;
+    int32_t  difficulty;
+    int32_t  violence;
+    int32_t  mapon;
+    int32_t  score;
+    int32_t  episode;
+    int32_t  battlemode;
+    int32_t  battleoption;
+    int32_t  randomseed;
+    boolean  teamplay;
+    boolean  DODEMOCRATICBONUS1;
+    boolean  DOGROUNDZEROBONUS;
+    int32_t  autorun;
 
     // Battle Options
     battle_type BattleOptions;
 
-    boolean SpawnCollectItems;
-    boolean SpawnEluder;
-    boolean SpawnDeluder;
-    boolean ShowScores;
-    boolean PlayerHasGun[ MAXPLAYERS ];
+    boolean  SpawnCollectItems;
+    boolean  SpawnEluder;
+    boolean  SpawnDeluder;
+    boolean  ShowScores;
+    boolean  PlayerHasGun[MAXPLAYERS];
     specials SpecialsTimes;
     
 } gametype;
@@ -126,7 +123,7 @@ extern  int      tedx;
 extern  int      tedy;
 extern  boolean  fizzlein;
 extern  int      pheight;
-extern  int      NoSound;
+extern  boolean  NoSound;
 extern  int      timelimit;
 extern  boolean  timelimitenabled;
 extern  boolean  noecho;
@@ -137,11 +134,24 @@ extern gametype  gamestate;
 extern boolean DebugOk;
 extern  boolean newlevel;
 
-void QuitGame( void );
-void PlayCinematic (void);
+void QuitGame(void);
+void PlayCinematic(void);
 void InitCharacter(void);
-void ShutDown ( void );
-void UpdateGameObjects ( void );
+void ShutDown(void);
+void UpdateGameObjects(void);
+
+void CheckCommandLineParameters(void);
+void PlayTurboGame(void);
+void Init_Tables(void);
+void CheckRemoteRidicule (int scancode);
+void SetRottScreenRes(int Width, int Height);
+
+void crash_print (int sig);
+int  setup_homedir(void);
+void ComSetTime(void);
+void VH_UpdateScreen(void);
+void RecordDemoQuery(void);
+int  CountDigits(const int number);
 
 extern  int polltime;
 extern  int oldpolltime;

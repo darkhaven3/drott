@@ -44,21 +44,16 @@ void DrawClearBuffer ( void );
 ===============
 */
 
-flicevent * SpawnCinematicFlic ( char * name, boolean loop, boolean usefile )
-{
-    flicevent * flic;
-
-    flic = SafeMalloc ( sizeof(flicevent) );
+flicevent* SpawnCinematicFlic ( char * name, boolean loop, boolean usefile ) {
+    flicevent * lFlic = SafeMalloc(sizeof(flicevent));
 
     // copy name of flic
+    strcpy ( lFlic->name, name );
 
-    strcpy ( flic->name, name );
+    lFlic->loop=loop;
+    lFlic->usefile=usefile;
 
-    flic->loop=loop;
-
-    flic->usefile=usefile;
-
-    return flic;
+    return lFlic;
 }
 
 /*

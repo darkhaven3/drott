@@ -37,8 +37,7 @@ void DrawRottTitle ( void );
 void WritePCX (char * file, byte * source);
 int PutBytes (unsigned char *ptr, unsigned int bytes);
 
-typedef struct
-{
+typedef struct {
     unsigned short w,h;
     short          x,y;
     unsigned char  nPlanes;
