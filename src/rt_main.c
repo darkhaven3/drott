@@ -59,7 +59,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "rt_cfg.h"
 #include "version.h"
 #include "rt_menu.h"
-#include "rt_dr_a.h"
 #include "rt_msg.h"
 #include "rt_build.h"
 #include "rt_error.h"
@@ -899,62 +898,42 @@ void GameLoop(void) {
     int NextLevel;
 
     while (1) {
-        //no longer needed in SDL2
-        //SDL_WarpMouse(iGLOBAL_SCREENWIDTH<<1, iGLOBAL_SCREENHEIGHT<<1);
-
-
         if (playstate == ex_battledone) {
-            while (damagecount > 0) {
-                DoBorderShifts();
-            }
+            while (damagecount > 0) DoBorderShifts();
             damagecount = 0;
+
             SetBorderColor(0);
-
             StopWind();
-
             ShutdownClientControls();
-
             SD_Play(SD_LEVELDONESND);
 
-            if ((player->flags & FL_DOGMODE) ||
-                (gamestate.battlemode == battle_Eluder))
-                MU_StartSong(song_dogend);
-            else
-                MU_StartSong(song_endlevel);
-
+            if (player->flags & FL_DOGMODE || gamestate.battlemode == battle_Eluder) MU_StartSong(song_dogend);
+            else MU_StartSong(song_endlevel);
 
             VL_FillPalette(255, 255, 255);
             VL_FadeIn(0, 255, origpal, 10);
-
             BattleLevelCompleted(consoleplayer);
-
             BATTLE_Shutdown();
-
             Z_FreeTags(PU_LEVELSTRUCT, PU_LEVELEND);       // Free current level
 
             ingame = false;
 
-            if (networkgame == true) {
-                AddGameEndCommand();
-            }
+            if (networkgame) AddGameEndCommand();
 
             AdjustMenuStruct();
-
             CalcTics();
             CalcTics();
-
 
             playstate = ex_titles;
         }
 
         switch (playstate) {
         case ex_titles:
-
             BATTLE_Shutdown();
             MU_StartSong(song_title);
             EnableScreenStretch();
             if (!NoWait && !modemgame) {
-                byte dimpal[768];
+                uint8_t dimpal[768];
 
                 for (int j = 0; j < 0x300; j++)
                     dimpal[j] = origpal[j] >> 2;

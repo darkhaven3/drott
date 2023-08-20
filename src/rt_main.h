@@ -83,12 +83,12 @@ typedef struct {
 
     int32_t  TimeCount;
     int32_t  frame;
-    int32_t  secrettotal,treasuretotal,killtotal;
-    int32_t  secretcount,treasurecount,killcount;
-    int32_t  supertotal,healthtotal,missiletotal;
-    int32_t  supercount,healthcount,missilecount;
-    int32_t  democratictotal,planttotal;
-    int32_t  democraticcount,plantcount;
+    int32_t  secrettotal, treasuretotal, killtotal;
+    int32_t  secretcount, treasurecount, killcount;
+    int32_t  supertotal, healthtotal, missiletotal;
+    int32_t  supercount, healthcount, missilecount;
+    int32_t  democratictotal, planttotal;
+    int32_t  democraticcount, plantcount;
     int32_t  dipballs;
     int32_t  difficulty;
     int32_t  violence;
@@ -112,7 +112,7 @@ typedef struct {
     boolean  ShowScores;
     boolean  PlayerHasGun[MAXPLAYERS];
     specials SpecialsTimes;
-    
+
 } gametype;
 
 
@@ -134,6 +134,13 @@ extern gametype  gamestate;
 extern boolean DebugOk;
 extern  boolean newlevel;
 
+extern boolean SCREENSHOTS;
+extern boolean COMPUTELEVELSIZE;
+extern boolean MONOPRESENT;
+extern boolean MAPSTATS;
+extern boolean TILESTATS;
+extern boolean HUD;
+
 void QuitGame(void);
 void PlayCinematic(void);
 void InitCharacter(void);
@@ -143,10 +150,10 @@ void UpdateGameObjects(void);
 void CheckCommandLineParameters(void);
 void PlayTurboGame(void);
 void Init_Tables(void);
-void CheckRemoteRidicule (int scancode);
+void CheckRemoteRidicule(int scancode);
 void SetRottScreenRes(int Width, int Height);
 
-void crash_print (int sig);
+void crash_print(int sig);
 int  setup_homedir(void);
 void ComSetTime(void);
 void VH_UpdateScreen(void);
@@ -156,20 +163,11 @@ int  CountDigits(const int number);
 extern  int polltime;
 extern  int oldpolltime;
 extern  volatile int oldtime;
-void PauseLoop ( void );
+void PauseLoop(void);
 #if SAVE_SCREEN
 extern boolean inhmenu;
-void SaveScreen (boolean saveLBM);
+void SaveScreen(boolean saveLBM);
 #endif
-void SetupWads( void );
-
-extern boolean SCREENSHOTS;
-extern boolean COMPUTELEVELSIZE;
-extern boolean MONOPRESENT;
-extern boolean MAPSTATS;
-extern boolean TILESTATS;
-extern boolean HUD;
-
-extern char CWD[40];
+void SetupWads(void);
 
 #endif

@@ -4,5 +4,9 @@
 			"path": "src"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"rt_error.h": "c"
+		}
+	}
 }
