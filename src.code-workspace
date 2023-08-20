@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "src"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"rt_error.h": "c"
+		}
+	}
+}
