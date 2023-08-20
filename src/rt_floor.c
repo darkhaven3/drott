@@ -78,42 +78,27 @@ static int      oldsky = -1;
 //bna fixit skyerror by 800x600 clouds not big enough
 
 void DrawSky(void) {
-
-    byte* src;
     int dest;
-    //   int plane;
-    int height;
-    //   int height2;
     int ang;
     int angle;
     int ofs;
 
     angle = viewangle;
 
-    if ((fog == 0) && (lightning == true))
-        shadingtable = colormap + ((basemaxshade - 6 - lightninglevel) << 8);
-    else
-        shadingtable = colormap + (1 << 12);
+    if (!fog && lightning) shadingtable = colormap + ((basemaxshade - 6 - lightninglevel) << 8);
+    else shadingtable = colormap + (1 << 12);
 
-    ofs = (((maxheight) -(player->z)) >> 3) + (centery * 200 / iGLOBAL_SCREENHEIGHT - ((viewheight * 200 / iGLOBAL_SCREENHEIGHT) >> 1));
+    ofs = ((maxheight - player->z) >> 3) + (centery * 200 / iGLOBAL_SCREENHEIGHT - ((viewheight * 200 / iGLOBAL_SCREENHEIGHT) >> 1));
 
-    if (ofs > centerskypost) {
-        ofs = centerskypost;
-    }
-    else if (((centerskypost - ofs) + viewheight * 200 / iGLOBAL_SCREENHEIGHT) > 1799) {
+    if (ofs > centerskypost) ofs = centerskypost;
+    else if (((centerskypost - ofs) + viewheight * 200 / iGLOBAL_SCREENHEIGHT) > 1799)
         ofs = -(1799 - (centerskypost + viewheight * 200 / iGLOBAL_SCREENHEIGHT));
-    }
-    //ofs=centerskypost;
-    {
-        {
-            for (dest = 0; dest < viewwidth; dest++) {
-                if ((height = posts[dest].ceilingclip) <= 0)
-                    continue;
-                ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
-                src = skysegs[ang] - ofs;
-                DrawSkyPost((byte*) bufferofs + dest, src, height);
-            }
-        }
+
+    for (dest = 0; dest < viewwidth; dest++) {
+        int height = posts[dest].ceilingclip;
+        if (height <= 0) continue;
+        ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
+        DrawSkyPost((byte*) bufferofs + dest, skysegs[ang] - ofs, height);
     }
 }
 
@@ -236,9 +221,8 @@ int32_t F_GetFlat(int32_t num) {
 */
 
 int32_t F_SkyExists(void) {
-    int32_t skyvalue;
+    int32_t skyvalue = MAPSPOT(1, 0, 0) - TILE_FIRSTSKY;
 
-    skyvalue = MAPSPOT(1, 0, 0) - TILE_FIRSTSKY;
     if (skyvalue > 0) return skyvalue;
     else return 0;
 }
@@ -282,8 +266,6 @@ boolean F_QueryLightning(void) {
 */
 
 void SetPlaneViewSize(void) {
-    int      x;
-    int      i;
     int      s;
     int      floornum;
     int      ceilingnum;
@@ -305,8 +287,7 @@ void SetPlaneViewSize(void) {
         ceilingnum = 1;
         horizonheight = F_GetHorizonHeight();
 
-        // Check for lightning icon
-        if (F_QueryLightning()) lightning = true;
+        if (F_QueryLightning()) lightning = true;   // Check for lightning icon
     }
     else ceilingnum = MAPSPOT(1, 0, 0) - TILE_FIRSTCEIL;
 
@@ -314,7 +295,7 @@ void SetPlaneViewSize(void) {
     floorptr = W_CacheLumpNum(floornum, PU_LEVELSTRUCT, Cvt_patch_t, 1);
     floorptr += 8;
 
-    if (sky == 0) { // Don't cache in if not used
+    if (!sky) { // Don't cache in if not used
         ceilingnum = F_GetFlat(ceilingnum);
         ceilingptr = W_CacheLumpNum(ceilingnum, PU_LEVELSTRUCT, Cvt_patch_t, 1);
         ceilingptr += 8;
@@ -322,34 +303,10 @@ void SetPlaneViewSize(void) {
     else ceilingptr = NULL;
 
     s = W_GetNumForName("SKYSTART");
+    skytop = s - 1 + (sky * 2);
+    skybottom = s + (sky * 2);
 
-    switch (sky) {
-    case 1:
-        skytop = s + 1;
-        skybottom = s + 2;
-        break;
-    case 2:
-        skytop = s + 3;
-        skybottom = s + 4;
-        break;
-    case 3:
-        skytop = s + 5;
-        skybottom = s + 6;
-        break;
-    case 4:
-        skytop = s + 7;
-        skybottom = s + 8;
-        break;
-    case 5:
-        skytop = s + 9;
-        skybottom = s + 10;
-        break;
-    case 6:
-        skytop = s + 11;
-        skybottom = s + 12;
-        break;
-    }
-    if (sky != 0) {
+    if (sky) {
         skydata[0] = W_CacheLumpNum(skytop, PU_STATIC, CvtNull, 1);
         skydata[1] = W_CacheLumpNum(skybottom, PU_STATIC, CvtNull, 1);
         centerskypost = MINSKYHEIGHT - (horizonheight * 6);
@@ -357,13 +314,11 @@ void SetPlaneViewSize(void) {
         MakeSkyData();
         W_CacheLumpNum(skytop, PU_CACHE, CvtNull, 1);
         W_CacheLumpNum(skybottom, PU_CACHE, CvtNull, 1);
-        x = 511;
-        for (i = 0; i < MAXSKYSEGS; i++) {
+        int x = 511;
+        for (int i = 0; i < MAXSKYSEGS; i++) {
             skysegs[i] = skydata[0] + ((x >> 1) * 400) + centerskypost;
             x--;
-            if (x == -1) {
-                x = 511;
-            }
+            if (x == -1) x = 511;
         }
     }
 }
@@ -408,8 +363,7 @@ void DrawHLine(int xleft, int xright, int yp) {
     int height;
     //   int length;
 
-    if (yp == centery)
-        return;
+    if (yp == centery) return;
     if (yp > centery) {
         int hd;
 
@@ -441,24 +395,19 @@ void DrawHLine(int xleft, int xright, int yp) {
     dest = (byte*) bufferofs + ylookup[yp];
 
     /* TODO: horizontal isn't as easy as vertical in packed */
+    mr_dest = dest + xleft;
 
-    {
-        {
-            mr_dest = dest + xleft;
+    mr_xfrac = startxfrac;
+    mr_yfrac = startyfrac;
 
-            mr_xfrac = startxfrac;
-            mr_yfrac = startyfrac;
+    // back off the pixel increment (orig. is 4x)
+    mr_xstep >>= 2;
+    mr_ystep >>= 2;
 
-            // back off the pixel increment (orig. is 4x)
-            mr_xstep >>= 2;
-            mr_ystep >>= 2;
+    mr_count = xright - xleft + 1;
 
-            mr_count = xright - xleft + 1;
-
-            if (mr_count)
-                DrawRow(mr_count, mr_dest, buf);
-        }
-    }
+    if (mr_count)
+        DrawRow(mr_count, mr_dest, buf);
 
 }
 
