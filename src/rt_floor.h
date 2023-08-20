@@ -24,6 +24,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 //***************************************************************************
 
+#define TILE_FIRSTFLOOR 179
+#define TILE_FIRSTCEIL  197
+#define TILE_FIRSTSKY   233
+#define TILE_LIGHTNING  377
+
 extern int		mr_xstep;
 extern int		mr_ystep;
 extern int		mr_xfrac;
