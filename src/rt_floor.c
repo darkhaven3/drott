@@ -110,37 +110,26 @@ void DrawSky(void) {
 ===================
 */
 void DrawFullSky(void) {
-
-    byte* src;
     int dest;
-    int ang;
     int angle;
     int ofs;
 
     angle = viewangle;
 
-    if ((fog == 0) && (lightning == true))
-        shadingtable = colormap + ((basemaxshade - 5 - lightninglevel) << 8);
-    else
-        shadingtable = colormap + (1 << 12);
+    if (!fog && lightning) shadingtable = colormap + ((basemaxshade - 5 - lightninglevel) << 8);
+    else shadingtable = colormap + (1 << 12);
 
     ofs = (((maxheight) -(player->z)) >> 3) + (centery - (viewheight >> 1));
-    if (ofs > centerskypost) {
-        ofs = centerskypost;
-    }
-    else if (((centerskypost - ofs) + viewheight) > 599) {
-        ofs = -(599 - (centerskypost + viewheight));
-    }
+    if (ofs > centerskypost) ofs = centerskypost;
+
+    else if (((centerskypost - ofs) + viewheight) > 599) ofs = -(599 - (centerskypost + viewheight));
 
     bufferofs += screenofs;
 
-    {
         for (dest = 0; dest < viewwidth; dest++) {
-            ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
-            src = skysegs[ang] - ofs;
-            DrawSkyPost((byte*) bufferofs + dest, src, viewheight);
+            int ang = (angle + pixelangle[dest]) & (FINEANGLES - 1);
+            DrawSkyPost((byte*) bufferofs+dest, skysegs[ang]-ofs, viewheight);
         }
-    }
 
     bufferofs -= screenofs;
 }
@@ -153,14 +142,12 @@ void DrawFullSky(void) {
 ===================
 */
 void MakeSkyTile(byte* tile) {
-    int i, j;
-    int srcstep;
-    int src;
+    int srcstep = 200 << 10;
 
-    srcstep = 200 << 10;
-    for (i = 0; i < 64; i++) {
-        src = 0;
-        for (j = 0; j < 64; j++) {
+    for (int i = 0; i < 64; i++) {
+        int src = 0;
+
+        for (int j = 0; j < 64; j++) {
             *(tile + (i << 6) + j) = *(skysegs[(i << 2)] + (src >> 16));
             src += srcstep;
         }
