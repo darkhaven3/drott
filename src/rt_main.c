@@ -204,36 +204,29 @@ int main (int argc, char *argv[]) {
 
     if (!standalone) {
         int status2 = 0;
+        int nv, nb, nc;
 
         if (!NoSound) {
             if (!quiet) printf("MU_Startup: ");
             MU_Startup(false);
-            if (!quiet) printf( "%s\n", MUSIC_ErrorString( MUSIC_Error ) );
-        }
 
-        if (!NoSound)
-        {
-            int nv, nb, nc;
-
-            if (!quiet)
+            if (!quiet) {
+                printf( "%s\n", MUSIC_ErrorString( MUSIC_Error ) );
                 printf( "SD_SetupFXCard: " );
+            }
+
             status2 = SD_SetupFXCard (&nv, &nb, &nc);
-            if (!quiet)
-                printf( "%s\n", FX_ErrorString( FX_Error ) );
+            if (!quiet) printf( "%s\n", FX_ErrorString( FX_Error ) );
 
             if ( !status2 )
             {
-                if (!quiet)
-                    printf( "SD_Startup: " );
+                if (!quiet) printf( "SD_Startup: " );
                 SD_Startup(false);
-                if (!quiet)
-                    printf( "%s\n", FX_ErrorString( FX_Error ) );
+                if (!quiet) printf( "%s\n", FX_ErrorString( FX_Error ) );
             }
         }
-        else
-        {
-            if (!quiet)
-                printf( "Sound FX disabled.\n" );
+        else {
+            if (!quiet) printf( "Sound FX disabled.\n" );
         }
 
         Init_Tables ();
@@ -241,107 +234,72 @@ int main (int argc, char *argv[]) {
         InitializeMessages();
         LoadColorMap();
     }
-    if (infopause==true)
-    {
+
+    if (infopause) {
         printf("\n< Press any key to continue >\n");
         getch();
     }
+
     I_StartupTimer();
     I_StartupKeyboard();
     locplayerstate = &PLAYERSTATE[consoleplayer];
 
-    if (standalone==true)
-        ServerLoop();
+    if (standalone) ServerLoop();
 
-    
-    
     VL_SetVGAPlaneMode();
     VL_SetPalette(origpal);
     
-    if (mouseenabled)
-    {
-        SDL_SetRelativeMouseMode(SDL_TRUE);
-    }
+    if (mouseenabled) SDL_SetRelativeMouseMode(SDL_TRUE);
 
-//   SetTextMode();
-//   GraphicsMode();
-//   SetTextMode();
-//   VL_SetVGAPlaneMode();
-//   VL_SetPalette(origpal);
-//   SetBorderColor(155);
     SetViewSize(8);
 
     playstate = ex_titles;
-
-//   I_SetKeyboardLEDs( caps_lock, 0 );
-
     gamestate.battlemode = battle_StandAloneGame;
+    BATTLE_SetOptions(&BATTLE_Options[battle_StandAloneGame]);
 
-    BATTLE_SetOptions( &BATTLE_Options[ battle_StandAloneGame ] );
-
-    if (turbo || tedlevel)
-    {
-        if (modemgame == true)
-        {
+    if (turbo || tedlevel) {
+        if (modemgame) {
             turbo = false;
             NoWait = true;
         }
-        else
-        {
-            PlayTurboGame();
-        }
+        else PlayTurboGame();
     }
-    else
-    {
-#if (SHAREWARE == 0)
-        if ( dopefish == true )
-        {
-            DopefishTitle();
-        }
-        else if ( NoWait == false )
-        {
-            ApogeeTitle();
-        }
-#else
-        if ( NoWait == false )
-        {
-            if (W_CheckNumForName("svendor") != -1)
-            {
-                lbm_t * LBM;
 
-                LBM = (lbm_t *) W_CacheLumpName( "svendor", PU_CACHE, Cvt_lbm_t, 1);
+    else {
+#if (SHAREWARE == 0)
+        if (dopefish) DopefishTitle();
+        else if (!NoWait) ApogeeTitle();
+#else
+        if ( NoWait == false ) {
+            if (W_CheckNumForName("svendor") != -1) {
+                lbm_t* LBM = (lbm_t *) W_CacheLumpName( "svendor", PU_CACHE, Cvt_lbm_t, 1);
                 VL_DecompressLBM (LBM,true);
                 I_Delay(40);
                 MenuFadeOut();
             }
-//         ParticleIntro ();
             ApogeeTitle();
         }
 #endif
     }
-    //SDL_WM_GrabInput( SDL_GRAB_ON );
-    GameLoop();
 
+    GameLoop();
     QuitGame();
 
     return 0;
 }
 
-void DrawRottTitle ( void )
-{
+void DrawRottTitle(void) {
     char title[80];
     char buf[5];
 
     SetTextMode();
 
-    if (CheckParm("QUIET") == 0)
-    {
+    if (CheckParm("QUIET") == 0) {
         SetTextMode();
         
         char rottStartupStr[] = "Rise of the Triad Startup  Version ";
         
             strncpy (title,rottStartupStr, sizeof(rottStartupStr));
-            
             strncat (title,itoa(ROTTMAJORVERSION,&buf[0],10), CountDigits(ROTTMAJORVERSION));
             strncat (title,".", 1);
 #if (SHAREWARE==1)||(DOPEFISH==0)
@@ -355,56 +313,44 @@ void DrawRottTitle ( void )
             py=0;
 
             printf("%s ", title);
-
             memset (title,0,sizeof(title));
             
-            if (gamestate.Product == ROTT_SHAREWARE)
-            {
+            if (gamestate.Product == ROTT_SHAREWARE) {
 #if (DELUXE==1)
                 char header[] = "Lasersoft Deluxe Version";
 #elif (LOWCOST==1)
                 char header[] = "Episode One";
 #else
-                char header[] = "Shareware Version";
-                
+                char header[] = "Shareware Version";   
 #endif
                 strncpy(title,header, strlen(header));
             }
-            else if (gamestate.Product == ROTT_SUPERCD)
-            {
+            else if (gamestate.Product == ROTT_SUPERCD) {
                 char header[] = "CD Version";
                 strncpy(title,header, strlen(header));
             }
-            else if (gamestate.Product == ROTT_SITELICENSE)
-            {
+            else if (gamestate.Product == ROTT_SITELICENSE) {
                 char header[] = "Site License CD Version";
                 strncpy(title,header, strlen(header));
             }
-            else
-            {
+            else {
                 char header[] = "Commercial Version";
                 strncpy(title,header, strlen(header));
             }
-            
-            //strncpy(title, header, )
 
             px=(80-strlen(title))>>1;
             py=1;
 
             printf("%s ", title);
-            
             printf ("\n");
- 
-   }
-
+    }
 }
 
-void CheckCommandLineParameters( void )
-{
+void CheckCommandLineParameters(void) {
     char *PStrings[] = {"TEDLEVEL","NOWAIT","NOSOUND","NOW",
                         "TRANSPORT","DOPEFISH","SCREENSHOTS",
                         "MONO","MAPSTATS","TILESTATS","VER","net",
-                        "PAUSE","SOUNDSETUP","WARP","IS8250","ENABLEVR",
+                        "PAUSE","SOUNDSETUP","WARP","INVALID","ENABLEVR",
                         "TIMELIMIT","MAXTIMELIMIT","NOECHO","DEMOEXIT","QUIET",NULL
                        };
     int i,n;
@@ -448,8 +394,7 @@ void CheckCommandLineParameters( void )
         printf ("   FULLSCREEN - Start in fullscreen mode\n");
         printf ("   WINDOW     - Start in windowed mode\n");
         printf ("   RESOLUTION - Specify the screen resolution to use\n");
-        printf ("              - next param is <widthxheight>, valid resolutions are:\n");
-        printf ("              - 320x200, 640x480 and 800x600\n");
+        printf ("              - next param is <widthxheight>\n");
 #if (SHAREWARE==0)
         printf ("   FILERTL    - used to load Userlevels (RTL files)\n");
         printf ("              - next parameter is RTL filename\n");
@@ -528,23 +473,18 @@ void CheckCommandLineParameters( void )
     }
 
     // Check For command line parameters
-
-    for (i = 1; i < _argc; i++)
-    {
+    for (i = 1; i < _argc; i++) {
         n = US_CheckParm(_argv[i],PStrings);
-        switch(n)
-        {
+        switch(n) {
 #if (TEDLAUNCH==1)
         case 0:
             tedlevelnum = ParseNum(_argv[i + 1]);
             tedlevel=true;
-            if (i+3>=_argc)
-            {
+            if (i+3>=_argc) {
                 tedx=0;
                 tedy=0;
             }
-            else
-            {
+            else {
                 tedx=ParseNum(_argv[i + 2]);
                 tedy=ParseNum(_argv[i + 3]);
             }
@@ -584,8 +524,7 @@ void CheckCommandLineParameters( void )
         case 10:
             SetTextMode ();
             printf ("Rise of the Triad  (c) 1995 Apogee Software\n");
-            if (gamestate.Product == ROTT_SHAREWARE)
-            {
+            if (gamestate.Product == ROTT_SHAREWARE) {
 #if (DELUXE==1)
                 printf("Lasersoft Deluxe ");
 #elif (LOWCOST==1)
@@ -594,12 +533,10 @@ void CheckCommandLineParameters( void )
                 printf("Shareware ");
 #endif
             }
-            else if (gamestate.Product == ROTT_SUPERCD)
-                printf("CD ");
-            else if (gamestate.Product == ROTT_SITELICENSE)
-                printf("Site License ");
-            else
-                printf("Commercial ");
+            else if (gamestate.Product == ROTT_SUPERCD) printf("CD ");
+            else if (gamestate.Product == ROTT_SITELICENSE) printf("Site License ");
+            else printf("Commercial ");
+
             printf ("Version %d.%d\n", ROTTMAJORVERSION,ROTTMINORVERSION);
             exit (0);
             break;
@@ -2733,18 +2670,14 @@ int PutBytes (unsigned char *ptr, unsigned int bytes)
 //
 //****************************************************************************
 
-void PlayCinematic (void)
-{
+void PlayCinematic (void) {
 
-    if ((tedlevel == true) || (turbo == true))
-        return;
+    if ((tedlevel == true) || (turbo == true)) return;
 
-    switch (gamestate.mapon)
-    {
+    switch (gamestate.mapon) {
 #if (SHAREWARE == 0)
         byte pal[768];
     case 0:        // Start of EPISODE 1
-
         MU_StartSong ( song_cinematic1 );
         VL_FadeOut (0, 255, 0, 0, 0, 20);
         VL_ClearBuffer (bufferofs, 0);
@@ -2757,83 +2690,55 @@ void PlayCinematic (void)
         I_Delay (60);
         VL_FadeOut (0, 255, 0, 0, 0, 20);
         IN_UpdateKeyboard();
-        if (LastScan!=0)
-        {
+        if (LastScan) {
             LastScan=0;
             return;
         }
         SD_PlayPitchedSound(SD_LIGHTNINGSND,255,-1500);
-        DoInBetweenCinematic (20, W_GetNumForName("binoculr"), 80,
-                              "The HUNT cases an\n"
-                              "ancient monastery."
-                             );
+        DoInBetweenCinematic (20, W_GetNumForName("binoculr"), 80, Cin_DarkWarStr_Intro1);
         IN_UpdateKeyboard();
-        if (LastScan!=0)
-        {
+        if (LastScan) {
             LastScan=0;
             return;
         }
         SD_Play(SD_NMESEESND);
-        DoInBetweenCinematic (20, W_GetNumForName("binosee"), 80,
-                              "\"There they are,\" says\n"
-                              "Cassatt. \"Let's get back\n"
-                              "to the boat and inform HQ.\""
-                             );
+        DoInBetweenCinematic (20, W_GetNumForName("binosee"), 80, Cin_DarkWarStr_Intro2);
         IN_UpdateKeyboard();
-        if (LastScan!=0)
-        {
+        if (LastScan) {
             LastScan=0;
             return;
         }
+
         SD_Play(SD_HIGHGUARD1SEESND);
-        DoInBetweenCinematic (20, W_GetNumForName("boatgard"), 80,
-                              "\"The intruders, on that hill!\""
-                             );
+        DoInBetweenCinematic (20, W_GetNumForName("boatgard"), 80, Cin_DarkWarStr_Intro3);
         IN_UpdateKeyboard();
-        if (LastScan!=0)
-        {
+        if (LastScan) {
             LastScan=0;
             return;
         }
         SD_Play(SD_EXPLODESND);
-        DoInBetweenCinematic (20, W_GetNumForName("boatblow"), 80,
-                              "\"There goes our ride home,\"\n"
-                              "says Barrett.  \"Looks like\n"
-                              "the only way out is in....\""
-                             );
+        DoInBetweenCinematic (20, W_GetNumForName("boatblow"), 80, Cin_DarkWarStr_Intro4);
         IN_UpdateKeyboard();
         LastScan=0;
         break;
 
     case 8:        // Start of EPISODE 2
         MU_StartSong ( song_cinematic2 );
-        DoInBetweenCinematic (0, W_GetNumForName("epi12"), 1200,
-                              "The HUNT makes their way\n"
-                              "into the main keep."
-                             );
+        DoInBetweenCinematic (0, W_GetNumForName("epi12"), 1200, Cin_DarkWarStr_Episode2);
         IN_UpdateKeyboard();
         LastScan=0;
         break;
 
     case 16:       // Start of EPISODE 3
         MU_StartSong ( song_cinematic1 );
-        DoInBetweenCinematic (20, W_GetNumForName("epi23"), 1200,
-                              "The HUNT stands before a pair\n"
-                              "of ominous wooden doors.\n"
-                              "The sounds of machinery and\n"
-                              "servomotors fill the air.\n"
-                             );
+        DoInBetweenCinematic (20, W_GetNumForName("epi23"), 1200, Cin_DarkWarStr_Episode3);
         IN_UpdateKeyboard();
         LastScan=0;
         break;
 
     case 24:       // Start of EPISODE 4
         MU_StartSong ( song_cinematic2 );
-        DoInBetweenCinematic (0, W_GetNumForName("epi34"), 1200,
-                              "Stairs lead down beneath the\n"
-                              "keep.  From behind the doors\n"
-                              "come the moans of the undead."
-                             );
+        DoInBetweenCinematic (0, W_GetNumForName("epi34"), 1200, Cin_DarkWarStr_Episode4);
         IN_UpdateKeyboard();
         LastScan=0;
         break;

@@ -121,6 +121,6 @@ void UpdateScreenSaver ( void );
 void DoEndCinematic ( void );
 void DoCreditScreen ( void );
 void DoMicroStoryScreen ( void );
-void DoInBetweenCinematic (int yoffset, int lump, int delay, char * string );
+void DoInBetweenCinematic (int yoffset, int lump, int delay, const char* string );
 
 #endif

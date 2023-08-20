@@ -31,4 +31,12 @@ void GetCinematicTics ( void );
 
 extern boolean cinematicdone;
 
+const char* Cin_DarkWarStr_Intro1   = "The HUNT cases an\nancient monastery.";
+const char* Cin_DarkWarStr_Intro2   = "\"There they are,\" says\nCassatt. \"Let's get back\nto the boat and inform HQ.\"";
+const char* Cin_DarkWarStr_Intro3   = "\"The intruders, on that hill!\"";
+const char* Cin_DarkWarStr_Intro4   = "\"There goes our ride home,\"\nsays Barrett.  \"Looks like\nthe only way out is in....\"";
+const char* Cin_DarkWarStr_Episode2 = "The HUNT makes their way\ninto the main keep.";
+const char* Cin_DarkWarStr_Episode3 = "The HUNT stands before a pair\nof ominous wooden doors.\nThe sounds of machinery and\nservomotors fill the air.\n";
+const char* Cin_DarkWarStr_Episode4 = "Stairs lead down beneath the\nkeep.  From behind the doors\ncome the moans of the undead.";
+
 #endif

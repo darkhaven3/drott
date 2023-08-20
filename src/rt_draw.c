@@ -5198,7 +5198,7 @@ void DoEndCinematic ( void )
     IN_UpdateKeyboard();
 }
 
-void DoInBetweenCinematic (int yoffset, int lump, int delay, char * string )
+void DoInBetweenCinematic (int yoffset, int lump, int delay, const char* string )
 {
     int width,height;
     int x,y;
