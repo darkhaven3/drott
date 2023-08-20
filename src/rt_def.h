@@ -238,7 +238,7 @@ long filelength(int handle);
 #define SOUTH                   2
 #define WEST                    3
 
-#define NUMDIRECTIONS   8
+#define NUMDIRECTIONS           9
 
 //***************************************************************************
 //
@@ -427,20 +427,7 @@ enum    {
 };
 
 ////////////////////////////////////////////////////////////////////////////
-
 /////////////////      GLOBAL STRUCTURE TYPES     //////////////////////////
-
-//d: from the center of a given tile, directions point in this x,y
-const vector2_t DirectionIntegrals[NUMDIRECTIONS] = {
-    {1,  0},    //e
-    {1, -1},    //ne
-    {0, -1},    //n
-    {-1,-1},    //nw
-    {-1, 0},    //w
-    {-1, 1},    //sw
-    {0,  1},    //s
-    {1,  1}     //se
-};
 
 //=================== SHARED FLAGS =====================================//
 

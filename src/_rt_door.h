@@ -34,6 +34,7 @@ typedef struct tp
 
 
 #define NUMTOUCHPLATEACTIONS 8
+#define ELEVATORMUSICTIME   560
 
 #define FL_TACT 0x4000
 #define FL_TSTAT 0x8000

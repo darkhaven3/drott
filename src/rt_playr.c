@@ -3594,10 +3594,9 @@ void Thrust ( objtype * ob )
     index = touchindices[ob->tilex][ob->tiley];
     if (index && (abs(ob->z - nominalheight) < 5))
     {   if (!TRIGGER[index-1]) {
-#if (BNACRASHPREVENT == 1)
+
             if (touchplate[index-1] != 0) { //	CRASH IN SHAREWARE 'ride em cowboy' BNA FIX
-                //SetTextMode (  ); qwert  // DONT ALLOW BAD touchplate ( == 0 ) see rt_door.c
-#endif
+
                 if (touchplate[index-1]->complete)
                     SD_PlaySoundRTP(SD_BADTOUCHSND,ob->x,ob->y);
                 else {
@@ -3605,12 +3604,10 @@ void Thrust ( objtype * ob )
                     if (ob == player)
                         AddMessage("Touchplate triggered.",MSG_GAME);
                 }
-#if (BNACRASHPREVENT == 1)
+
             } else {
                 SD_PlaySoundRTP(SD_BADTOUCHSND,ob->x,ob->y);
             }
-            //	CRASH IN SHAREWARE 'ride em cowboy' BNA FIX
-#endif
         }
         TRIGGER[index-1] = 1;
     }
@@ -4145,27 +4142,13 @@ int FinddTopYZANGLELIMITvalue(objtype *ob)
 void UpdatePlayers ( void )
 {
     objtype * obj;
-//   playertype * pstate;
 
     for (obj = FIRSTACTOR; obj->obclass==playerobj; obj = obj->next)
     {
-
-//ErrorDontQuit("obj->next = ",obj->next);
-#if (BNACRASHPREVENT == 1)//crashed here when oscuro and larves were all killed
         if (obj->next == 0) {
             return;
         }
-#endif
         obj->speed=FindDistance(obj->momentumx, obj->momentumy);
-//       M_LINKSTATE(obj,pstate);
-//       pstate->steptime-=obj->speed;
-//       if (pstate->steptime<0)
-//          {
-//          while (pstate->steptime<0)
-//             pstate->steptime+=PLAYERSTEPTIME;
-//          pstate->stepwhich^=1;
-//          SD_PlaySoundRTP(SD_WALK1SND+pstate->stepwhich,obj->x,obj->y);
-//          }
     }
 }
 

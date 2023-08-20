@@ -59,11 +59,7 @@ Every time a door opens or closes the areabyplayer matrix gets recalculated.
 =============================================================================
 */
 
-
 // Global Variables
-
-
-#define ELEVATORMUSICTIME   560
 
 elevator_t     ELEVATOR[MAXELEVATORS];
 int            _numelevators;
@@ -88,6 +84,20 @@ byte	         areaconnect[NUMAREAS][NUMAREAS];
 
 boolean	      areabyplayer[NUMAREAS];
 
+// USEFUL CONSTANTS
+
+//d: from the center of a given tile, directions point in this x,y
+const vector2_t DirectionIntegrals[NUMDIRECTIONS] = {
+    {1,  0},    //e
+    {1, -1},    //ne
+    {0, -1},    //n
+    {-1,-1},    //nw
+    {-1, 0},    //w
+    {-1, 1},    //sw
+    {0,  1},    //s
+    {1,  1},    //se
+    {0,  0}     //nodir
+};
 
 // Local Variables
 
@@ -136,7 +146,6 @@ void MakeMaskedWallActive(maskedwallobj_t* tmwall)
 ===============
 */
 
-
 void MakeMaskedWallInactive(maskedwallobj_t* tmwall)
 {
     if (tmwall == LASTMASKEDWALL)
@@ -153,7 +162,6 @@ void MakeMaskedWallInactive(maskedwallobj_t* tmwall)
     tmwall->next = NULL;
 
 }
-
 
 /*
 ===============
@@ -617,14 +625,10 @@ void TriggerStuff(void)
                 break;
             }
         }
-#if (BNACRASHPREVENT == 1)
-        //SetTextMode (  ); qwert
-        //	CRASH IN SHAREWARE 'ride em cowboy' BNA FIX
-        // DONT ALLOW BAD touchplate ( == 0 ) see rt_playr.c
+
         if (touchplate[i] == 0) {
             continue;
         }
-#endif
 
         if (!TRIGGER[i])
             continue;
@@ -3069,20 +3073,18 @@ void MoveDoors (void)
 //===========================================================
 
 
-/*
-===============
-=
-= RT_GetAreaNumber
-=
-===============
-*/
+//
+// RT_GetAreaNumber(tilex, tiley, dir)
+//      given a source tile and a direction, find the area number for that tile
+//      pass "nodir" to return the source tile's area number, if applicable
+//
 
 int32_t RT_GetAreaNumber(int32_t tilex, int32_t tiley, int32_t dir) {
     int32_t AtSpot = MAPSPOT((tilex + DirectionIntegrals[dir].x),
                              (tiley + DirectionIntegrals[dir].y), 0) - AREATILE;
 
     if (AtSpot < 0 || AtSpot > NUMAREAS) return 0;
-    else if (dir > NUMDIRECTIONS || dir == nodir)
+    else if (dir > NUMDIRECTIONS)
         Error("RT_GetAreaNumber(%d, %d, %d): invalid direction\n", tilex, tiley, dir);
 
     else return AtSpot;

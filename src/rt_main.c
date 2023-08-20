@@ -56,7 +56,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "rt_debug.h"
 #include "isr.h"
 #include "rt_cfg.h"
-#include "develop.h"
 #include "version.h"
 #include "rt_menu.h"
 #include "rt_dr_a.h"
@@ -72,22 +71,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "music.h"
 #include "fx_man.h"
 
-volatile int    oldtime;
-volatile int    gametime;
+volatile int32_t    oldtime;
+volatile int32_t    gametime;
 
 boolean         tedlevel;
-int             tedlevelnum;
-int             tedx=0;
-int             tedy=0;
 boolean         warp;
-int             warpx=0;
-int             warpy=0;
-int             warpa=0;
-int             NoSound;
-int             polltime;
-int             oldpolltime;
 boolean         fizzlein = false;
-int             pheight;
+int32_t         tedlevelnum;
+int32_t         tedx=0;
+int32_t         tedy=0;
+int32_t         warpx=0;
+int32_t         warpy=0;
+int32_t         warpa=0;
+int32_t         polltime;
+int32_t         oldpolltime;
+int32_t         pheight;
+int             NoSound;        //d:?
 
 boolean SCREENSHOTS             = false;
 boolean MONOPRESENT             = false;
@@ -97,11 +96,9 @@ boolean HUD                     = false;
 boolean IS8250                  = false;
 
 boolean dopefish;
-
 boolean newlevel = false;
 boolean infopause;
 boolean quiet = false;
-
 boolean DebugOk = false;
 
 #if SAVE_SCREEN
@@ -132,9 +129,11 @@ void SetRottScreenRes (int Width, int Height);
 
 extern void crash_print (int);
 extern int setup_homedir (void);
+extern void ComSetTime(void);
+extern void VH_UpdateScreen(void);
+extern void RecordDemoQuery(void);
+extern int CountDigits(const int number);
 
-//extern int G_argc;
-//extern char G_argv[30][80];
 int G_weaponscale;
 extern int iDropDemo;
 extern boolean iG_aimCross;
@@ -142,40 +141,25 @@ extern boolean sdl_fullscreen;
 extern boolean borderWindow;
 extern boolean borderlessWindow;
 
-extern void ComSetTime ( void );
-extern void VH_UpdateScreen (void);
-extern void RottConsole ( void );
-extern void	ReadDelay(long delay);
-extern void RecordDemoQuery ( void );
-
-
-extern int CountDigits(const int number);
-
-int main (int argc, char *argv[])
-{
+int main (int argc, char *argv[]) {
     extern char *BATTMAPS;
     
     _argc = argc;
     _argv = argv;
 
-#if defined(PLATFORM_MACOSX)
-    {
-        /* OS X will give us a path in the form '/Applications/Rise of the Triad.app/Contents/MacOS/Rise of the Triad'.
-           Our data is in Contents/Resources. */
+#if defined(PLATFORM_MACOSX)  // OS X will give us a path in the form '/Applications/Rise of the Triad.app/Contents/MacOS/Rise of the Triad'. Our data is in Contents/Resources.
         char *path;
         const char suffix[] = "/Resources/";
         int end;
         path = (char *)malloc(strlen(argv[0]) + strlen(suffix) + 1);
         if (path == NULL) return 1;
         strcpy(path, argv[0]);
-        /* Back up two '/'s. */
-        for (end = strlen(path)-1; end >= 0 && path[end] != '/'; end--);
+        for (end = strlen(path)-1; end >= 0 && path[end] != '/'; end--);    // Back up two '/'s.
         if (end >= 0) for (--end; end >= 0 && path[end] != '/'; end--);
         strcpy(&path[end], suffix);
         printf("Changing to working directory: %s\n", path);
         chdir(path);
         free(path);
-    }
 #endif
 
     signal (11, crash_print);

@@ -25,7 +25,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define DELUXE   0
 #define LOWCOST  0
 
-#define BNACRASHPREVENT  1 //bna added 
 // Flavor selection (shareware, registered, cd version, site license) has moved to the Makefile
 #ifndef SHAREWARE
 #define SHAREWARE 0

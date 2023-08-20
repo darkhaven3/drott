@@ -1068,15 +1068,10 @@ void DoActor (objtype *ob)
     void (*think)(objtype *);
     int door;
 
-
-//  for(i=0;i<tics;i++)
-//	{
-
-#if (BNACRASHPREVENT == 1)//
     if (ob->state == 0) {
         return;
     }
-#endif
+
     ApplyGravity(ob);
     M_CheckDoor(ob);
     M_CheckBossSounds(ob);
@@ -1196,19 +1191,19 @@ void NewState (objtype *ob, statetype *newstate)
        )
         ob->state = &s_altexplosion1;
     else {
-#if (BNACRASHPREVENT == 1)//crashed here when oscuro and larves were all killed
-        if (ob == 0) {
+
+        if (ob == 0) {  //crashed here when oscuro and larves were all killed
             return;
         }
-#endif
+
         ob->state = newstate;
     }
     SetVisiblePosition(ob,ob->x,ob->y);
-#if (BNACRASHPREVENT == 1)
+
     if (ob->state == 0) {
         return;
     }
-#endif
+
 
     ob->ticcount = (ob->state->tictime>>1);
     ob->shapenum = ob->state->shapenum + ob->shapeoffset;
@@ -11261,11 +11256,11 @@ void EnableObject(long object)
 
     ob = (objtype*)object;
 
-#if (BNACRASHPREVENT == 1)//
+
     if (ob == 0) {
         return;
     }
-#endif
+
 
     ob->flags |= FL_ACTIVE;
     if (ob->obclass == bladeobj)
