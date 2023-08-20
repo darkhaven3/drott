@@ -1650,6 +1650,8 @@ word GetMapCRC
 ======================
 */
 
+extern char CWD[40];        //d:?
+
 void GetAlternateMapInfo (mapfileinfo_t * mapinfo, AlternateInformation *info)
 {
     if (UL_ChangeDirectory (info->path) == false)
@@ -2025,35 +2027,25 @@ word GetNearestAreaNumber ( int tilex, int tiley )
 =
 ===============
 */
-void SetupWindows ( void )
-{
-    int i,j;
-    boolean skythere;
+void SetupWindows(void) {
+    int32_t skythere;
 
-    skythere = SkyExists();
+    skythere = F_SkyExists();
 
-    for (j=0; j<mapheight; j++)
-    {
-        for(i=0; i<mapwidth; i++)
-        {
-            if ((i>=0) && (i<=3) && (j==0))
-                continue;
-            if (IsWindow(i,j))
-            {
+    for (int j=0; j<mapheight; j++) {
+        for(int i=0; i<mapwidth; i++) {
+            if ((i>=0) && (i<=3) && (j==0)) continue;
+
+            if (IsWindow(i,j)) {
                 actorat[i][j]=0;
-                if (skythere==true)
-                {
-                    tilemap[i][j]|=0x2000;
-                }
-                else
-                {
-                    MAPSPOT(i,j,2)=0;
-                }
+
+                if (skythere) tilemap[i][j]|=0x2000;
+                else MAPSPOT(i,j,2)=0;
+
                 MAPSPOT(i,j,0)=(word)(GetNearestAreaNumber(i,j));
             }
         }
     }
-
 }
 
 
@@ -2744,6 +2736,57 @@ void SetupMaskedWalls( void )
             }
         }
 }
+
+/*
+int GetAreaNumber ( int tilex, int tiley, int dir );
+void RemoveDangerWalls
+   (
+   void
+   )
+
+   {
+   int   i;
+   int   j;
+   word *map;
+   word  tile;
+
+   map = mapplanes[ 1 ];
+
+   for( j = 0; j < mapheight; j++ )
+      {
+      for( i = 0; i < mapwidth; i++ )
+	      {
+         tile = *map++;
+         switch( tile )
+		      {
+            case 256:
+		      case 257:
+		      case 258:
+		      case 259:
+               if ( MAPSPOT( i, j, 2 ) == 0 )
+                  {
+                  MAPSPOT( i, j, 0 ) = ( word )( GetAreaNumber( i, j,
+                     ( tile - 256 ) << 1 ) + AREATILE );
+                  MAPSPOT( i, j, 1 ) = 0;
+                  }
+		         break;
+
+            case 300:
+		      case 318:
+		      case 336:
+		      case 354:
+               if ( MAPSPOT( i, j, 2 ) == 0 )
+                  {
+                  MAPSPOT( i, j, 0 ) = ( word )( GetAreaNumber( i, j,
+                     ( ( tile - 300 ) / 9 ) + AREATILE ) );
+                  MAPSPOT( i, j, 1 ) = 0;
+                  }
+		         break;
+            }
+         }
+      }
+   }
+*/
 
 
 /*

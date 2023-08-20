@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include "rt_def.h"
+#include "cin_str.h"
 #include "lumpy.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -202,7 +203,6 @@ int main(int argc, char* argv[]) {
     SetRottScreenRes(iGLOBAL_SCREENWIDTH, iGLOBAL_SCREENHEIGHT);
 
     if (!standalone) {
-        int status2 = 0;
         int nv, nb, nc;
 
         if (!NoSound) {
@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
                 printf("SD_SetupFXCard: ");
             }
 
-            status2 = SD_SetupFXCard(&nv, &nb, &nc);
+            int status2 = SD_SetupFXCard(&nv, &nb, &nc);
             if (!quiet) printf("%s\n", FX_ErrorString(FX_Error));
 
             if (!status2) {
@@ -367,7 +367,6 @@ void CheckCommandLineParameters(void) {
     TILESTATS = false;
     demoexit = false;
 
-    modemgame = false;
     networkgame = false;
     consoleplayer = 0;
     numplayers = 1;
@@ -646,16 +645,14 @@ void SetupWads(void) {
     if (arg != 0) {
         FILE* f;
         char* buf = malloc(32);
-        if (_argv[arg + 1] != 0) { //are there a filename included
+        if (_argv[arg + 1]) { //is a filename included
             int templen = 129 + strlen(_argv[arg + 1]);
-            tempstr = realloc(tempstr, templen);
-
+            tempstr = malloc(templen);
 
             snprintf(tempstr, templen, "%s", _argv[arg + 1]);
-            //strncpy (tempstr,_argv[arg+1], strlen(_argv[arg+1]));//copy it to tempstr
             if (strlen(tempstr) < MAX_PATH) {
-                if (access(tempstr, 0) != 0) { //try open
-                    strncat(tempstr, ".rtl", 4);//non exists, try add .rtc
+                if (access(tempstr, 0) != 0) {
+                    strncat(tempstr, ".rtl", 4);//non exists, try add .rtl
                     if (access(tempstr, 0) != 0) { //try open again
                         //stil no useful filename
 
@@ -678,7 +675,7 @@ void SetupWads(void) {
                     if (((strstr(buf, "RTL") != 0) || strstr(buf, "RTC") != 0)) {
                         GameLevels.file = strdup(tempstr);
                         GameLevels.avail++;
-                        buf = realloc(buf, 32 + strlen(tempstr));
+                        buf = malloc(32 + strlen(tempstr));
                         strncpy(buf, "Adding ", 7);
                         strncat(buf, tempstr, strlen(tempstr) + 32);
                         printf("%s \n", buf);
@@ -701,7 +698,7 @@ NoRTL:
 
         if (_argv[arg + 1] != 0) { //are there a filename included
             int templen = 129 + strlen(_argv[arg + 1]);
-            tempstr = realloc(tempstr, templen);
+            tempstr = malloc(templen);
             snprintf(tempstr, templen, "%s", _argv[arg + 1]);
             //strncpy (tempstr,_argv[arg+1], sizeof(&_argv[arg+1]));//copy it to tempstr
             if (strlen(tempstr) < MAX_PATH) {
@@ -726,7 +723,7 @@ NoRTL:
                     if (((strstr(buf, "RTL") != 0) || strstr(buf, "RTC") != 0)) {
                         BattleLevels.file = strdup(tempstr);
                         BattleLevels.avail++;
-                        buf = realloc(buf, 32 + strlen(tempstr));
+                        buf = malloc(32 + strlen(tempstr));
                         strncpy(buf, "Adding ", 7);
                         strncat(buf, tempstr, strlen(tempstr) + 32);
                         printf("%s \n", buf);
@@ -784,7 +781,7 @@ NoRTC:
     if (RemoteSounds.avail == true) {
         char* src;
 
-        tempstr = realloc(tempstr, strlen(RemoteSounds.path) + strlen(RemoteSounds.file) + 2);
+        tempstr = malloc(strlen(RemoteSounds.path) + strlen(RemoteSounds.file) + 2);
         strncpy(tempstr, RemoteSounds.path, strlen(RemoteSounds.path));
         src = RemoteSounds.path + strlen(RemoteSounds.path) - 1;
         if (*src != '\\')
@@ -2358,8 +2355,7 @@ void WritePCX(char* file, byte* source) {
     // Write to a bit-packed file.
     //
     for (y = 0; y < iGLOBAL_SCREENHEIGHT; ++y) 		// for each line in band
-        if (PutBytes(((unsigned char*) (source + (y * iGLOBAL_SCREENWIDTH))),
-            pcxHDR.bytesperline))
+        if (PutBytes((uint8_t*) source + y*iGLOBAL_SCREENWIDTH, pcxHDR.bytesperline))
             Error("Error writing PCX bit-packed line!\n");
 
     SafeWrite(pcxhandle, tempbuffer, totalbytes);

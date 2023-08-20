@@ -39,6 +39,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "rt_sound.h"
 #include "rt_rand.h"
 
+#define TILE_FIRSTSKY   233
+#define TILE_LIGHTNING  377
+
 /*
 =============================================================================
 
@@ -67,7 +70,6 @@ byte *   mr_src;
 
 static byte     *floorptr;
 static byte     *ceilingptr;
-//static int xstarts[MAXVIEWHEIGHT];
 static int xstarts[MAXSCREENHEIGHT];//set to max hight res
 static byte * skysegs[MAXSKYSEGS];
 static byte * skydata[MAXSKYDATA];
@@ -231,91 +233,35 @@ void MakeSkyData ( void )
 /*
 ===================
 =
-= GetFloorCeilingLump
+= F_GetFlat
 =
 ===================
 */
 
-int GetFloorCeilingLump ( int num )
-{
-    int lump;
+int32_t F_GetFlat(int32_t num) {
+    int32_t lump;
 
-    switch (num)
-    {
-    case 1:
-        lump=W_GetNumForName("FLRCL1\0");
-        break;
-    case 2:
-        lump=W_GetNumForName("FLRCL2\0");
-        break;
-    case 3:
-        lump=W_GetNumForName("FLRCL3\0");
-        break;
-    case 4:
-        lump=W_GetNumForName("FLRCL4\0");
-        break;
-    case 5:
-        lump=W_GetNumForName("FLRCL5\0");
-        break;
-    case 6:
-        lump=W_GetNumForName("FLRCL6\0");
-        break;
-    case 7:
-        lump=W_GetNumForName("FLRCL7\0");
-        break;
-    case 8:
-        lump=W_GetNumForName("FLRCL8\0");
-        break;
-    case 9:
-        lump=W_GetNumForName("FLRCL9\0");
-        break;
-    case 10:
-        lump=W_GetNumForName("FLRCL10\0");
-        break;
-    case 11:
-        lump=W_GetNumForName("FLRCL11\0");
-        break;
-    case 12:
-        lump=W_GetNumForName("FLRCL12\0");
-        break;
-    case 13:
-        lump=W_GetNumForName("FLRCL13\0");
-        break;
-    case 14:
-        lump=W_GetNumForName("FLRCL14\0");
-        break;
-    case 15:
-        lump=W_GetNumForName("FLRCL15\0");
-        break;
-    case 16:
-        lump=W_GetNumForName("FLRCL16\0");
-        break;
-    default:
-        Error("Illegal Floor/Ceiling Tile = %d\n",num);
-        break;
-    }
+    char lumpname[9] = "FLRCL\0\0\0\0";
+    itoa(num, &lumpname[5], 10);
+
+    lump = W_GetNumForName(lumpname);
     return lump;
 }
 
 /*
 ===================
 =
-= SkyExists
+= F_SkyExists
 =
 ===================
 */
 
-boolean SkyExists (void)
-{
-    if (MAPSPOT(1,0,0) >= 234)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+int32_t F_SkyExists(void) {
+    int32_t skyvalue;
 
+    skyvalue = MAPSPOT(1, 0, 0) - TILE_FIRSTSKY;
+    if (skyvalue > 0) return skyvalue;
+    else return 0;
 }
 
 /*
@@ -372,7 +318,7 @@ void SetPlaneViewSize (void)
 
     floornum = MAPSPOT(0,0,0)-(179);
 
-    floornum = GetFloorCeilingLump ( floornum );
+    floornum = F_GetFlat(floornum);
     //ceilingnum = GetFloorCeilingLump ( ceilingnum );
 
     floorptr = W_CacheLumpNum(floornum,PU_LEVELSTRUCT, Cvt_patch_t, 1);
@@ -380,7 +326,7 @@ void SetPlaneViewSize (void)
 
     if (sky==0)  // Don't cache in if not used
     {
-        ceilingnum = GetFloorCeilingLump ( ceilingnum );
+        ceilingnum = F_GetFlat(ceilingnum);
         ceilingptr = W_CacheLumpNum(ceilingnum,PU_LEVELSTRUCT, Cvt_patch_t, 1);
         ceilingptr +=8;
     } else {
